@@ -1,6 +1,6 @@
 # EHANK
 
-This repository contains code and data for the project on sovereign risk in an EHANK framework.
+This repository contains code and data for the project on the EHANK framework.
 
 ## 👥 Authors
 - Boris Chafwehe
