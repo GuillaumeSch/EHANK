@@ -23,4 +23,4 @@ This repository contains code and data for the project on sovereign risk in an E
 To clone the repo:
 
 ```bash
-git clone git@github.com:yourusername/ehank.git
+git clone git@github.com:yourusername/EHANK.git
