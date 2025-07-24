@@ -13,7 +13,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from sequence_jacobian import grids, interpolate
 from sequence_jacobian.blocks.stage_block import StageBlock
 # Custom utilities
-from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables
+from SSJ_Fun.utils import LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables
 
 
 #%% Interactive plot
@@ -483,28 +483,22 @@ labsup_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='labs
                            taste_shock_scale='taste_shock')
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
-#dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, shifters)
+
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
-def dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, shifters):
+def dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, gamma, eta):
     """DC-EGM algorithm"""
-    n_d = durable_exp.shape[0] #Number of discrete choices
     # use all FOCs on endogenous grid
     W = beta * V                                                  # end-of-stage vfun
-    W = np.stack([W] * n_d, axis=0)                               # Add first dimension to match the dimensions
+    W = np.stack([W, W], axis=0)                                  # Add first dimension to match the dimensions
     uc_endo = beta * Va                                           # envelope condition
     c_endo = uc_endo** (-eis)                                     # Euler equation
     a_endo = (c_endo[np.newaxis, ...] + a_grid[np.newaxis, np.newaxis, np.newaxis, ...] + durable_exp[..., np.newaxis,np.newaxis] - y_w[np.newaxis, ..., np.newaxis]) / (1 + r)     # budget constraint
 
-    #d_bool = np.zeros_like(a_endo)
-    #d_bool[1,:,:,:] = 1 #Decide to have a car (either keeping the existing car or buying)
-
-    # Mark the presence of each durable
-    d_type = np.zeros_like(a_endo)
-    for d in range(0, n_d):
-        d_type[d, :, :, :] = d
+    d_bool = np.zeros_like(a_endo)
+    d_bool[1,:,:,:] = 1 #Decide to have a car (either keeping the existing car or buying)
 
     # interpolate with upper envelope, enforce borrowing limit
-    V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, eis, shifters)
+    V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_bool, eis, gamma, eta)
 
     # update Va on exogenous grid
     uc = c ** (-1 / eis)                                          # Euler equation
@@ -516,14 +510,14 @@ def dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, shifters):
 
 
 #Simple wrapper to make it independent of the size of the state space. Temporarily collapse states associated with all other stages into a single axis.
-def upperenv(W, a_endo, disp_inc, a_grid, d_type, *args):
+def upperenv(W, a_endo, disp_inc, a_grid, d_bool, *args):
     # collapse (d_tilde, d, z, a) into (b, a)
     shape = W.shape
     W = W.reshape((-1, shape[-1]))
     a_endo = a_endo.reshape((-1, shape[-1]))
-    d_type = d_type.reshape((-1, shape[-1]))
+    d_bool = d_bool.reshape((-1, shape[-1]))
     disp_inc = disp_inc.reshape((-1, shape[-1]))
-    V, c, a = upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args)
+    V, c, a = upperenv_vec(W, a_endo, disp_inc, a_grid, d_bool, *args)
 
     # report on (d_tilde, d, z, a)
     return V.reshape(shape), c.reshape(shape), a.reshape(shape)
@@ -535,7 +529,7 @@ def upperenv(W, a_endo, disp_inc, a_grid, d_type, *args):
 # Since the endogenous grid is non-monotonic, the same point $a^{grid}_i$ may be bracketed by another segment $(a_{\tilde j}^{endo}, a_{\tilde j+1}^{endo}).$
 # When this happens, we keep the solution that gives higher value.
 @njit
-def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args):
+def upperenv_vec(W, a_endo, disp_inc, a_grid, d_bool, *args):
     """Interpolate value function and consumption to exogenous grid."""
     n_b, n_a = W.shape
     a = np.zeros_like(W)
@@ -545,7 +539,7 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args):
     # loop over other states, collapsed into single axis
     for ib in range(n_b):
         #d = min(ib * 2 // n_b, 2 - 1)
-        d = int(d_type[ib,0])
+        d = d_bool[ib,0]
         # loop over segments of endogenous asset grid from EGM (not necessarily increasing)
         for ja in range(n_a - 1):
             a_low, a_high = a_endo[ib, ja], a_endo[ib, ja + 1]
@@ -588,71 +582,38 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args):
 
 # %% Utilitz function
 @njit
-def util(c, d, eis, shifters):
-    """
-    General utility function for arbitrary discrete states.
-
-    Parameters:
-    - c: consumption (scalar)
-    - d: discrete state index (integer)
-    - eis: elasticity of intertemporal substitution
-    - shifters: 1D array of utility shifters per d-state
-    """
-    # Basic bounds check (without exception)
-    #if d < 0 or d >= shifters.shape[0]:
-    #    return -1e10  # or some other penalizing value instead of raising an error
-
-    if eis == 1.0:
-        u = np.log(c) + shifters[d]
+def util(c, d, eis, gamma, eta = 0):
+    d = np.array(d)
+    if d == 1:
+        if eis == 1:
+            u = np.log(c) + gamma * d
+        else:
+            u = c ** (1 - 1 / eis) / (1 - 1 / eis) + gamma * d
+    elif d == 0:
+        if eis == 1:
+            u = np.log(c)
+        else:
+            u = c ** (1 - 1 / eis) / (1 - 1 / eis)
     else:
-        u = c ** (1 - 1 / eis) / (1 - 1 / eis) + shifters[d]
-
+        Warning('GSCHW: Problem in the utility function.')
     return u
 
 
 #Report the aggregate demand for d
-#def D_demand(c):
-#    dd = np.zeros_like(c)
-#    dd_2 = np.zeros_like(c)
-#    dd[1, ...] = 1
-#    dd_2[:,1, ...] = 1
-#    return dd, dd_2
-
 def D_demand(c):
-    """
-    For each discrete durable choice d=0,...,D-1,
-    return pairs (dd_tilde_d, dd_d) where:
-      - dd_tilde_d[d, ...] = 1 (axis 0 indicator)
-      - dd_d[:, d, ...] = 1 (axis 1 indicator)
-
-    Returns:
-      tuple of arrays:
-        (dd_tilde_0, dd_0, dd_tilde_1, dd_1, ..., dd_tilde_{D-1}, dd_{D-1})
-    """
-    shape = c.shape
-    D = shape[0]
-
-    result = []
-    for d in range(D):
-        dd_tilde = np.zeros(shape, dtype=c.dtype)
-        dd = np.zeros(shape, dtype=c.dtype)
-        dd_tilde[d, ...] = 1
-        dd[:, d, ...] = 1
-        result.extend([dd_tilde, dd])
-
-    return tuple(result)
-
-
-
+    dd = np.zeros_like(c)
+    dd_2 = np.zeros_like(c)
+    dd[1, ...] = 1
+    dd_2[:,1, ...] = 1
+    return dd, dd_2
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
                             name='consav', hetoutputs=[D_demand])
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
-def hh_init(disp_inc, a_grid, eis, shifters):
-    #V = util(disp_inc-np.min(disp_inc)+1, 0, eis, gamma, eta) #Avoid strange behaviour due to negative values. Not too important as only for first guess.
-    V = util(disp_inc-np.min(disp_inc)+1, 0, eis, shifters) #Avoid strange behaviour due to negative values. Not too important as only for first guess.
+def hh_init(disp_inc, a_grid, eis, gamma, eta):
+    V = util(disp_inc-np.min(disp_inc)+1, 0, eis, gamma, eta) #Avoid strange behaviour due to negative values. Not too important as only for first guess.
     V = (V[0,:,:,:] + V[1,:,:,:])/2 #Get rid of first dimension
     Va = np.empty_like(V)
     Va[..., 1:-1] = (V[..., 2:] - V[..., :-2]) / (a_grid[2:] - a_grid[:-2])
@@ -661,18 +622,17 @@ def hh_init(disp_inc, a_grid, eis, shifters):
     return V, Va
 
 #construct Markov process for productivity, for depreciation of durables and the assets grid
-def make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, n_d, dep_pr):
+def make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, dep_pr):
     z_grid, z_dist, z_markov = grids.markov_rouwenhorst(rho_z, sd_z, n_z)
     a_grid = grids.agrid(max_a, n_a, min_a)
-    #d_grid = np.array([0, 1])
-    #d_markov = np.array([[1, 0.00],
-    #        [dep_pr, 1-dep_pr]])
-    d_grid, d_markov = make_d_grid(n_d, dep_pr)
+    d_grid = np.array([0, 1])
+    d_markov = np.array([[1, 0.00],
+            [dep_pr, 1-dep_pr]])
     return z_grid, z_dist, z_markov, a_grid, d_grid, d_markov
 
-def disp_inc_f(a_grid, z_grid, r, w, p_d, chi): #Disposable income for consumption and assets after buying the durable good
-    #p = np.array([0, p_d]) #Vector of prices of durables
-    durable_exp = p_d[:, None] - (1 - chi) * p_d  # Create matrix of adjustment costs
+def disp_inc_f(a_grid, z_grid, r, w, p_d, chi): #Disposible income for consumption and assets after buying the durable good
+    p = np.array([0, p_d]) #Vector of prices of durables
+    durable_exp = p[:, None] - (1 - chi) * p  # Create matrix of adjustment costs
     np.fill_diagonal(durable_exp, 0)  # set diagonal to 0 (no cost if no switching)
     y_w = z_grid[np.newaxis] * w            # on (1, z)
     disp_inc = (1 + r) * a_grid[np.newaxis, np.newaxis, :] + y_w[..., np.newaxis] - durable_exp[..., np.newaxis, np.newaxis] # on (nd, z, a) #Disposable income for consumption
@@ -694,22 +654,16 @@ print(f"Outputs: {hh.outputs}")
 
 #Specify different calibration
 cali = dict()
-n_d = 3
-p = 0.80
-p_d = np.array([0] + [p] * (n_d - 1))
+p_d = 0.80
+gamma = 1
+eta = 0.5 #Useless for now
+n_d = 1
 dep_pr = 0.25 #Depreciation probability of the durable good
 chi = 0.5 #Loss of value of durable if sold.
-#gamma = 1
-#eta = 0.5 #Useless for now
-gamma_b = 1 #Utility from having a brown durable
-gamma_g = 1 #Utility from having a green durable
-#shifters = np.array([0, gamma_b, gamma_g])
-shifters = np.array([0] + [gamma_b] * (n_d - 1))
-
 
 cali['baseline'] = {'taste_shock': 1E-1, 'vphi': 0.0, 'r': 0.02/4, 'beta': 0.97, 'eis': 0.5,
                'rho_z': 0.95, 'sd_z': 0.5, 'n_z': 7,
-               'min_a': 0.0, 'max_a': 200, 'n_a': 200, 'w': 1.0, 'p_d': p_d, 'n_d': n_d, 'dep_pr': dep_pr, 'chi' : chi, 'shifters':shifters}
+               'min_a': 0.0, 'max_a': 200, 'n_a': 200, 'w': 1.0, 'p_d': p_d, 'n_d': n_d, 'gamma' : gamma, 'eta': eta, 'dep_pr': dep_pr, 'chi' : chi}
 
 taste_shock = 1e-5
 vphi = 0.0
@@ -725,9 +679,9 @@ n_a = 200
 w = 1.0
 
 #%% Only useful for debugging
-z_grid, z_dist, z_markov, a_grid, d_grid, d_markov = make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, n_d, dep_pr)
+z_grid, z_dist, z_markov, a_grid, d_grid, d_markov = make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, dep_pr)
 y_w, disp_inc, durable_exp = disp_inc_f(a_grid, z_grid, r, w, p_d, chi)
-V, Va = hh_init(disp_inc, a_grid, eis, shifters)
+V, Va = hh_init(disp_inc, a_grid, eis, gamma, eta)
 #%% Baseline model
 
 ss = dict()
@@ -738,7 +692,7 @@ print('Proportion of people with a car at the beginning of the period (state var
 print('Ratio of DD2/DD: ',ss['baseline']['DD_2'] / ss['baseline']['DD'])
 print(ss['baseline']['C'])
 #%%
-policy_functions(ss, amax=150, d_tilde_list=[0] ,d_list = [0],iz_list=[0,3,6], figsize=0.8, models = ['baseline'])
+policy_functions(ss, amax=150, d_tilde_list=[0] ,d_list = [0],iz_list=[0,3], figsize=0.8, models = ['baseline'])
 
 #%%
 ss['baseline'].internals['hh']['labsup']['law_of_motion'].P.shape
@@ -771,9 +725,9 @@ CS_dep_pr_chi_2 = analyze_steady_state_3d(
 #%% Comparative statics
 CS_gamma_p_d = analyze_steady_state_3d(
     param1='gamma',
-    values1=np.linspace(0.1, 5, 6),
+    values1=np.linspace(0.1, 5, 5),
     param2='p_d',
-    values2=np.linspace(0.1, 5, 6),
+    values2=np.linspace(0.1, 5, 5),
     cali=cali,
     hh=hh
 )
