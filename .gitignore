@@ -1,0 +1,33 @@
+# Raw and processed data (never tracked)
+data/raw/
+data/processed/*.csv
+data/processed/*.dta
+data/processed/*.mat
+
+# Output
+output/
+logs/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# R artifacts
+*.Rhistory
+*.RData
+
+# Stata
+*.log
+*.dta~  # backup files
+
+# MATLAB
+*.asv
+
+# LaTeX
+*.aux
+*.toc
+*.log
+*.out
+
+# macOS system files
+.DS_Store

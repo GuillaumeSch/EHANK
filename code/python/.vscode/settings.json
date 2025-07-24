@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./SSJ_Fun"
+    ]
+}
