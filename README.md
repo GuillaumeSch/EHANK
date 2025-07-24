@@ -1,6 +1,6 @@
-# EHANK-SovRisk
+# EHANK
 
-This repository contains code and data for the project on sovereign risk in an EHANK (Extended Heterogeneous Agent New Keynesian) framework.
+This repository contains code and data for the project on sovereign risk in an EHANK framework.
 
 ## 👥 Authors
 - Boris Chafwehe
