@@ -13,32 +13,64 @@ from sequence_jacobian.utilities.ordered_set import OrderedSet
 from sequence_jacobian.utilities.interpolate import interpolate_coord_robust, interpolate_coord
 
 
-def make_d_grid(D, depr):
+def make_d_grid(n_b=3, n_g=3, lifetime_b=60, lifetime_g=60):
     """
-    Create d_grid and Markov transition matrix with depreciation structure:
-      - State 0 is absorbing.
-      - States d > 0 depreciate to 0 with probability `depr`, or stay with probability 1 - depr.
+    Create d_grid and Markov matrix for durable goods with two types: brown and green.
 
     Args:
-      D (int): number of discrete states
-      depr (float): depreciation probability
+        n_b (int): number of brown vintages
+        n_g (int): number of green vintages
+        lifetime_b (int): average lifetime of brown cars (in quarters)
+        lifetime_g (int): average lifetime of green cars (in quarters)
 
     Returns:
-      d_grid (np.array): discrete state grid [0, 1, ..., D-1]
-      d_markov (np.array): D x D transition matrix
+        d_grid (np.array): state labels (0 = no car, 1... = vintages)
+        d_markov (np.array): Markov transition matrix
+        mapping (dict): maps each state index to a tuple (type, vintage)
     """
-    d_grid = np.arange(D)
-    d_markov = np.zeros((D, D))
 
-    # State 0 is absorbing
+    delta_b = n_b / lifetime_b
+    delta_g = n_g / lifetime_g
+
+    total_states = 1 + n_b + n_g  # state 0 is "no car"
+    d_grid = np.arange(total_states)
+    d_markov = np.zeros((total_states, total_states))
+
+    mapping = {0: ('none', 0)}
+    # Fill brown states
+    for i in range(n_b):
+        s = 1 + i
+        mapping[s] = ('brown', i + 1)
+
+    # Fill green states
+    for i in range(n_g):
+        s = 1 + n_b + i
+        mapping[s] = ('green', i + 1)
+
+    # No car is absorbing
     d_markov[0, 0] = 1.0
 
-    # Other states: depreciate to 0 with probability `depr`, stay with 1 - depr
-    for d in range(1, D):
-        d_markov[d, 0] = depr            # move to 0
-        d_markov[d, d] = 1.0 - depr      # stay
+    # Brown transitions
+    for i in range(n_b):
+        s = 1 + i
+        if i < n_b - 1:
+            d_markov[s, s] = 1 - delta_b         # stay in vintage
+            d_markov[s, s + 1] = delta_b         # move to next vintage
+        else:
+            d_markov[s, s] = 1 - delta_b         # last brown vintage
+            d_markov[s, 0] = delta_b             # depreciate to no car
 
-    return d_grid, d_markov
+    # Green transitions
+    for i in range(n_g):
+        s = 1 + n_b + i
+        if i < n_g - 1:
+            d_markov[s, s] = 1 - delta_g
+            d_markov[s, s + 1] = delta_g
+        else:
+            d_markov[s, s] = 1 - delta_g
+            d_markov[s, 0] = delta_g
+
+    return d_grid, d_markov, mapping
 
 
 

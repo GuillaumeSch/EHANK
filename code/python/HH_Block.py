@@ -9,11 +9,12 @@ from scipy.interpolate import interp1d, griddata
 # Plotting
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+import colorsys
 # Sequence-Jacobian framework
 from sequence_jacobian import grids, interpolate
 from sequence_jacobian.blocks.stage_block import StageBlock
 # Custom utilities
-from SSJ_Fun.utils import LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables
+from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables
 
 
 #%% Interactive plot
@@ -22,77 +23,114 @@ from SSJ_Fun.utils import LogitChoiceDurables, ExogenousMaker, Continuous1D_Dura
 #%% Some useful functions for debugging
 
 #Function to vizualize policy function
-def policy_functions(ss, amax=150, amin=0, d_tilde_list=[0], d_list=[0], iz_list=[3], figsize=0.6, models=['baseline']):
+def policy_functions(
+    ss,
+    amax=150,
+    amin=0,
+    d_tilde_list=[0],
+    d_list=[0],
+    iz_list=[3],
+    figsize=0.6,
+    models=['baseline']
+):
     a_grid = ss['baseline'].internals['hh']['a_grid']
+
     a, da, c, P, V = dict(), dict(), dict(), dict(), dict()
 
-    for i in models:
-        a[i] = ss[i].internals['hh']['consav']['a']
-        da[i] = a[i] - a_grid
-        c[i] = ss[i].internals['hh']['consav']['c']
-        P[i] = ss[i].internals['hh']['labsup']['law_of_motion'].P
-        V[i] = ss[i].internals['hh']['labsup']['V']
+    for model in models:
+        a[model] = ss[model].internals['hh']['consav']['a']
+        da[model] = a[model] - a_grid
+        c[model] = ss[model].internals['hh']['consav']['c']
+        P[model] = ss[model].internals['hh']['labsup']['law_of_motion'].P
+        V[model] = ss[model].internals['hh']['labsup']['V']
 
     fig, axes = plt.subplots(1, 3, figsize=(12 * figsize, 4 * figsize))
     ax = axes.flatten()
 
-    # Assign unique colors to each model
-    model_colors = {model: color for model, color in zip(models, plt.cm.tab10.colors)}
-
-    # Define line styles for combinations of (d_tilde, d, iz)
+    # Define line styles for each iz (cycle if fewer styles than iz_list)
     linestyles = ['-', '--', '-.', ':']
-    while len(linestyles) < len(d_tilde_list) * len(d_list) * len(iz_list):
-        linestyles += linestyles
+    linestyle_map = {
+        iz: linestyles[i % len(linestyles)]
+        for i, iz in enumerate(iz_list)
+    }
 
+    n = len(d_tilde_list)
+    color_map = {}
+    for i, d_tilde in enumerate(d_tilde_list):
+        hue = i / n  # equally spaced hues on color wheel
+        r, g, b = colorsys.hsv_to_rgb(hue, 1, 1)  # full saturation and brightness
+        color_map[d_tilde] = (r, g, b)  # matplotlib accepts RGB tuples (0-1 range)
+
+    # Define alpha values for d_list, normalized between 0.3 and 1 for visibility
+    if len(d_list) > 1:
+        alphas = np.linspace(0.3, 1.0, len(d_list))
+    else:
+        alphas = [1.0]
+    alpha_map = {
+        d_val: alpha
+        for d_val, alpha in zip(d_list, alphas)
+    }
+
+    # Plot
     for model in models:
-        color = model_colors[model]
-        combos = [(d_tilde, d, iz) for d_tilde in d_tilde_list for d in d_list for iz in iz_list]
-        for idx, (d_tilde, d, iz) in enumerate(combos):
-            linestyle = linestyles[idx]
-            label = f"{model} ($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
+        for d_tilde in d_tilde_list:
+            for d in d_list:
+                for iz in iz_list:
+                    linestyle = linestyle_map[iz]
+                    color = color_map[d_tilde]
+                    alpha = alpha_map[d]
 
-            ax[0].plot(
-                a_grid[:amax],
-                #np.sum(P[model][:, d, iz, :amax] * a[model][:, d, iz, :amax], axis=0),
-                a[model][d_tilde, d, iz, :amax],
-                label=label,
-                linewidth=2,
-                color=color,
-                linestyle=linestyle
-            )
+                    label = f"{model} ($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
 
-            ax[1].plot(
-                a_grid[:amax],
-                #np.sum(P[model][:, d, iz, :amax] * c[model][:, d, iz, :amax], axis=0),
-                c[model][d_tilde, d, iz, :amax],
-                label=label,
-                linewidth=2,
-                color=color,
-                linestyle=linestyle
-            )
+                    # Asset policy function
+                    ax[0].plot(
+                        a_grid[:amax],
+                        a[model][d_tilde, d, iz, :amax],
+                        label=label,
+                        linewidth=2,
+                        color=color,
+                        linestyle=linestyle,
+                        alpha=alpha
+                    )
 
-            ax[2].plot(
-                a_grid[amin:amax],
-                P[model][1, d, iz, amin:amax],
-                label=label,
-                linewidth=2,
-                color=color,
-                linestyle=linestyle
-            )
+                    # Consumption policy function
+                    ax[1].plot(
+                        a_grid[:amax],
+                        c[model][d_tilde, d, iz, :amax],
+                        label=label,
+                        linewidth=2,
+                        color=color,
+                        linestyle=linestyle,
+                        alpha=alpha
+                    )
 
+                    # Discrete choice probability
+                    ax[2].plot(
+                        a_grid[amin:amax],
+                        P[model][d_tilde, d, iz, amin:amax],
+                        label=label,
+                        linewidth=2,
+                        color=color,
+                        linestyle=linestyle,
+                        alpha=alpha
+                    )
+
+    # Reference lines for assets plot
     ax[0].plot(a_grid[:amax], a_grid[:amax], color='gray', linestyle=':')
     ax[0].axhline(0, color='gray', linestyle=':')
 
+    # Titles
     ax[0].set_title(r'Assets ($a^*(\tilde{d},\, d,\, z,\, a^{-})$)')
     ax[1].set_title(r'Consumption ($c^*(\tilde{d},\, d,\, z,\, a^{-})$)')
-    ax[2].set_title(r'Discrete choice ($Pr(\tilde{d}^*(d,\, z,\, a^{-})=1$)')
+    ax[2].set_title(r'Discrete choice ($Pr(\tilde{d}^*(d,\, z,\, a^{-})=1)$)')
 
-    for k in ax:
-        k.set_xlabel('assets')
-        k.legend(frameon=False)
+    for axis in ax:
+        axis.set_xlabel('assets')
+        axis.legend(frameon=False)
 
     plt.tight_layout()
     plt.show()
+
 
 
 
@@ -247,22 +285,27 @@ def make_strictly_increasing(uc):
 
     return uc_fixed
 
-def analyze_steady_state(param_name, param_values, cali, hh):
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+
+def analyze_steady_state(param_name, param_values, cali, hh, n_d):
     """
-    Vary a calibration parameter and plot steady-state outcomes for DD, A, and C.
+    Vary a calibration parameter and plot steady-state outcomes for DD_i and DD_TILDE_i, A, and C.
 
     Args:
         param_name (str): Name of the parameter in cali['baseline'] to vary.
         param_values (array-like): Grid of values to assign to the parameter.
         cali (dict): Dictionary containing the baseline calibration.
         hh (module/object): Object with a method `steady_state(cali_dict)`.
+        n_d (int): Number of durable states (e.g. 1 + n_b + n_g)
 
     Returns:
-        dict: Dictionary with raw and interpolated results for DD, A, and C.
+        dict: Dictionary with raw and interpolated results for DD_i, A, and C.
     """
-
-    dd_vals = []
-    dd2_vals = []
+    # Store DD and DD_TILDE as list of lists, one per vintage i
+    dd_vals = [[] for _ in range(n_d)]
+    dd_tilde_vals = [[] for _ in range(n_d)]
     a_vals = []
     c_vals = []
     success_flags = []
@@ -272,86 +315,89 @@ def analyze_steady_state(param_name, param_values, cali, hh):
         cali_try[param_name] = val
         try:
             ss_try = hh.steady_state(cali_try)
-            dd_vals.append(ss_try['DD'])
-            dd2_vals.append(ss_try['DD_2'])
+
+            for i in range(n_d):
+                dd_vals[i].append(ss_try[f'DD_{i}'])
+                dd_tilde_vals[i].append(ss_try[f'DD_TILDE_{i}'])
+
             a_vals.append(ss_try['A'])
             c_vals.append(ss_try['C'])
             success_flags.append(True)
             print(f"SS found for {param_name} = {val:.3f}!")
         except Exception as e:
             print(f"Failed for {param_name} = {val:.3f}: {e}")
-            dd_vals.append(np.nan)
-            dd2_vals.append(np.nan)
+            for i in range(n_d):
+                dd_vals[i].append(np.nan)
+                dd_tilde_vals[i].append(np.nan)
             a_vals.append(np.nan)
             c_vals.append(np.nan)
             success_flags.append(False)
 
     # Convert to arrays
     param_values = np.array(param_values)
-    dd_vals = np.array(dd_vals)
-    dd2_vals = np.array(dd2_vals)
+    dd_vals = [np.array(v) for v in dd_vals]
+    dd_tilde_vals = [np.array(v) for v in dd_tilde_vals]
     a_vals = np.array(a_vals)
     c_vals = np.array(c_vals)
 
-    # Interpolation
-    mask_dd = ~np.isnan(dd_vals)
-    mask_dd2 = ~np.isnan(dd2_vals)
-    mask_a = ~np.isnan(a_vals)
-    mask_c = ~np.isnan(c_vals)
+    # Plotting DD_i and DD_TILDE_i
+    fig, axs = plt.subplots(1, n_d, figsize=(3 * n_d, 2), sharex=True)
+    if n_d == 1:
+        axs = [axs]  # ensure list-like even for 1 subplot
 
-    interp_dd = interp1d(param_values[mask_dd], dd_vals[mask_dd], kind='linear', fill_value="extrapolate")
-    interp_dd2 = interp1d(param_values[mask_dd2], dd_vals[mask_dd2], kind='linear', fill_value="extrapolate")
-    interp_a = interp1d(param_values[mask_a], a_vals[mask_a], kind='linear', fill_value="extrapolate")
-    interp_c = interp1d(param_values[mask_c], c_vals[mask_c], kind='linear', fill_value="extrapolate")
+    for i in range(n_d):
+        mask_dd = ~np.isnan(dd_vals[i])
+        mask_dd_tilde = ~np.isnan(dd_tilde_vals[i])
 
-    dd_vals_interp = dd_vals.copy()
-    dd2_vals_interp = dd2_vals.copy()
-    a_vals_interp = a_vals.copy()
-    c_vals_interp = c_vals.copy()
+        # Interpolate missing values
+        interp_dd = interp1d(param_values[mask_dd], dd_vals[i][mask_dd], kind='linear', fill_value="extrapolate")
+        interp_dd_tilde = interp1d(param_values[mask_dd_tilde], dd_tilde_vals[i][mask_dd_tilde], kind='linear', fill_value="extrapolate")
+        dd_vals_interp = dd_vals[i].copy()
+        dd_tilde_vals_interp = dd_tilde_vals[i].copy()
+        dd_vals_interp[~mask_dd] = interp_dd(param_values[~mask_dd])
+        dd_tilde_vals_interp[~mask_dd_tilde] = interp_dd_tilde(param_values[~mask_dd_tilde])
 
-    dd_vals_interp[~mask_dd] = interp_dd(param_values[~mask_dd])
-    dd2_vals_interp[~mask_dd2] = interp_dd2(param_values[~mask_dd2])
-    a_vals_interp[~mask_a] = interp_a(param_values[~mask_a])
-    c_vals_interp[~mask_c] = interp_c(param_values[~mask_c])
+        # Plot both
+        axs[i].plot(param_values, dd_vals_interp, '--', color='blue', label=f'DD_{i}')
+        axs[i].plot(param_values, dd_tilde_vals_interp, '--', color='green', label=f'DD_TILDE_{i}')
+        axs[i].plot(param_values[mask_dd], dd_vals[i][mask_dd], 'o', color='blue')
+        axs[i].plot(param_values[mask_dd_tilde], dd_tilde_vals[i][mask_dd_tilde], 's', color='green')
+        axs[i].set_title(f'Durable state {i}')
+        axs[i].set_xlabel(param_name)
+        axs[i].set_ylim(0, 1)
+        axs[i].grid(True)
+        axs[i].legend()
 
-    # Plotting
-    fig, axs = plt.subplots(1, 3, figsize=(12, 3), sharex=True)
+    axs[0].set_ylabel("Durable Ownership Share")
 
-    # DD
-    # Plot interpolated curves
-    axs[0].plot(param_values, dd_vals_interp, '--', color='gray', label='DD1')
-    axs[0].plot(param_values, dd2_vals_interp, '--', color='black', label='DD2')
-    axs[0].plot(param_values[mask_dd], dd_vals[mask_dd], 'o', color='blue')
-    axs[0].plot(param_values[~mask_dd], dd_vals_interp[~mask_dd], 'x', color='blue')
-    axs[0].plot(param_values[mask_dd2], dd2_vals[mask_dd2], 's', color='green')
-    axs[0].plot(param_values[~mask_dd2], dd2_vals_interp[~mask_dd2], 'x', color='green')
-    # Labels and grid
-    axs[0].set_ylabel('DD')
-    axs[0].set_title(f'SS DD (share of durable owner) vs. {param_name}')
-    axs[0].grid(True)
-    # Clean legend (remove duplicates)
-    handles, labels = axs[0].get_legend_handles_labels()
-    unique = dict(zip(labels, handles))
-    axs[0].legend(unique.values(), unique.keys())
+    # A and C
+    fig_ac, axs_ac = plt.subplots(1, 2, figsize=(8, 3), sharex=True)
 
     # A
-    axs[1].plot(param_values, a_vals_interp, '--', color='gray', label='Interpolated')
-    axs[1].plot(param_values[mask_a], a_vals[mask_a], 'o', color='blue', label='Computed')
-    axs[1].plot(param_values[~mask_a], a_vals_interp[~mask_a], 'x', color='red', label='Interpolation')
-    axs[1].set_xlabel(f'{param_name}')
-    axs[1].set_ylabel('A (Assets)')
-    axs[1].set_title(f'SS A vs. {param_name}')
-    axs[1].legend()
-    axs[1].grid(True)
+    mask_a = ~np.isnan(a_vals)
+    interp_a = interp1d(param_values[mask_a], a_vals[mask_a], kind='linear', fill_value="extrapolate")
+    a_vals_interp = a_vals.copy()
+    a_vals_interp[~mask_a] = interp_a(param_values[~mask_a])
+    axs_ac[0].plot(param_values, a_vals_interp, '--', color='gray')
+    axs_ac[0].plot(param_values[mask_a], a_vals[mask_a], 'o', color='blue')
+    axs_ac[0].plot(param_values[~mask_a], a_vals_interp[~mask_a], 'x', color='red')
+    axs_ac[0].set_ylabel("A (Assets)")
+    axs_ac[0].set_title("Steady-state A")
 
     # C
-    axs[2].plot(param_values, c_vals_interp, '--', color='gray')
-    axs[2].plot(param_values[mask_c], c_vals[mask_c], 'o', color='blue')
-    axs[2].plot(param_values[~mask_c], c_vals_interp[~mask_c], 'x', color='red')
-    axs[2].set_xlabel(f'{param_name}')
-    axs[2].set_ylabel('C (Consumption)')
-    axs[2].set_title(f'SS C vs. {param_name}')
-    axs[2].grid(True)
+    mask_c = ~np.isnan(c_vals)
+    interp_c = interp1d(param_values[mask_c], c_vals[mask_c], kind='linear', fill_value="extrapolate")
+    c_vals_interp = c_vals.copy()
+    c_vals_interp[~mask_c] = interp_c(param_values[~mask_c])
+    axs_ac[1].plot(param_values, c_vals_interp, '--', color='gray')
+    axs_ac[1].plot(param_values[mask_c], c_vals[mask_c], 'o', color='blue')
+    axs_ac[1].plot(param_values[~mask_c], c_vals_interp[~mask_c], 'x', color='red')
+    axs_ac[1].set_ylabel("C (Consumption)")
+    axs_ac[1].set_title("Steady-state C")
+
+    for ax in axs_ac:
+        ax.set_xlabel(param_name)
+        ax.grid(True)
 
     plt.tight_layout()
     plt.show()
@@ -359,18 +405,21 @@ def analyze_steady_state(param_name, param_values, cali, hh):
     return {
         'param_values': param_values,
         'dd_vals': dd_vals,
+        'dd_tilde_vals': dd_tilde_vals,
         'a_vals': a_vals,
         'c_vals': c_vals,
-        'dd_vals_interp': dd_vals_interp,
-        'a_vals_interp': a_vals_interp,
-        'c_vals_interp': c_vals_interp,
-        'success_flags': success_flags
+        'success_flags': success_flags,
     }
 
-def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, results=None):
+
+
+
+
+def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, n_d, results=None):
     """
-    Vary two calibration parameters and plot steady-state outcomes (DD, A, C) in 3D.
-    If results are provided, skip computation and use them for plotting.
+    Vary two calibration parameters and plot steady-state outcomes:
+    - One big figure for DD_k and DD_TILDE_k for each durable choice (vintage).
+    - One second figure for A and C.
 
     Args:
         param1 (str): First parameter name.
@@ -379,10 +428,11 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, results=
         values2 (array-like): Grid for the second parameter.
         cali (dict): Calibration dictionary with 'baseline'.
         hh (object): Must have method `steady_state(cali_dict)`.
+        n_d (int): Number of durable choices (vintages).
         results (dict, optional): Previous results object to reuse.
 
     Returns:
-        dict: Grid and results for DD, A, and C.
+        dict: Grid and results for DD_k, A, and C.
     """
 
     values1 = np.array(values1)
@@ -390,8 +440,8 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, results=
     X, Y = np.meshgrid(values1, values2, indexing='ij')
 
     if results is None:
-        DD = np.full_like(X, np.nan, dtype=float)
-        DD2 = np.full_like(X, np.nan, dtype=float)
+        DD_all = [np.full_like(X, np.nan, dtype=float) for _ in range(n_d)]
+        DD_tilde_all = [np.full_like(X, np.nan, dtype=float) for _ in range(n_d)]
         A = np.full_like(X, np.nan, dtype=float)
         C = np.full_like(X, np.nan, dtype=float)
         success = np.full_like(X, False, dtype=bool)
@@ -403,8 +453,9 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, results=
                 cali_try[param2] = v2
                 try:
                     ss_try = hh.steady_state(cali_try)
-                    DD[i, j] = ss_try['DD']
-                    DD2[i, j] = ss_try['DD_2']
+                    for k in range(n_d):
+                        DD_all[k][i, j] = ss_try[f'DD_{k}']
+                        DD_tilde_all[k][i, j] = ss_try[f'DD_TILDE_{k}']
                     A[i, j] = ss_try['A']
                     C[i, j] = ss_try['C']
                     success[i, j] = True
@@ -412,57 +463,97 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, results=
                 except Exception as e:
                     print(f"Fail: {param1}={v1:.2f}, {param2}={v2:.2f} | {e}")
     else:
-        DD = results['DD']
-        DD2 = results['DD_2']
+        DD_all = results['DD_all']
+        DD_tilde_all = results['DD_tilde_all']
         A = results['A']
         C = results['C']
         success = results['success']
 
-    # === Interpolation of missing values ===
+    # === Interpolation ===
     def interpolate_missing(Z):
         points = np.column_stack((X[~np.isnan(Z)], Y[~np.isnan(Z)]))
         values = Z[~np.isnan(Z)]
         return griddata(points, values, (X, Y), method='linear')
 
-    DD_interp = interpolate_missing(DD)
-    DD2_interp = interpolate_missing(DD2)
+    DD_interp_all = [interpolate_missing(DD) for DD in DD_all]
+    DD_tilde_interp_all = [interpolate_missing(DD_tilde) for DD_tilde in DD_tilde_all]
     A_interp = interpolate_missing(A)
     C_interp = interpolate_missing(C)
 
-    # === Plotting ===
-    fig = plt.figure()
+    # === First figure: DD and DD_TILDE by vintage ===
+    ncols = 4
+    nrows = int(np.ceil(n_d / ncols))
+    #fig1 = plt.figure(figsize=(6 * ncols, 5 * nrows))
+    fig1 = plt.figure(figsize=(18,9))
 
-    for k, (Z, Z_interp, label) in enumerate(zip([DD, DD2, A, C], [DD_interp,DD2_interp, A_interp, C_interp], ['DD', 'DD2', 'A', 'C'])):
-        ax = fig.add_subplot(2, 2, k + 1, projection='3d')
-        ax.plot_surface(X, Y, Z_interp, cmap='viridis', alpha=0.6, edgecolor='none')
-        ax.scatter(X[success], Y[success], Z[success], color='blue', label='Computed', s=10)
-        ax.scatter(X[~success], Y[~success], Z_interp[~success], color='red', label='Interpolated', s=10)
+
+    for k in range(n_d):
+        ax = fig1.add_subplot(nrows, ncols, k + 1, projection='3d')
+
+        ax.plot_surface(X, Y, DD_interp_all[k], cmap='cividis', alpha=0.60, edgecolor='none')
+        ax.plot_surface(X, Y, DD_tilde_interp_all[k], cmap='viridis', alpha=0.60, edgecolor='none')
+        ax.scatter(X[success], Y[success], DD_all[k][success], color='blue', s=10, label='DD')
+        ax.scatter(X[success], Y[success], DD_tilde_all[k][success], color='green', s=10, label='DD_TILDE')
+
         ax.set_xlabel(param1)
         ax.set_ylabel(param2)
-        ax.set_zlabel(label)
-        ax.set_title(f'{label} vs. {param1} and {param2}')
-        ax.legend()
+        ax.set_zlabel(f'DD / DD_TILDE')
+        ax.set_title(f'Durable state {k}')
+        if k == 0:
+            ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+    # === Second figure: A and C ===
+    #fig2 = plt.figure(figsize=(12, 6))
+    fig2 = plt.figure(figsize=(8, 4))
+
+    ax1 = fig2.add_subplot(1, 2, 1, projection='3d')
+    ax1.plot_surface(X, Y, A_interp, cmap='Oranges', alpha=0.7, edgecolor='none')
+    ax1.scatter(X[success], Y[success], A[success], color='darkorange', s=10)
+    ax1.set_xlabel(param1)
+    ax1.set_ylabel(param2)
+    ax1.set_zlabel('A')
+    ax1.set_title('Assets (A)')
+
+    ax2 = fig2.add_subplot(1, 2, 2, projection='3d')
+    ax2.plot_surface(X, Y, C_interp, cmap='Purples', alpha=0.7, edgecolor='none')
+    ax2.scatter(X[success], Y[success], C[success], color='indigo', s=10)
+    ax2.set_xlabel(param1)
+    ax2.set_ylabel(param2)
+    ax2.set_zlabel('C')
+    ax2.set_title('Consumption (C)')
 
     plt.tight_layout()
     plt.show()
 
     return {
         'X': X, 'Y': Y,
-        'DD': DD,'DD_2': DD2, 'A': A, 'C': C,
-        'DD_interp': DD_interp,'DD2_interp': DD2_interp, 'A_interp': A_interp, 'C_interp': C_interp,
+        'DD_all': DD_all,
+        'DD_tilde_all': DD_tilde_all,
+        'DD_interp_all': DD_interp_all,
+        'DD_tilde_interp_all': DD_tilde_interp_all,
+        'A': A, 'C': C,
+        'A_interp': A_interp,
+        'C_interp': C_interp,
         'success': success
     }
+
+
+
+
+
+
 
 
 #%% Stage 1 - Productivity shock (Expected value function given initial state of individual prod. level z_)
 
 #Initialize Stage 1a
-#prod_stage = ExogenousMaker(markov_name='z_markov', index=2, name='prod')
 prod_stage = ExogenousMaker(markov_name='z_markov', index=1, name='prod')
 
 
 #Initialize Stage 1b
-#depreciation_stage = ExogenousMaker(markov_name='d_markov', index=1, name='durable')
 depreciation_stage = ExogenousMaker(markov_name='d_markov', index=0, name='durable')
 
 
@@ -476,29 +567,32 @@ depreciation_stage = ExogenousMaker(markov_name='d_markov', index=0, name='durab
 #`taste_shock_scale`: name of $\sigma_\varepsilon$ parameter, needed for all formulas
 #`f`: (optional) function that implements additive utility cost on expanded state $(n| n_-, z, a_-)$. This is useful to implement costs that depend on origin as well as destination $(n|n_-)$. Setting some costs to infinity implements constraints on discrete choice (more on this below).
 
-#labsup_stage = LogitChoice(value='V', backward='Va', index=0, name='labsup',
-#                           taste_shock_scale='taste_shock')
-
 labsup_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='labsup',
                            taste_shock_scale='taste_shock')
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
-
+#dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, shifters)
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
-def dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, gamma, eta):
+def dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, shifters):
     """DC-EGM algorithm"""
+    n_d = durable_exp.shape[0] #Number of discrete choices
     # use all FOCs on endogenous grid
     W = beta * V                                                  # end-of-stage vfun
-    W = np.stack([W, W], axis=0)                                  # Add first dimension to match the dimensions
+    W = np.stack([W] * n_d, axis=0)                               # Add first dimension to match the dimensions
     uc_endo = beta * Va                                           # envelope condition
     c_endo = uc_endo** (-eis)                                     # Euler equation
     a_endo = (c_endo[np.newaxis, ...] + a_grid[np.newaxis, np.newaxis, np.newaxis, ...] + durable_exp[..., np.newaxis,np.newaxis] - y_w[np.newaxis, ..., np.newaxis]) / (1 + r)     # budget constraint
 
-    d_bool = np.zeros_like(a_endo)
-    d_bool[1,:,:,:] = 1 #Decide to have a car (either keeping the existing car or buying)
+    #d_bool = np.zeros_like(a_endo)
+    #d_bool[1,:,:,:] = 1 #Decide to have a car (either keeping the existing car or buying)
+
+    # Mark the presence of each durable
+    d_type = np.zeros_like(a_endo)
+    for d in range(0, n_d):
+        d_type[d, :, :, :] = d
 
     # interpolate with upper envelope, enforce borrowing limit
-    V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_bool, eis, gamma, eta)
+    V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, eis, shifters)
 
     # update Va on exogenous grid
     uc = c ** (-1 / eis)                                          # Euler equation
@@ -510,14 +604,14 @@ def dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, gamma, eta):
 
 
 #Simple wrapper to make it independent of the size of the state space. Temporarily collapse states associated with all other stages into a single axis.
-def upperenv(W, a_endo, disp_inc, a_grid, d_bool, *args):
+def upperenv(W, a_endo, disp_inc, a_grid, d_type, *args):
     # collapse (d_tilde, d, z, a) into (b, a)
     shape = W.shape
     W = W.reshape((-1, shape[-1]))
     a_endo = a_endo.reshape((-1, shape[-1]))
-    d_bool = d_bool.reshape((-1, shape[-1]))
+    d_type = d_type.reshape((-1, shape[-1]))
     disp_inc = disp_inc.reshape((-1, shape[-1]))
-    V, c, a = upperenv_vec(W, a_endo, disp_inc, a_grid, d_bool, *args)
+    V, c, a = upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args)
 
     # report on (d_tilde, d, z, a)
     return V.reshape(shape), c.reshape(shape), a.reshape(shape)
@@ -529,7 +623,7 @@ def upperenv(W, a_endo, disp_inc, a_grid, d_bool, *args):
 # Since the endogenous grid is non-monotonic, the same point $a^{grid}_i$ may be bracketed by another segment $(a_{\tilde j}^{endo}, a_{\tilde j+1}^{endo}).$
 # When this happens, we keep the solution that gives higher value.
 @njit
-def upperenv_vec(W, a_endo, disp_inc, a_grid, d_bool, *args):
+def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args):
     """Interpolate value function and consumption to exogenous grid."""
     n_b, n_a = W.shape
     a = np.zeros_like(W)
@@ -539,7 +633,7 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_bool, *args):
     # loop over other states, collapsed into single axis
     for ib in range(n_b):
         #d = min(ib * 2 // n_b, 2 - 1)
-        d = d_bool[ib,0]
+        d = int(d_type[ib,0])
         # loop over segments of endogenous asset grid from EGM (not necessarily increasing)
         for ja in range(n_a - 1):
             a_low, a_high = a_endo[ib, ja], a_endo[ib, ja + 1]
@@ -582,39 +676,64 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_bool, *args):
 
 # %% Utilitz function
 @njit
-def util(c, d, eis, gamma, eta = 0):
-    d = np.array(d)
-    if d == 1:
-        if eis == 1:
-            u = np.log(c) + gamma * d
-        else:
-            u = c ** (1 - 1 / eis) / (1 - 1 / eis) + gamma * d
-    elif d == 0:
-        if eis == 1:
-            u = np.log(c)
-        else:
-            u = c ** (1 - 1 / eis) / (1 - 1 / eis)
+def util(c, d, eis, shifters):
+    """
+    General utility function for arbitrary discrete states.
+
+    Parameters:
+    - c: consumption (scalar)
+    - d: discrete state index (integer)
+    - eis: elasticity of intertemporal substitution
+    - shifters: 1D array of utility shifters per d-state
+    """
+    # Basic bounds check (without exception)
+    #if d < 0 or d >= shifters.shape[0]:
+    #    return -1e10  # or some other penalizing value instead of raising an error
+
+    if eis == 1.0:
+        u = np.log(c) + shifters[d]
     else:
-        Warning('GSCHW: Problem in the utility function.')
+        u = c ** (1 - 1 / eis) / (1 - 1 / eis) + shifters[d]
+
     return u
 
 
 #Report the aggregate demand for d
 def D_demand(c):
-    dd = np.zeros_like(c)
-    dd_2 = np.zeros_like(c)
-    dd[1, ...] = 1
-    dd_2[:,1, ...] = 1
-    return dd, dd_2
+    shape = c.shape
+    D = shape[0]
+    dd_tilde_list = []
+    dd_list = []
+    for d in range(D):
+        dd_tilde = np.zeros(shape, dtype=c.dtype)
+        dd = np.zeros(shape, dtype=c.dtype)
+        dd_tilde[d, ...] = 1
+        dd[:, d, ...] = 1
+        dd_tilde_list.append(dd_tilde)
+        dd_list.append(dd)
+    # Dynamically assign to variables in local scope
+    out_vars = []
+    for i in range(D):
+        globals()[f'dd_tilde_{i}'] = dd_tilde_list[i]
+        globals()[f'dd_{i}'] = dd_list[i]
+        out_vars.append(dd_tilde_list[i])
+    for i in range(D):
+        out_vars.append(dd_list[i])
+
+    return dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4
+
+
+
+
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
                             name='consav', hetoutputs=[D_demand])
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
-def hh_init(disp_inc, a_grid, eis, gamma, eta):
-    V = util(disp_inc-np.min(disp_inc)+1, 0, eis, gamma, eta) #Avoid strange behaviour due to negative values. Not too important as only for first guess.
-    V = (V[0,:,:,:] + V[1,:,:,:])/2 #Get rid of first dimension
+def hh_init(disp_inc, a_grid, eis, shifters):
+    V = util(disp_inc-np.min(disp_inc)+1, 0, eis, shifters)         #Avoid strange behaviour due to negative values. Not too important as only for first guess.
+    V = (V[0,:,:,:] + V[1,:,:,:])/2                                 #Get rid of first dimension
     Va = np.empty_like(V)
     Va[..., 1:-1] = (V[..., 2:] - V[..., :-2]) / (a_grid[2:] - a_grid[:-2])
     Va[..., 0] = (V[..., 1] - V[..., 0]) / (a_grid[1] - a_grid[0])
@@ -622,19 +741,16 @@ def hh_init(disp_inc, a_grid, eis, gamma, eta):
     return V, Va
 
 #construct Markov process for productivity, for depreciation of durables and the assets grid
-def make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, dep_pr):
+def make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g):
     z_grid, z_dist, z_markov = grids.markov_rouwenhorst(rho_z, sd_z, n_z)
     a_grid = grids.agrid(max_a, n_a, min_a)
-    d_grid = np.array([0, 1])
-    d_markov = np.array([[1, 0.00],
-            [dep_pr, 1-dep_pr]])
-    return z_grid, z_dist, z_markov, a_grid, d_grid, d_markov
+    d_grid, d_markov, d_grid_name = make_d_grid(n_b, n_g, lifetime_b, lifetime_g)
+    return z_grid, z_dist, z_markov, a_grid, d_grid, d_markov, d_grid_name
 
-def disp_inc_f(a_grid, z_grid, r, w, p_d, chi): #Disposible income for consumption and assets after buying the durable good
-    p = np.array([0, p_d]) #Vector of prices of durables
-    durable_exp = p[:, None] - (1 - chi) * p  # Create matrix of adjustment costs
-    np.fill_diagonal(durable_exp, 0)  # set diagonal to 0 (no cost if no switching)
-    y_w = z_grid[np.newaxis] * w            # on (1, z)
+def disp_inc_f(a_grid, z_grid, r, w, p_d, chi):                 #Disposable income for consumption and assets after buying the durable good
+    durable_exp = p_d[:, None] - (1 - chi) * p_d                # Create matrix of adjustment costs
+    np.fill_diagonal(durable_exp, 0)                            # set diagonal to 0 (no cost if no switching)
+    y_w = z_grid[np.newaxis] * w                                # on (1, z)
     disp_inc = (1 + r) * a_grid[np.newaxis, np.newaxis, :] + y_w[..., np.newaxis] - durable_exp[..., np.newaxis, np.newaxis] # on (nd, z, a) #Disposable income for consumption
     return y_w, disp_inc, durable_exp
 
@@ -654,16 +770,41 @@ print(f"Outputs: {hh.outputs}")
 
 #Specify different calibration
 cali = dict()
-p_d = 0.80
-gamma = 1
-eta = 0.5 #Useless for now
-n_d = 1
-dep_pr = 0.25 #Depreciation probability of the durable good
+n_b = 2
+n_g = 2
+n_d = 1 + n_b + n_g
+lifetime_b = 60
+lifetime_g = 60
+p = 0.80
+p_b = 0.80
+p_g = 0.90
+p_d = np.array([0] + [p_b] * n_b + [p_g]  * n_g)
+
+dep_rate = 0.25 #Depreciation rate/lost of value between newest and oldest vintage
+
+# Linear depreciation of price across vintages (can be changed to exponential or other shape)
+p_b_vector = np.linspace(p_b, dep_rate * p_b, n_b)              # from full price to 10% for brown
+p_g_vector = np.linspace(p_g, dep_rate * p_g, n_g)              # from full price to 10% for green
+
+# Assemble full price vector: [no durable, brown vintages..., green vintages...]
+p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
+
 chi = 0.5 #Loss of value of durable if sold.
+gamma_b = 1 #Utility from having a brown durable
+gamma_g = 1.2 #Utility from having a green durable
+#shifters = np.array([0.0] + [gamma_b] * n_b  + [gamma_g] * n_b )
+
+def make_shifters(n_b, n_g, gamma_b, gamma_g):
+    shifters = np.array([0.0] + [gamma_b] * n_b + [gamma_g] * n_g)
+    return shifters
+
+
+
 
 cali['baseline'] = {'taste_shock': 1E-1, 'vphi': 0.0, 'r': 0.02/4, 'beta': 0.97, 'eis': 0.5,
-               'rho_z': 0.95, 'sd_z': 0.5, 'n_z': 7,
-               'min_a': 0.0, 'max_a': 200, 'n_a': 200, 'w': 1.0, 'p_d': p_d, 'n_d': n_d, 'gamma' : gamma, 'eta': eta, 'dep_pr': dep_pr, 'chi' : chi}
+               'rho_z': 0.95, 'sd_z': 0.5, 'n_z': 5,
+               'min_a': 0.0, 'max_a': 100, 'n_a': 10, 'w': 1.0, 'p_d': p_d, 'n_b': n_b, 'n_g':n_g,'n_d': n_d,
+                'chi' : chi, 'shifters':make_shifters(n_b, n_g, gamma_b, gamma_g), 'lifetime_b': lifetime_b, 'lifetime_g': lifetime_g}
 
 taste_shock = 1e-5
 vphi = 0.0
@@ -679,57 +820,56 @@ n_a = 200
 w = 1.0
 
 #%% Only useful for debugging
-z_grid, z_dist, z_markov, a_grid, d_grid, d_markov = make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, dep_pr)
+z_grid, z_dist, z_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
 y_w, disp_inc, durable_exp = disp_inc_f(a_grid, z_grid, r, w, p_d, chi)
-V, Va = hh_init(disp_inc, a_grid, eis, gamma, eta)
+V, Va = hh_init(disp_inc, a_grid, eis, shifters)
 #%% Baseline model
 
 ss = dict()
 ss['baseline'] = hh.steady_state(cali['baseline'])
 print(ss['baseline']['A'])
-print('Proportion of people with a car at the end of the period (choice variable)',ss['baseline']['DD'])
-print('Proportion of people with a car at the beginning of the period (state variable)',ss['baseline']['DD_2'])
-print('Ratio of DD2/DD: ',ss['baseline']['DD_2'] / ss['baseline']['DD'])
+print('Proportion of people with a brown car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_1'])
+print('Proportion of people with a green car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_2'])
+print('Proportion of people with a brown car at the beginning of the period (state variable)',ss['baseline']['DD_1'])
+print('Proportion of people with a green car at the beginning of the period (state variable)',ss['baseline']['DD_2'])
+print('Ratio of DD_1/DD_TILDE_1: ',ss['baseline']['DD_1'] / ss['baseline']['DD_TILDE_1'])
+print('Ratio of DD_2/DD_TILDE_2: ',ss['baseline']['DD_2'] / ss['baseline']['DD_TILDE_2'])
 print(ss['baseline']['C'])
 #%%
-policy_functions(ss, amax=150, d_tilde_list=[0] ,d_list = [0],iz_list=[0,3], figsize=0.8, models = ['baseline'])
+policy_functions(ss, amax=150, d_tilde_list=ss['baseline'].internals['hh']['d_grid'] ,d_list = [0],iz_list=[0], figsize=0.8, models = ['baseline'])
 
 #%%
 ss['baseline'].internals['hh']['labsup']['law_of_motion'].P.shape
 
 #%% Comparative statics of SS
-results = analyze_steady_state('p_d', np.linspace(0.8, 3, 5), cali, hh)
+#results = analyze_steady_state('p_d', np.linspace(0.8, 3, 2), cali, hh, n_d)
 
 #%%
-results = analyze_steady_state('dep_pr', np.linspace(0.05, 0.5, 5), cali, hh)
 #%%
-results = analyze_steady_state('chi', np.linspace(0.1, 0.5, 5), cali, hh)
+results = analyze_steady_state('chi', np.linspace(0.1, 0.5, 3), cali, hh, n_d)
 
 
 #%% Comparative statics of SS - 3d
-CS_dep_pr_chi_2 = analyze_steady_state_3d(
-    param1='dep_pr',
+CS_dep_rate_chi_2 = analyze_steady_state_3d(
+    param1='dep_rate',
     values1=np.linspace(0.05, 0.75, 5),
     param2='chi',
     values2=np.linspace(0.1, 0.8, 5),
     cali=cali,
-    hh=hh
+    hh=hh,
+    n_d=n_d
     )
 
-#%%
-#analyze_steady_state_path_3d(param1='dep_pr',values1=np.linspace(0.05, 0.5, 5), param2='chi',values2=np.linspace(0.1, 0.5, 5),cali=cali,hh=hh, results=CS_dep_pr_chi_2) # 0.99 - 0.01
-#analyze_steady_state_path_3d(param1='dep_pr',values1=np.linspace(0.05, 0.5, 5), param2='chi',values2=np.linspace(0.1, 0.5, 5),cali=cali,hh=hh, results=CS_dep_pr_chi_1) # 0.95 - 0.05
-#analyze_steady_state_path_3d(param1='dep_pr',values1=np.linspace(0.05, 0.5, 5), param2='chi',values2=np.linspace(0.1, 0.5, 5),cali=cali,hh=hh, results=CS_dep_pr_chi_0) # 1.00 - 0.00
-
-
-#%% Comparative statics
-CS_gamma_p_d = analyze_steady_state_3d(
-    param1='gamma',
-    values1=np.linspace(0.1, 5, 5),
-    param2='p_d',
-    values2=np.linspace(0.1, 5, 5),
+#%% Comparative statics of SS - 3d
+CS_lifetime = analyze_steady_state_3d(
+    param1='lifetime_b',
+    values1=np.linspace(30, 90, 5),
+    param2='lifetime_g',
+    values2=np.linspace(30, 90, 5),
     cali=cali,
-    hh=hh
-)
+    hh=hh,
+    n_d=n_d
+    )
 
-# %%
+#%% Comparative statics of SS - 3d
+#Would be nice to analzye how it changes by changing gamma_g and gamma_b
