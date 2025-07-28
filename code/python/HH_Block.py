@@ -747,6 +747,11 @@ def make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifeti
     d_grid, d_markov, d_grid_name = make_d_grid(n_b, n_g, lifetime_b, lifetime_g)
     return z_grid, z_dist, z_markov, a_grid, d_grid, d_markov, d_grid_name
 
+#Construct the utility shifter for durables
+def make_shifters(n_b, n_g, gamma_b, gamma_g):
+    shifters = np.array([0.0] + [gamma_b] * n_b + [gamma_g] * n_g)
+    return shifters
+
 def disp_inc_f(a_grid, z_grid, r, w, p_d, chi):                 #Disposable income for consumption and assets after buying the durable good
     durable_exp = p_d[:, None] - (1 - chi) * p_d                # Create matrix of adjustment costs
     np.fill_diagonal(durable_exp, 0)                            # set diagonal to 0 (no cost if no switching)
@@ -757,7 +762,7 @@ def disp_inc_f(a_grid, z_grid, r, w, p_d, chi):                 #Disposable inco
 
 #%% Assemble the HH block (staged block)
 hh = StageBlock([depreciation_stage, prod_stage, labsup_stage, consav_stage], name='hh',
-                backward_init=hh_init, hetinputs=[make_grids, disp_inc_f])
+                backward_init=hh_init, hetinputs=[make_grids, disp_inc_f, make_shifters])
 
 print(hh)
 print(f"Inputs: {hh.inputs}")
@@ -794,9 +799,7 @@ gamma_b = 1 #Utility from having a brown durable
 gamma_g = 1.2 #Utility from having a green durable
 #shifters = np.array([0.0] + [gamma_b] * n_b  + [gamma_g] * n_b )
 
-def make_shifters(n_b, n_g, gamma_b, gamma_g):
-    shifters = np.array([0.0] + [gamma_b] * n_b + [gamma_g] * n_g)
-    return shifters
+
 
 
 
@@ -804,7 +807,7 @@ def make_shifters(n_b, n_g, gamma_b, gamma_g):
 cali['baseline'] = {'taste_shock': 1E-1, 'vphi': 0.0, 'r': 0.02/4, 'beta': 0.97, 'eis': 0.5,
                'rho_z': 0.95, 'sd_z': 0.5, 'n_z': 5,
                'min_a': 0.0, 'max_a': 100, 'n_a': 10, 'w': 1.0, 'p_d': p_d, 'n_b': n_b, 'n_g':n_g,'n_d': n_d,
-                'chi' : chi, 'shifters':make_shifters(n_b, n_g, gamma_b, gamma_g), 'lifetime_b': lifetime_b, 'lifetime_g': lifetime_g}
+                'chi' : chi, 'gamma_b':gamma_b, 'gamma_g':gamma_g, 'lifetime_b': lifetime_b, 'lifetime_g': lifetime_g}
 
 taste_shock = 1e-5
 vphi = 0.0
@@ -873,3 +876,13 @@ CS_lifetime = analyze_steady_state_3d(
 
 #%% Comparative statics of SS - 3d
 #Would be nice to analzye how it changes by changing gamma_g and gamma_b
+CS_gammas = analyze_steady_state_3d(
+    param1='gamma_b',
+    values1=np.linspace(0.9, 1.1, 5),
+    param2='gamma_g',
+    values2=np.linspace(0.9, 1.1, 5),
+    cali=cali,
+    hh=hh,
+    n_d=n_d
+    )
+# %%
