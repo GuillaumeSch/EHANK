@@ -24,3 +24,8 @@ To clone the repo:
 
 ```bash
 git clone git@github.com:yourusername/EHANK.git
+
+To recreate SSJ environment (all the packages necessary to run the code):
+
+conda env create -f environment.yml
+conda activate ssj-env
