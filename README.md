@@ -16,7 +16,7 @@ This repository contains code and data for the project on the EHANK framework.
 - `logs/` – (Optional) Logs and temporary files
 
 ## 🛠️ Requirements
-- Python 3.12 with packages from `requirements.txt`
+- Python 3.12 with packages from `environment.yml`
 
 ## 🚀 Getting Started
 
