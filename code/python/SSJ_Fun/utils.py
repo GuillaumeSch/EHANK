@@ -112,6 +112,43 @@ class LogitChoiceDurables(LogitChoice):
         else:
             return outputs, lom
 
+    def backward_step_shock(self, ss, shocks, precomputed):
+        """See 'discrete choice math' note for background. Note that scale is inverse of 'c' in that note."""
+        f, lom = precomputed
+
+        # this part parallel to backward_step, just with derivatives...
+        dV_next = shocks[self.value]
+        dV = dV_next
+        #dV = np.swapaxes(dV, 0, self.index+1)
+
+        if f is not None:
+            dflow_u = f.diff(shocks)
+            dflow_u = next(iter(dflow_u.values()))
+            dflow_u = np.nan_to_num(dflow_u)  # -inf - (-inf) = nan, want zeros
+        else:
+            dflow_u = np.zeros_like(lom.P)
+
+        dV = dflow_u + dV
+
+        # simply take expectations to get shock to expected value function (envelope result)
+        dEV = np.sum(lom.P * dV, axis=0)
+
+        # calculate shocks to choice probabilities (note nifty broadcasting of dEV)
+        scale = ss[self.taste_shock_scale]
+        dP = lom.P * (dV - dEV) / scale
+        dlom = DiscreteChoiceDurables(dP, self.index)
+
+        # find shocks to outputs, aggregate everything of interest
+        doutputs = {self.value: dEV}
+        for k in self.backward:
+            doutputs[k] = dlom.T @ ss[k]
+            if k in shocks:
+                doutputs[k] += lom.T @ shocks[k]
+
+        return doutputs, dlom
+
+
+
 
 class DiscreteChoiceDurables(LawOfMotion):
     def __init__(self, P, i):
@@ -131,106 +168,47 @@ class DiscreteChoiceDurables(LawOfMotion):
 
     def __matmul__(self, X):
         if self.forward:
+            print("FORWARD")
             return batch_multiply_ith_dimension(self.P, self.i, X)
         else:
+            print("BACKWARD")
             return batch_multiply_ith_dimension(self.P_T, self.i, X)
 
 def batch_multiply_ith_dimension(P, i, X):
     """If P is (D, X.shape) array, multiply P and X along ith dimension of X."""
-    if len(P.shape) <= len(X.shape):
-        P = P.swapaxes(1, 1 + i)
-        X = X.swapaxes(0, i)
-        Pshape = P.shape
-        P = P.reshape((*Pshape[:1], -1))
-        X = X.reshape((X.shape[0], -1))
-        X = np.einsum('jb,jb->b', P, X)
-        X = X.reshape(Pshape[0], *Pshape[2:])
-    elif len(P.shape) > len(X.shape):
-        P = P.swapaxes(1, 1 + i)
-        X = X.swapaxes(0, i)
-        Pshape = P.shape
-        P = P.reshape((*Pshape[:2], -1))
-        X = X.reshape((X.shape[0], -1))
-        X = np.einsum('ijb,jb->ijb', P, X)
-        X = X.reshape(Pshape)
+    try:
+        if (P.shape == X.shape) and (len(P.shape) == 4):
+            print("ENTERING THE SUPER STRANGE MATMULT")
+            PP = P.swapaxes(1, 1 + i)
+            XX = X.swapaxes(0, i)
+            #PPshape = PP.shape
+            #PP = PP.reshape((*PPshape[:2], -1))
+            #XX = XX.reshape((XX.shape[0], -1))
+            XX = np.einsum('jb,jb->ljb', PP, XX)
+            X = XX.reshape(PP.shape)
+        else:
+            raise ValueError("Shape mismatch or unexpected rank")
+    except:
+        if len(P.shape) <= len(X.shape):
+            P = P.swapaxes(1, 1 + i)
+            X = X.swapaxes(0, i)
+            Pshape = P.shape
+            P = P.reshape((*Pshape[:1], -1))
+            X = X.reshape((X.shape[0], -1))
+            X = np.einsum('jb,jb->b', P, X)
+            X = X.reshape(Pshape[0], *Pshape[2:])
+        elif len(P.shape) > len(X.shape):
+            P = P.swapaxes(1, 1 + i)
+            X = X.swapaxes(0, i)
+            Pshape = P.shape
+            P = P.reshape((*Pshape[:2], -1))
+            X = X.reshape((X.shape[0], -1))
+            X = np.einsum('ijb,jb->ijb', P, X)
+            X = X.reshape(Pshape)
 
     return X.swapaxes(0, i)
 
 
-class LogitChoiceOG(LogitChoice):
-    def backward_step(self, inputs, lawofmotion=False):
-        # start with value we're given
-        V_next = inputs[self.value]
-
-        # add dimension at beginning to allow for choice, then swap (today's choice determines next stages's state)
-        #V = V_next
-        V = V_next[np.newaxis, ...]
-        V = np.swapaxes(V, 0, self.index+1)
-
-        # call f if we have it to get flow utility
-        if self.f is not None:
-            flow_u = self.f(inputs)
-            flow_u = next(iter(flow_u.values()))
-        else:
-            # create phantom state variable, convenient but bit wasteful
-            nchoice = V.shape[0]
-            flow_u = np.zeros((nchoice,) + V_next.shape)
-
-        V = flow_u + V
-
-        # calculate choice probabilities and expected value
-        P, EV = logit_choice(V, inputs[self.taste_shock_scale])
-
-        # make law of motion, use it to take expectations of everything else
-        lom = DiscreteChoiceOG(P, self.index)
-
-        # take expectations
-        outputs = {k: lom.T @ inputs[k] for k in self.backward}
-        outputs[self.value] = EV
-
-        if not lawofmotion:
-            return outputs
-        else:
-            return outputs, lom
-
-
-class DiscreteChoiceOG(LawOfMotion):
-    def __init__(self, P, i):
-        self.P = P                     # choice prob P(d|...s_i...), 0 for unavailable choices
-        self.i = i                     # dimension of state space that will be updated
-
-        # cache "transposed" version of this, since we'll always need both!
-        self.forward = True
-        self.P_T = P.swapaxes(0, 1+self.i).copy()
-        #self.P_T = P.swapaxes(0, self.i).copy()
-
-    @property
-    def T(self):
-        newself = copy.copy(self)
-        newself.forward = not self.forward
-        return newself
-
-    def __matmul__(self, X):
-        if self.forward:
-            return batch_multiply_ith_dimension_OG(self.P, self.i, X)
-        else:
-            return batch_multiply_ith_dimension_OG(self.P_T, self.i, X)
-
-def batch_multiply_ith_dimension_OG(P, i, X):
-    """If P is (D, X.shape) array, multiply P and X along ith dimension of X."""
-    # standardize arrays
-    P = P.swapaxes(1, 1 + i)
-    X = X.swapaxes(0, i)
-    Pshape = P.shape
-    P = P.reshape((*Pshape[:2], -1))
-    X = X.reshape((X.shape[0], -1))
-
-    # P[i, j, ...] @ X[j, ...]
-    X = np.einsum('ijb,jb->ib', P, X)
-
-    # original shape and order
-    X = X.reshape(Pshape[0], *Pshape[2:])
-    return X.swapaxes(0, i)
 
 
 class Exogenous(Stage):
@@ -330,6 +308,13 @@ class Continuous1D_Durables(Continuous1D):
             else:
                 return outputs, lottery_1d_Durables(outputs[self.policy], inputs[self.policy + '_grid'], monotonic=False)
 
+    def backward_step_shock(self, ss, shocks, precomputed):
+        space, i, grid, f = precomputed
+        outputs = f.diff(shocks)
+        dpi = -outputs[self.policy] / space
+        return outputs, ShockedPolicyLottery1D_Durables(i, dpi, grid)
+
+
 def lottery_1d_Durables(a, a_grid, monotonic=False):
     if not monotonic:
         return PolicyLottery1D_Durables(*interpolate_coord_robust(a_grid, a), a_grid)
@@ -339,6 +324,16 @@ def lottery_1d_Durables(a, a_grid, monotonic=False):
 class PolicyLottery1D_Durables(PolicyLottery1D):
     def __matmul__(self, X):
         if self.forward:
+            #breakpoint()
             return het_compiled.forward_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
         else:
+            breakpoint()
             return het_compiled.expectation_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
+
+
+class ShockedPolicyLottery1D_Durables(PolicyLottery1D_Durables):
+    def __matmul__(self, X):
+        if self.forward:
+            return het_compiled.forward_policy_shock_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
+        else:
+            raise NotImplementedError

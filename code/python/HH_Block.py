@@ -13,12 +13,13 @@ import colorsys
 # Sequence-Jacobian framework
 from sequence_jacobian import grids, interpolate
 from sequence_jacobian.blocks.stage_block import StageBlock
+import sequence_jacobian as sj
 # Custom utilities
 from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables
 
 
 #%% Interactive plot
-%matplotlib qt
+#%matplotlib qt
 
 #%% Some useful functions for debugging
 
@@ -797,12 +798,6 @@ p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
 chi = 0.5 #Loss of value of durable if sold.
 gamma_b = 1 #Utility from having a brown durable
 gamma_g = 1.2 #Utility from having a green durable
-#shifters = np.array([0.0] + [gamma_b] * n_b  + [gamma_g] * n_b )
-
-
-
-
-
 
 cali['baseline'] = {'taste_shock': 1E-1, 'vphi': 0.0, 'r': 0.02/4, 'beta': 0.97, 'eis': 0.5,
                'rho_z': 0.95, 'sd_z': 0.5, 'n_z': 5,
@@ -822,67 +817,102 @@ max_a = 200
 n_a = 200
 w = 1.0
 
-#%% Only useful for debugging
-z_grid, z_dist, z_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
-y_w, disp_inc, durable_exp = disp_inc_f(a_grid, z_grid, r, w, p_d, chi)
-V, Va = hh_init(disp_inc, a_grid, eis, shifters)
-#%% Baseline model
+# #%% Only useful for debugging
+# z_grid, z_dist, z_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
+# y_w, disp_inc, durable_exp = disp_inc_f(a_grid, z_grid, r, w, p_d, chi)
+# V, Va = hh_init(disp_inc, a_grid, eis, shifters)
+# #%% Baseline model
 
-ss = dict()
-ss['baseline'] = hh.steady_state(cali['baseline'])
-print(ss['baseline']['A'])
-print('Proportion of people with a brown car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_1'])
-print('Proportion of people with a green car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_2'])
-print('Proportion of people with a brown car at the beginning of the period (state variable)',ss['baseline']['DD_1'])
-print('Proportion of people with a green car at the beginning of the period (state variable)',ss['baseline']['DD_2'])
-print('Ratio of DD_1/DD_TILDE_1: ',ss['baseline']['DD_1'] / ss['baseline']['DD_TILDE_1'])
-print('Ratio of DD_2/DD_TILDE_2: ',ss['baseline']['DD_2'] / ss['baseline']['DD_TILDE_2'])
-print(ss['baseline']['C'])
-#%%
-policy_functions(ss, amax=150, d_tilde_list=ss['baseline'].internals['hh']['d_grid'] ,d_list = [0],iz_list=[0], figsize=0.8, models = ['baseline'])
+# ss = dict()
+# ss['baseline'] = hh.steady_state(cali['baseline'])
+# print(ss['baseline']['A'])
+# print('Proportion of people with a brown car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_1'])
+# print('Proportion of people with a green car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_2'])
+# print('Proportion of people with a brown car at the beginning of the period (state variable)',ss['baseline']['DD_1'])
+# print('Proportion of people with a green car at the beginning of the period (state variable)',ss['baseline']['DD_2'])
+# print('Ratio of DD_1/DD_TILDE_1: ',ss['baseline']['DD_1'] / ss['baseline']['DD_TILDE_1'])
+# print('Ratio of DD_2/DD_TILDE_2: ',ss['baseline']['DD_2'] / ss['baseline']['DD_TILDE_2'])
+# print(ss['baseline']['C'])
+# #%% Policy functions
+# policy_functions(ss, amax=150, d_tilde_list=ss['baseline'].internals['hh']['d_grid'] ,d_list = [0],iz_list=[0], figsize=0.8, models = ['baseline'])
 
-#%%
-ss['baseline'].internals['hh']['labsup']['law_of_motion'].P.shape
+# #%% Comparative statics of SS - 2d
+# results = analyze_steady_state('chi', np.linspace(0.1, 0.5, 3), cali, hh, n_d)
 
-#%% Comparative statics of SS
-#results = analyze_steady_state('p_d', np.linspace(0.8, 3, 2), cali, hh, n_d)
+# #%% Comparative statics of SS - 3d
+# CS_dep_rate_chi_2 = analyze_steady_state_3d(
+#     param1='dep_rate',
+#     values1=np.linspace(0.05, 0.75, 5),
+#     param2='chi',
+#     values2=np.linspace(0.1, 0.8, 5),
+#     cali=cali,
+#     hh=hh,
+#     n_d=n_d
+#     )
 
-#%%
-#%%
-results = analyze_steady_state('chi', np.linspace(0.1, 0.5, 3), cali, hh, n_d)
+# #%% Comparative statics of SS - 3d
+# CS_lifetime = analyze_steady_state_3d(
+#     param1='lifetime_b',
+#     values1=np.linspace(30, 90, 5),
+#     param2='lifetime_g',
+#     values2=np.linspace(30, 90, 5),
+#     cali=cali,
+#     hh=hh,
+#     n_d=n_d
+#     )
+
+# #%% Comparative statics of SS - 3d
+# #Would be nice to analzye how it changes by changing gamma_g and gamma_b
+# CS_gammas = analyze_steady_state_3d(
+#     param1='gamma_b',
+#     values1=np.linspace(0.9, 1.1, 5),
+#     param2='gamma_g',
+#     values2=np.linspace(0.9, 1.1, 5),
+#     cali=cali,
+#     hh=hh,
+#     n_d=n_d
+#     )
+# # %%
 
 
-#%% Comparative statics of SS - 3d
-CS_dep_rate_chi_2 = analyze_steady_state_3d(
-    param1='dep_rate',
-    values1=np.linspace(0.05, 0.75, 5),
-    param2='chi',
-    values2=np.linspace(0.1, 0.8, 5),
-    cali=cali,
-    hh=hh,
-    n_d=n_d
-    )
 
-#%% Comparative statics of SS - 3d
-CS_lifetime = analyze_steady_state_3d(
-    param1='lifetime_b',
-    values1=np.linspace(30, 90, 5),
-    param2='lifetime_g',
-    values2=np.linspace(30, 90, 5),
-    cali=cali,
-    hh=hh,
-    n_d=n_d
-    )
+#%% Add other blocks
+@sj.simple
+def mkt_clearing(A, Y, C):
+    asset_mkt = A - 5
+    goods_mkt = Y - C
+    return asset_mkt, goods_mkt
 
-#%% Comparative statics of SS - 3d
-#Would be nice to analzye how it changes by changing gamma_g and gamma_b
-CS_gammas = analyze_steady_state_3d(
-    param1='gamma_b',
-    values1=np.linspace(0.9, 1.1, 5),
-    param2='gamma_g',
-    values2=np.linspace(0.9, 1.1, 5),
-    cali=cali,
-    hh=hh,
-    n_d=n_d
-    )
+#%% Create the model
+ha = sj.create_model([hh, mkt_clearing], name="Simple HA Model")
+print(ha)
+print('It has inputs: ' + str(ha.inputs))
+print('It has outputs: ' + str(ha.outputs))
+# %% SS
+cali['baseline']['Y'] = 1
+#cali['baseline']['beta'] = 0.85
+
+ss = ha.steady_state(cali['baseline'])
+ss['asset_mkt']
+#%% Find the values for SS
+unknowns_ss = {'beta': 0.97}
+targets_ss = {'asset_mkt': 0.}
+
+ss = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss, solver='hybr')
+print(f"Check: Goods market clearing: {np.round(ss['goods_mkt'],5)}")
+print(f"Check: Goods market clearing: {np.round(ss['asset_mkt'],5)}")
+
+# %% IRFs
+# T = 300  # <-- the length of the IRF
+# rho_r = 0.8
+# dr = 0.01 * rho_r ** np.arange(T)
+# shocks = {"r": dr}
+# unknowns_td = ["C"]
+# targets_td = ["asset_mkt"]
+# irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+# %%
+T = 300
+J_ha = hh.jacobian(ss, inputs=['r'], T=T)
+
+
 # %%
