@@ -166,46 +166,59 @@ class DiscreteChoiceDurables(LawOfMotion):
         newself.forward = not self.forward
         return newself
 
-    def __matmul__(self, X):
+    def __matmul__(self, X, exp = False):
         if self.forward:
             print("FORWARD")
-            return batch_multiply_ith_dimension(self.P, self.i, X)
+            print("np.sum(self (P))", np.round(np.sum(self.P)))
+            print("np.sum(self (X))", np.round(np.sum(X)))
+            print(" ")
+            if exp == False:
+                return batch_multiply_ith_dimension(self.P, self.i, X)
+            else:
+                return batch_multiply_ith_dimension_exp(self.P, self.i, X)
         else:
             print("BACKWARD")
-            return batch_multiply_ith_dimension(self.P_T, self.i, X)
+            print("np.sum(self (P_T))", np.round(np.sum(self.P_T)))
+            print("np.sum(self (X))", np.round(np.sum(X)))
+            print(" ")
+            if exp == False:
+                return batch_multiply_ith_dimension(self.P_T, self.i, X)
+            else:
+                return batch_multiply_ith_dimension_exp(self.P_T, self.i, X)
+            #return batch_multiply_ith_dimension(self.P_T, self.i, X)
 
 def batch_multiply_ith_dimension(P, i, X):
     """If P is (D, X.shape) array, multiply P and X along ith dimension of X."""
-    try:
-        if (P.shape == X.shape) and (len(P.shape) == 4):
-            print("ENTERING THE SUPER STRANGE MATMULT")
-            PP = P.swapaxes(1, 1 + i)
-            XX = X.swapaxes(0, i)
-            #PPshape = PP.shape
-            #PP = PP.reshape((*PPshape[:2], -1))
-            #XX = XX.reshape((XX.shape[0], -1))
-            XX = np.einsum('jb,jb->ljb', PP, XX)
-            X = XX.reshape(PP.shape)
-        else:
-            raise ValueError("Shape mismatch or unexpected rank")
-    except:
-        if len(P.shape) <= len(X.shape):
-            P = P.swapaxes(1, 1 + i)
-            X = X.swapaxes(0, i)
-            Pshape = P.shape
-            P = P.reshape((*Pshape[:1], -1))
-            X = X.reshape((X.shape[0], -1))
-            X = np.einsum('jb,jb->b', P, X)
-            X = X.reshape(Pshape[0], *Pshape[2:])
-        elif len(P.shape) > len(X.shape):
-            P = P.swapaxes(1, 1 + i)
-            X = X.swapaxes(0, i)
-            Pshape = P.shape
-            P = P.reshape((*Pshape[:2], -1))
-            X = X.reshape((X.shape[0], -1))
-            X = np.einsum('ijb,jb->ijb', P, X)
-            X = X.reshape(Pshape)
+    print("ENTERING batch_multiply_ith_dimension")
+    if len(P.shape) <= len(X.shape):
+        P = P.swapaxes(1, 1 + i)
+        X = X.swapaxes(0, i)
+        Pshape = P.shape
+        P = P.reshape((*Pshape[:1], -1))
+        X = X.reshape((X.shape[0], -1))
+        X = np.einsum('jb,jb->b', P, X)
+        X = X.reshape(Pshape[0], *Pshape[2:])
+    elif len(P.shape) > len(X.shape):
+        P = P.swapaxes(1, 1 + i)
+        X = X.swapaxes(0, i)
+        Pshape = P.shape
+        P = P.reshape((*Pshape[:2], -1))
+        X = X.reshape((X.shape[0], -1))
+        X = np.einsum('ijb,jb->ijb', P, X)
+        X = X.reshape(Pshape)
+    return X.swapaxes(0, i)
 
+def batch_multiply_ith_dimension_exp(P, i, X):
+    """If P is (D, X.shape) array, multiply P and X along ith dimension of X."""
+    print("ENTERING batch_multiply_ith_dimension_exp")
+    P = P.swapaxes(1, 1 + i)
+    X = X.swapaxes(0, i)
+    #Pshape = P.shape
+    #P = P.reshape((*Pshape[:2], -1))
+    #X = X.reshape((X.shape[0], -1))
+    X = X.reshape(P.shape)
+    X = np.einsum('...jb,...jb->...jb', P, X)
+    X = X.reshape(P.shape)
     return X.swapaxes(0, i)
 
 
@@ -322,18 +335,32 @@ def lottery_1d_Durables(a, a_grid, monotonic=False):
         return PolicyLottery1D_Durables(*interpolate_coord(a_grid, a), a_grid)
 
 class PolicyLottery1D_Durables(PolicyLottery1D):
-    def __matmul__(self, X):
-        if self.forward:
-            #breakpoint()
-            return het_compiled.forward_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
+    def __matmul__(self, X, exp=False):
+        if exp == False:
+            if self.forward:
+                #breakpoint()
+                return het_compiled.forward_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
+            else:
+                #breakpoint()
+                return het_compiled.expectation_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
         else:
-            breakpoint()
-            return het_compiled.expectation_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
+            if self.forward:
+                #breakpoint()
+                return het_compiled.forward_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
+            else:
+                #breakpoint()
+                return het_compiled.expectation_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
 
 
 class ShockedPolicyLottery1D_Durables(PolicyLottery1D_Durables):
-    def __matmul__(self, X):
-        if self.forward:
-            return het_compiled.forward_policy_shock_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
+    def __matmul__(self, X, exp = False):
+        if exp == False:
+            if self.forward:
+                return het_compiled.forward_policy_shock_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
+            else:
+                raise NotImplementedError
         else:
-            raise NotImplementedError
+            if self.forward:
+                return het_compiled.forward_policy_shock_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
+            else:
+                raise NotImplementedError

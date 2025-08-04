@@ -902,6 +902,19 @@ ss = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss, solver='hy
 print(f"Check: Goods market clearing: {np.round(ss['goods_mkt'],5)}")
 print(f"Check: Goods market clearing: {np.round(ss['asset_mkt'],5)}")
 
+# %%
+T = 300
+#breakpoint()
+J_ha = hh.jacobian(ss, inputs=['r'], T=T)
+
+# %%
+s_to_plot = [0, 50, 100, 150]
+for s in s_to_plot:
+    plt.plot(J_ha['C']['r'][:, s], label =f's={s}')
+plt.legend()
+plt.show()
+
+
 # %% IRFs
 # T = 300  # <-- the length of the IRF
 # rho_r = 0.8
@@ -910,9 +923,6 @@ print(f"Check: Goods market clearing: {np.round(ss['asset_mkt'],5)}")
 # unknowns_td = ["C"]
 # targets_td = ["asset_mkt"]
 # irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
-# %%
-T = 300
-J_ha = hh.jacobian(ss, inputs=['r'], T=T)
 
 
 # %%
