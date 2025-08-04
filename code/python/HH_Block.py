@@ -1,4 +1,6 @@
 #%% Import packages
+import time
+start = time.time()
 
 # Standard libraries
 import inspect
@@ -908,11 +910,11 @@ T = 300
 J_ha = hh.jacobian(ss, inputs=['r'], T=T)
 
 # %%
-s_to_plot = [0, 50, 100, 150]
-for s in s_to_plot:
-    plt.plot(J_ha['C']['r'][:, s], label =f's={s}')
-plt.legend()
-plt.show()
+#s_to_plot = [0, 50, 100, 150]
+#for s in s_to_plot:
+#    plt.plot(J_ha['C']['r'][:, s], label =f's={s}')
+#plt.legend()
+#plt.show()
 
 
 # %% IRFs
@@ -926,3 +928,4 @@ plt.show()
 
 
 # %%
+print(f"Execution time: {time.time() - start:.2f} seconds")
