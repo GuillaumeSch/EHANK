@@ -168,30 +168,19 @@ class DiscreteChoiceDurables(LawOfMotion):
         newself.forward = not self.forward
         return newself
 
-    def __matmul__(self, X, exp = False):
+    def __matmul__(self, X, keep_shape = False):
         if self.forward:
-            print("FORWARD")
-            print("np.sum(self (P))", np.round(np.sum(self.P)))
-            print("np.sum(self (X))", np.round(np.sum(X)))
-            print(" ")
-            if exp == False:
+            if keep_shape == False:
                 return batch_multiply_ith_dimension(self.P, self.i, X)
             else:
-                return batch_multiply_ith_dimension_exp(self.P, self.i, X)
+                return batch_multiply_ith_dimension_keep_shape(self.P, self.i, X)
         else:
-            print("BACKWARD")
-            print("np.sum(self (P_T))", np.round(np.sum(self.P_T)))
-            print("np.sum(self (X))", np.round(np.sum(X)))
-            print(" ")
-            if exp == False:
+            if keep_shape == False:
                 return batch_multiply_ith_dimension(self.P_T, self.i, X)
             else:
-                return batch_multiply_ith_dimension_exp(self.P_T, self.i, X)
-            #return batch_multiply_ith_dimension(self.P_T, self.i, X)
+                return batch_multiply_ith_dimension_keep_shape(self.P_T, self.i, X)
 
 def batch_multiply_ith_dimension(P, i, X):
-    """If P is (D, X.shape) array, multiply P and X along ith dimension of X."""
-    print("ENTERING batch_multiply_ith_dimension")
     if len(P.shape) <= len(X.shape):
         P = P.swapaxes(1, 1 + i)
         X = X.swapaxes(0, i)
@@ -210,19 +199,13 @@ def batch_multiply_ith_dimension(P, i, X):
         X = X.reshape(Pshape)
     return X.swapaxes(0, i)
 
-def batch_multiply_ith_dimension_exp(P, i, X):
-    """If P is (D, X.shape) array, multiply P and X along ith dimension of X."""
-    print("ENTERING batch_multiply_ith_dimension_exp")
+def batch_multiply_ith_dimension_keep_shape(P, i, X):
     P = P.swapaxes(1, 1 + i)
     X = X.swapaxes(0, i)
-    #Pshape = P.shape
-    #P = P.reshape((*Pshape[:2], -1))
-    #X = X.reshape((X.shape[0], -1))
     X = X.reshape(P.shape)
     X = np.einsum('...jb,...jb->...jb', P, X)
     X = X.reshape(P.shape)
     return X.swapaxes(0, i)
-
 
 
 
@@ -337,33 +320,29 @@ def lottery_1d_Durables(a, a_grid, monotonic=False):
         return PolicyLottery1D_Durables(*interpolate_coord(a_grid, a), a_grid)
 
 class PolicyLottery1D_Durables(PolicyLottery1D):
-    def __matmul__(self, X, exp=False):
-        if exp == False:
+    def __matmul__(self, X, keep_shape=False):
+        if keep_shape == True:
             if self.forward:
-                #breakpoint()
-                return het_compiled.forward_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
-            else:
-                #breakpoint()
-                return het_compiled.expectation_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
-        else:
-            if self.forward:
-                #breakpoint()
                 return het_compiled.forward_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
             else:
-                #breakpoint()
                 return het_compiled.expectation_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
+        else:
+            if self.forward:
+                return het_compiled.forward_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
+            else:
+                return het_compiled.expectation_policy_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
 
 
 class ShockedPolicyLottery1D_Durables(PolicyLottery1D_Durables):
-    def __matmul__(self, X, exp = False):
-        if exp == False:
+    def __matmul__(self, X, keep_shape = False):
+        if keep_shape == True:
             if self.forward:
-                return het_compiled.forward_policy_shock_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
+                return het_compiled.forward_policy_shock_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
             else:
                 raise NotImplementedError
         else:
             if self.forward:
-                return het_compiled.forward_policy_shock_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
+                return het_compiled.forward_policy_shock_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape).sum(axis=1)
             else:
                 raise NotImplementedError
             
@@ -414,24 +393,22 @@ class StageBlockDurables(StageBlock):
 
             # advance the dD to next stage #GSCHW a lot of changes...
             if dD is not None:
-                #breakpoint()
                 try:
-                    dD = lom.__matmul__(dD, exp = True)
+                    dD = lom.__matmul__(dD, keep_shape = True)
                 except:
-                    dD = lom.__matmul__(dD, exp = False)
+                    dD = lom.__matmul__(dD, keep_shape = False)
                 #dD = lom @ dD
                 if dlom is not None:
                     try:
-                        dD += dlom.__matmul__(D, exp = True)
+                        dD += dlom.__matmul__(D, keep_shape = True)
                     except:
-                        dD += dlom.__matmul__(D, exp = False)
+                        dD += dlom.__matmul__(D, keep_shape = False)
                     #dD += dlom @ D
             elif dlom is not None:
-                #breakpoint()
                 try:
-                    dD = dlom.__matmul__(D, exp = True)
+                    dD = dlom.__matmul__(D, keep_shape = True)
                 except:
-                    dD = dlom.__matmul__(D, exp = False)
+                    dD = dlom.__matmul__(D, keep_shape = False)
                 #dD = dlom @ D
 
         curlyD = dD
@@ -443,11 +420,10 @@ class StageBlockDurables(StageBlock):
         """Find expected value of all outputs o, this period, at beginning of first stage"""
         cur_exp = None
         for ss_report, lom_T in expectations_data:
-            #breakpoint()
             # if we've already passed variable, take expectations
             if cur_exp is not None:
                 try:
-                    cur_exp = lom_T.__matmul__(cur_exp,exp = True)
+                    cur_exp = lom_T.__matmul__(cur_exp,keep_shape = True)
                 except:
                     cur_exp = lom_T @ cur_exp
             # see if variable this period
@@ -458,9 +434,8 @@ class StageBlockDurables(StageBlock):
 
     def expectation_step_fakenews(self, cur_exp, expectations_data):
         for _, lom_T in expectations_data:
-            #cur_exp = lom_T @ cur_exp
             try:
-                cur_exp = lom_T.__matmul__(cur_exp,exp = True)
+                cur_exp = lom_T.__matmul__(cur_exp,keep_shape = True)
             except:
                 cur_exp = lom_T @ cur_exp
         return cur_exp
