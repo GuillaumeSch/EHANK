@@ -14,10 +14,10 @@ from matplotlib.colors import LinearSegmentedColormap
 import colorsys
 # Sequence-Jacobian framework
 from sequence_jacobian import grids, interpolate
-from sequence_jacobian.blocks.stage_block import StageBlock
+#from sequence_jacobian.blocks.stage_block import StageBlock
 import sequence_jacobian as sj
 # Custom utilities
-from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables
+from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables, StageBlockDurables
 
 
 #%% Interactive plot
@@ -764,7 +764,7 @@ def disp_inc_f(a_grid, z_grid, r, w, p_d, chi):                 #Disposable inco
 
 
 #%% Assemble the HH block (staged block)
-hh = StageBlock([depreciation_stage, prod_stage, labsup_stage, consav_stage], name='hh',
+hh = StageBlockDurables([depreciation_stage, prod_stage, labsup_stage, consav_stage], name='hh',
                 backward_init=hh_init, hetinputs=[make_grids, disp_inc_f, make_shifters])
 
 print(hh)

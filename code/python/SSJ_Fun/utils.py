@@ -7,6 +7,8 @@ from sequence_jacobian.blocks.support.stages import (
 )
 from sequence_jacobian.blocks.support.law_of_motion import LawOfMotion, PolicyLottery1D
 from sequence_jacobian.blocks.support import het_compiled
+from sequence_jacobian.blocks.stage_block import StageBlock
+
 # Sequence-Jacobian: Utilities
 from sequence_jacobian.utilities.misc import make_tuple, logit_choice
 from sequence_jacobian.utilities.ordered_set import OrderedSet
@@ -364,3 +366,101 @@ class ShockedPolicyLottery1D_Durables(PolicyLottery1D_Durables):
                 return het_compiled.forward_policy_shock_1d(X.reshape(self.flatshape), self.i, self.pi).reshape(self.shape)
             else:
                 raise NotImplementedError
+            
+            
+class StageBlockDurables(StageBlock):
+    
+    def backward_step_fakenews(self, din_dict, output_list, backward_data, forward_data):
+        """Given shocks to this period's inputs in 'din_dict', calculate perturbation to
+        first-stage backward outputs (curlyV), to final-stage end-of-stage distribution (curlyD),
+        and to any aggregate outputs that are in 'output_list' (curlyY)"""
+
+        dback = {}  # perturbations to backward outputs from most recent stage
+        dloms = []  # list of perturbations to law of motion from all stages (initially in reverse order)
+        curlyY = {} # perturbations to aggregate outputs
+
+        # go backward through stages, pick up shocks to law of motion
+        # and also the part of curlyY not coming through the distribution
+        for stage, ss, D, lom, precomp, hetoutputs in backward_data:
+            din_all = {**din_dict, **dback}
+            dout, dlom = stage.backward_step_shock(ss, din_all, precomp)
+            dloms.append(dlom)
+
+            dback = {k: dout[k] for k in stage.backward_outputs}
+            
+            if hetoutputs is not None and output_list & hetoutputs.outputs:
+                din_all.update(dout)
+                dout.update(hetoutputs.diff(din_all, outputs=output_list & hetoutputs.outputs))
+
+            # if policy is perturbed for k in output_list, add this to curlyY
+            # (effect of perturbed distribution is added separately below)
+            for k in stage.report:
+                if k in output_list:
+                    curlyY[k] = np.vdot(D, dout[k])
+
+        curlyV = dback
+
+        # forward through stages, accumulate to find perturbation to D
+        dD = None
+        for (stage, ss, D, lom), dlom in zip(forward_data, dloms[::-1]):
+            # if dD is not None, add consequences for curlyY
+            if dD is not None:
+                for k in stage.report:
+                    if k in output_list:
+                        if k in curlyY:
+                            curlyY[k] += np.vdot(dD, ss[k])
+                        else:
+                            curlyY[k] = np.vdot(dD, ss[k])
+
+            # advance the dD to next stage #GSCHW a lot of changes...
+            if dD is not None:
+                #breakpoint()
+                try:
+                    dD = lom.__matmul__(dD, exp = True)
+                except:
+                    dD = lom.__matmul__(dD, exp = False)
+                #dD = lom @ dD
+                if dlom is not None:
+                    try:
+                        dD += dlom.__matmul__(D, exp = True)
+                    except:
+                        dD += dlom.__matmul__(D, exp = False)
+                    #dD += dlom @ D
+            elif dlom is not None:
+                #breakpoint()
+                try:
+                    dD = dlom.__matmul__(D, exp = True)
+                except:
+                    dD = dlom.__matmul__(D, exp = False)
+                #dD = dlom @ D
+
+        curlyD = dD
+
+        return curlyV, curlyD, curlyY
+    
+    
+    def expectations_beginning_of_period(self, o, expectations_data):
+        """Find expected value of all outputs o, this period, at beginning of first stage"""
+        cur_exp = None
+        for ss_report, lom_T in expectations_data:
+            #breakpoint()
+            # if we've already passed variable, take expectations
+            if cur_exp is not None:
+                try:
+                    cur_exp = lom_T.__matmul__(cur_exp,exp = True)
+                except:
+                    cur_exp = lom_T @ cur_exp
+            # see if variable this period
+            if o in ss_report:
+                cur_exp = ss_report[o]
+            
+        return cur_exp
+
+    def expectation_step_fakenews(self, cur_exp, expectations_data):
+        for _, lom_T in expectations_data:
+            #cur_exp = lom_T @ cur_exp
+            try:
+                cur_exp = lom_T.__matmul__(cur_exp,exp = True)
+            except:
+                cur_exp = lom_T @ cur_exp
+        return cur_exp
