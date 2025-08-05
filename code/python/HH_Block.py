@@ -8,6 +8,7 @@ import inspect
 import numpy as np
 from numba import njit
 from scipy.interpolate import interp1d, griddata
+from copy import deepcopy
 # Plotting
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
@@ -544,6 +545,22 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, n_d, res
     }
 
 
+# %% Define the plotting function
+def show_irfs(irfs_list, variables, labels=[" "], ylabel=r"Percentage points (dev. from ss)", T_plot=50, figsize=(18, 6)):
+    if len(irfs_list) != len(labels):
+        labels = [" "] * len(irfs_list)
+    n_var = len(variables)
+    fig, ax = plt.subplots(1, n_var, figsize=figsize, sharex=True)
+    for i in range(n_var):
+        # plot all irfs
+        for j, irf in enumerate(irfs_list):
+            ax[i].plot(100 * irf[variables[i]][:50], label=labels[j])
+        ax[i].set_title(variables[i])
+        ax[i].set_xlabel(r"$t$")
+        if i==0:
+            ax[i].set_ylabel(ylabel)
+        ax[i].legend()
+    plt.show()
 
 
 
@@ -575,7 +592,7 @@ durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='du
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
-def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, beta, eis, shifters):
+def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters):
     """DC-EGM algorithm"""
     n_d = adj_matrix.shape[0] #Number of discrete choices
     # use all FOCs on endogenous grid
@@ -583,7 +600,12 @@ def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, beta, eis, shifters):
     W = np.stack([W] * n_d, axis=0)                               # Add first dimension to match the dimensions
     uc_endo = beta * Va                                           # envelope condition
     c_endo = uc_endo** (-eis)                                     # Euler equation
-    a_endo = (c_endo[np.newaxis, ...] + a_grid[np.newaxis, np.newaxis, np.newaxis, ...] + adj_matrix[..., np.newaxis,np.newaxis] - z_grid[np.newaxis, ..., np.newaxis]) / (1 + r)     # budget constraint
+    a_endo = (c_endo[np.newaxis, ...]
+              + a_grid[np.newaxis, np.newaxis, np.newaxis, ...]
+              + adj_matrix[..., np.newaxis,np.newaxis]
+              - z_grid[np.newaxis, np.newaxis, ..., np.newaxis]
+              - T[np.newaxis, np.newaxis, ..., np.newaxis]
+              ) / (1 + r)     # budget constraint
 
     #d_bool = np.zeros_like(a_endo)
     #d_bool[1,:,:,:] = 1 #Decide to have a car (either keeping the existing car or buying)
@@ -749,14 +771,20 @@ def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifeti
     d_grid, d_markov, d_grid_name = make_d_grid(n_b, n_g, lifetime_b, lifetime_g)
     return e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name
 
-def income_grid(e_grid, tax, w, N):
-    z_grid = (1 - tax) * w * N * e_grid
+#def income_grid(e_grid, tau, w, N):
+def income_grid(e_grid, Z):
+    #z_grid = (1 - tau) * w * N * e_grid
+    z_grid = Z * e_grid
     return z_grid
 
-#Construct the utility shifter for durables
-def make_shifters(n_b, n_g, gamma_b, gamma_g):
-    shifters = np.array([0.0] + [gamma_b] * n_b + [gamma_g] * n_g)
-    return shifters
+def transfers(e_dist, Div, Tax, e_grid):
+    # hardwired incidence rules are proportional to skill; scale does not matter
+    #tax_rule, div_rule = e_grid, e_grid
+    tax_rule, div_rule = np.ones_like(e_grid), np.ones_like(e_grid)               #Lump-Sum
+    div = Div / np.sum(e_dist * div_rule) * div_rule
+    tax = Tax / np.sum(e_dist * tax_rule) * tax_rule
+    T = div - tax
+    return T
 
 #Construct the adjustment costs matrix between durables
 def adj_costs(p_d, chi):
@@ -765,22 +793,28 @@ def adj_costs(p_d, chi):
     return adj_matrix
 
 #Define the disposable income
-def disp_inc_f(a_grid, z_grid, r, adj_matrix):                 #Disposable income for consumption and assets after buying the durable good
+def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable income for consumption and assets after buying the durable good
     # Disposable income is:
     # asset income          + labor income         - durable adjustment cost
     disp_inc = (
         (1 + r) * a_grid[np.newaxis, np.newaxis, np.newaxis, :]           # asset income
         #+ z_grid[..., np.newaxis, np.newaxis]                 # labor income
         + z_grid[np.newaxis, np.newaxis, ..., np.newaxis]                 # labor income
+        + T[np.newaxis, np.newaxis, ..., np.newaxis]                      # Transfers
         - adj_matrix[..., np.newaxis, np.newaxis]                         # adjustment costs
-    )                                                         # on (nd, e, a)
-
+    )                                                         # on (nd, nd, e, a)
     return disp_inc
+
+
+#Construct the utility shifter for durables
+def make_shifters(n_b, n_g, gamma_b, gamma_g):
+    shifters = np.array([0.0] + [gamma_b] * n_b + [gamma_g] * n_g)
+    return shifters
 
 
 #%% Assemble the HH block (staged block)
 hh = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
-                backward_init=hh_init, hetinputs=[make_grids, income_grid, adj_costs, disp_inc_f, make_shifters])
+                backward_init=hh_init, hetinputs=[make_grids, income_grid, transfers, adj_costs, disp_inc_f, make_shifters])
 
 print(hh)
 print(f"Inputs: {hh.inputs}")
@@ -836,9 +870,9 @@ cali["baseline"] = {
     "max_a": 100,              # Maximum asset level
     "n_a": 10,                 # Number of asset grid points
     # Labor market
-    "w": 1.0,                  # Wage level
+    #"w": 1.0,                  # Wage level
     "N": 1.0,                  # Labor supply
-    "tax":0,                   # Labor income tax
+    "tau":0,                   # Labor income tax
     # Durable goods
     "p_d": p_d,                # Durable price vector [no durable, brown..., green...]
     "n_b": n_b,                # Number of brown vintages
@@ -849,6 +883,14 @@ cali["baseline"] = {
     "gamma_g": gamma_g,        # Utility from green durable
     "lifetime_b": lifetime_b,  # Lifetime of brown durables
     "lifetime_g": lifetime_g,  # Lifetime of green durables
+    # Firms
+    "alpha": 1,                # Share of labor in prod. function
+    "Div": 0,                  # Dividends from firms
+    "Tax": 0.5,                # Total tax
+    #Government
+    #"Y" : 1,                   # Output
+    "B" : 4,                   # Stock of debt
+    "G" : 0.3,                 # Government spendings
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
@@ -858,9 +900,10 @@ for k, v in cali["baseline"].items():
 
 #%% Only useful for debugging
 e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
-z_grid = income_grid(e_grid, tax, w, N)
+z_grid = income_grid(e_grid, tau, w, N)
+T = transfers(e_dist, Div, Tax, e_grid)
 adj_matrix = adj_costs(p_d, chi)
-disp_inc = disp_inc_f(a_grid, z_grid, r, adj_matrix)
+disp_inc = disp_inc_f(a_grid, z_grid, T, r, adj_matrix)
 shifters = make_shifters(n_b, n_g, gamma_b, gamma_g)
 
 V, Va = hh_init(disp_inc, a_grid, eis, shifters)
@@ -924,10 +967,10 @@ V, Va = hh_init(disp_inc, a_grid, eis, shifters)
 
 @sj.simple
 def fiscal(B, r, G, Y):
-    T = (1 + r) * B(-1) + G - B  # total tax burden
-    Z = Y - T  # after tax income
-    deficit = G - T
-    return T, Z, deficit
+    Tax = (1 + r) * B(-1) + G - B  # total tax burden
+    Z = Y - Tax
+    deficit = G - Tax
+    return Tax, deficit, Z
 
 
 @sj.simple
@@ -936,23 +979,106 @@ def mkt_clearing(A, B, Y, C, G):
     goods_mkt = Y - C - G
     return asset_mkt, goods_mkt
 
+@sj.simple
+def prod(N, alpha):
+    Y = N**alpha
+    w = N**(alpha-1)
+    return Y, w
+
 #%% Create the model
-ha = sj.create_model([hh, fiscal, mkt_clearing], name="Simple HA Model")
+ha = sj.create_model([hh, fiscal, mkt_clearing, prod], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
-# %% SS
-cali['baseline']['Y'] = 1
-#cali['baseline']['beta'] = 0.85
+# %% Evalaute model with basic calibration
+cali['no_ss'] = deepcopy(cali['baseline'])
+cali['no_ss']['r'] = cali['baseline']['r'] + 0
+cali['no_ss']['G'] = cali['baseline']['G'] + 0.0
+cali['no_ss']['beta'] = cali['baseline']['beta'] + 0.00
+cali['no_ss']['B'] = cali['baseline']['B'] + 0
+cali['no_ss']['N'] = cali['baseline']['N'] + 0.0
 
-ss = ha.steady_state(cali['baseline'])
-ss['asset_mkt']
+
+
+
+no_ss = ha.steady_state(cali['no_ss'])
+# Print the result
+print("Evaluating steady state with arbitrary calibration (no equilibrium solving):")
+print(f"  Given beta = {cali['no_ss']['beta']}")
+print(f"  Given r    = {cali['no_ss']['r']}")
+print(f"  Given G    = {cali['no_ss']['G']}")
+print(f"  Given B    = {cali['no_ss']['B']}")
+print("Resulting market clearing residuals:")
+print(f"  Goods market:  {np.round(no_ss['goods_mkt'], 5)}")
+print(f"  Asset market:  {np.round(no_ss['asset_mkt'], 5)}")
+print(f"  Tax:  {np.round(no_ss['Tax'], 5)}")
+
+#%%
+
+from copy import deepcopy
+import numpy as np
+
+def evaluate_param_changes(param_name, values_list):
+    # Get baseline calibration and steady state
+    baseline_calib = deepcopy(cali['baseline'])
+    baseline_ss = ha.steady_state(baseline_calib)
+
+    # Variables to report in SS output
+    ss_vars = ['goods_mkt', 'asset_mkt', 'Tax', 'r', 'beta', 'G', 'B', 'N', 'Y', 'Z']
+
+    # Store results
+    calibration_results = []
+    ss_results = []
+
+    # Baseline row
+    calibration_results.append(('Baseline', baseline_calib.get(param_name, 'N/A')))
+    ss_results.append(('Baseline', [baseline_ss[v] if v in baseline_ss else 'N/A' for v in ss_vars]))
+
+    # Loop over alternative values
+    for val in values_list:
+        # Create new calibration
+        modified_calib = deepcopy(baseline_calib)
+        modified_calib[param_name] = val
+
+        # Compute steady state
+        ss = ha.steady_state(modified_calib)
+
+        # Store results
+        case_name = f"{param_name} = {val}"
+        calibration_results.append((case_name, val))
+        ss_results.append((case_name, [ss[v] if v in ss else 'N/A' for v in ss_vars]))
+
+    # Print Calibration Table
+    print(f"\n🔧 Parameter sweep for '{param_name}'")
+    print("\n📌 Calibration Values:")
+    print(f"{'Case':<20} | {param_name}")
+    print("-" * 35)
+    for case, val in calibration_results:
+        print(f"{case:<20} | {val:.5f}" if isinstance(val, (float, int)) else f"{case:<20} | {val}")
+
+    # Print SS Table
+    print("\n📈 Steady-State Outcomes:")
+    header = f"{'Case':<20} | " + " | ".join([f"{v:<10}" for v in ss_vars])
+    print(header)
+    print("-" * len(header))
+    for case, row in ss_results:
+        row_str = " | ".join(
+            [f"{x:>10.5f}" if isinstance(x, (float, int)) else f"{x:>10}" for x in row]
+        )
+        print(f"{case:<20} | {row_str}")
+
+
+
 #%% Find the values for SS
-unknowns_ss = {'beta': 0.97}
+#unknowns_ss = {'beta': 0.97, 'G': 0.3}
+#unknowns_ss = {'r':0.005, 'G': 0.3}
+#unknowns_ss = {'r':0.005, 'beta': 0.97}
+unknowns_ss = {'beta':0.90}
 targets_ss = {'asset_mkt'}
 
 ss = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss, solver='hybr')
-print(f"To attain SS, we need beta={np.round(ss['beta'],2)}")
+print(f"To attain SS, we need beta={np.round(ss['beta'],4)}")
+print(f"To attain SS, we need Y={np.round(ss['Y'],4)}")
 
 print(f"Check: Goods market clearing: {np.round(ss['goods_mkt'],5)}")
 print(f"Check: Assets market clearing: {np.round(ss['asset_mkt'],5)}")
@@ -971,13 +1097,17 @@ plt.show()
 
 
 # %% IRFs
-# T = 300  # <-- the length of the IRF
-# rho_r = 0.8
-# dr = 0.01 * rho_r ** np.arange(T)
-# shocks = {"r": dr}
-# unknowns_td = ["C"]
-# targets_td = ["asset_mkt"]
-# irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+T = 300  # <-- the length of the IRF
+rho_r = 0.8
+dr = 0.01 * rho_r ** np.arange(T)
+shocks = {"r": dr}
+unknowns_td = ['N']
+targets_td = ["asset_mkt"]
+irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+
+#%% Plot IRFs
+show_irfs([irfs], ["r","C","Y", "A", "goods_mkt", "asset_mkt"],  labels=["..."], figsize=(18,3))
+
 
 
 # %%
