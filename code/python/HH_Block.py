@@ -135,9 +135,6 @@ def policy_functions(
     plt.tight_layout()
     plt.show()
 
-
-
-
 def plot_heatmap(Pi, title="Matrix Heatmap", fmt=".2f"):
     """
     Plots a heatmap of a 2D matrix using matplotlib.
@@ -289,10 +286,6 @@ def make_strictly_increasing(uc):
 
     return uc_fixed
 
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
-
 def analyze_steady_state(param_name, param_values, cali, hh, n_d):
     """
     Vary a calibration parameter and plot steady-state outcomes for DD_i and DD_TILDE_i, A, and C.
@@ -414,10 +407,6 @@ def analyze_steady_state(param_name, param_values, cali, hh, n_d):
         'c_vals': c_vals,
         'success_flags': success_flags,
     }
-
-
-
-
 
 def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, n_d, results=None):
     """
@@ -544,26 +533,54 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, n_d, res
         'success': success
     }
 
-
-# %% Define the plotting function
+# Define the plotting function
 def show_irfs(irfs_list, variables, labels=[" "], ylabel=r"Percentage points (dev. from ss)", T_plot=50, figsize=(18, 6)):
     if len(irfs_list) != len(labels):
         labels = [" "] * len(irfs_list)
+
     n_var = len(variables)
     fig, ax = plt.subplots(1, n_var, figsize=figsize, sharex=True)
+    if n_var == 1:
+        ax = [ax]  # Ensure ax is iterable
+
     for i in range(n_var):
-        # plot all irfs
+        var = variables[i]
+
         for j, irf in enumerate(irfs_list):
-            ax[i].plot(100 * irf[variables[i]][:50], label=labels[j])
-        ax[i].set_title(variables[i])
+            if var in irf:
+                data = 100 * np.array(irf[var][:T_plot])
+            else:
+                data = np.zeros(T_plot)
+            ax[i].plot(data, label=labels[j])
+
+        ax[i].set_title(var)
         ax[i].set_xlabel(r"$t$")
-        if i==0:
+        if i == 0:
             ax[i].set_ylabel(ylabel)
         ax[i].legend()
+
+    plt.tight_layout()
     plt.show()
 
-
-
+def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs,
+              rho=None, e=None, T=300, figsize=(18, 3), ylabel=r"Percentage points (dev. from ss)", labels=None):
+    # Default values if not provided
+    if rho is None:
+        rho = {shock: 0.8 for shock in shocks_list}
+    if e is None:
+        e = {shock: 0.01 for shock in shocks_list}
+    # Build shocks dictionary with time series
+    shocks = {
+        shock: e[shock] * rho[shock] ** np.arange(T)
+        for shock in shocks_list
+    }
+    # Solve the system
+    irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+    # Default label
+    if labels is None:
+        labels = [" + ".join(shocks_list)]
+    # Plot
+    show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T, figsize=figsize)
 
 
 
@@ -1095,18 +1112,52 @@ for s in s_to_plot:
 plt.legend()
 plt.show()
 
+#%%
+# %% IRFs
+T = 300  # <-- the length of the IRF
+rho_r = 0.8
+eR = 0.01
+rho_B = 0.8
+eB = 0.01
+dr = eR * rho_r ** np.arange(T)
+dB = eB * rho_B ** np.arange(T)
+shocks = {"r": dr, "B": dB}
+unknowns_td = ['N']
+targets_td = ["asset_mkt"]
+irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+show_irfs([irfs], ["gamma_g","N","w","C","Y", "A", "goods_mkt", "asset_mkt"],  labels=["..."], figsize=(18,3))
+
+
+#%%
+plot_linear_irfs(
+    shocks_list=['r'],
+    unknowns_td=['G','N'],
+    targets_td=['asset_mkt',"goods_mkt"],
+    ha=ha,
+    ss=ss,
+    outputs=["N", "G", "Tax","r", "B", "w", "C", "Y", "A", "goods_mkt", "asset_mkt"]
+)
+
 
 # %% IRFs
 T = 300  # <-- the length of the IRF
 rho_r = 0.8
 dr = 0.01 * rho_r ** np.arange(T)
-shocks = {"r": dr}
+shocks = {"G": dr}
 unknowns_td = ['N']
 targets_td = ["asset_mkt"]
 irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
 
+# %% IRFs
+T = 300  # <-- the length of the IRF
+dB = 0.01 * 0.8 ** np.arange(T)
+shocks = {"G": dr, "B": dB}
+unknowns_td = ['N']
+targets_td = ["asset_mkt"]
+irfs_B = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+
 #%% Plot IRFs
-show_irfs([irfs], ["r","C","Y", "A", "goods_mkt", "asset_mkt"],  labels=["..."], figsize=(18,3))
+show_irfs([irfs, irfs_B], ["r","C","Y", "A", "goods_mkt", "asset_mkt", "B"],  labels=["..."], figsize=(18,3))
 
 
 
