@@ -1,4 +1,6 @@
 #%% Import packages
+#import time
+#start = time.time()
 
 # Standard libraries
 import inspect
@@ -6,19 +8,21 @@ import inspect
 import numpy as np
 from numba import njit
 from scipy.interpolate import interp1d, griddata
+from copy import deepcopy
 # Plotting
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import colorsys
 # Sequence-Jacobian framework
 from sequence_jacobian import grids, interpolate
-from sequence_jacobian.blocks.stage_block import StageBlock
+#from sequence_jacobian.blocks.stage_block import StageBlock
+import sequence_jacobian as sj
 # Custom utilities
-from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables
+from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables, StageBlockDurables
 
 
 #%% Interactive plot
-%matplotlib qt
+#%matplotlib qt
 
 #%% Some useful functions for debugging
 
@@ -29,7 +33,7 @@ def policy_functions(
     amin=0,
     d_tilde_list=[0],
     d_list=[0],
-    iz_list=[3],
+    ie_list=[3],
     figsize=0.6,
     models=['baseline']
 ):
@@ -41,17 +45,17 @@ def policy_functions(
         a[model] = ss[model].internals['hh']['consav']['a']
         da[model] = a[model] - a_grid
         c[model] = ss[model].internals['hh']['consav']['c']
-        P[model] = ss[model].internals['hh']['labsup']['law_of_motion'].P
-        V[model] = ss[model].internals['hh']['labsup']['V']
+        P[model] = ss[model].internals['hh']['durables']['law_of_motion'].P
+        V[model] = ss[model].internals['hh']['durables']['V']
 
     fig, axes = plt.subplots(1, 3, figsize=(12 * figsize, 4 * figsize))
     ax = axes.flatten()
 
-    # Define line styles for each iz (cycle if fewer styles than iz_list)
+    # Define line styles for each iz (cycle if fewer styles than ie_list)
     linestyles = ['-', '--', '-.', ':']
     linestyle_map = {
         iz: linestyles[i % len(linestyles)]
-        for i, iz in enumerate(iz_list)
+        for i, iz in enumerate(ie_list)
     }
 
     n = len(d_tilde_list)
@@ -75,7 +79,7 @@ def policy_functions(
     for model in models:
         for d_tilde in d_tilde_list:
             for d in d_list:
-                for iz in iz_list:
+                for iz in ie_list:
                     linestyle = linestyle_map[iz]
                     color = color_map[d_tilde]
                     alpha = alpha_map[d]
@@ -130,9 +134,6 @@ def policy_functions(
 
     plt.tight_layout()
     plt.show()
-
-
-
 
 def plot_heatmap(Pi, title="Matrix Heatmap", fmt=".2f"):
     """
@@ -285,10 +286,6 @@ def make_strictly_increasing(uc):
 
     return uc_fixed
 
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
-
 def analyze_steady_state(param_name, param_values, cali, hh, n_d):
     """
     Vary a calibration parameter and plot steady-state outcomes for DD_i and DD_TILDE_i, A, and C.
@@ -410,10 +407,6 @@ def analyze_steady_state(param_name, param_values, cali, hh, n_d):
         'c_vals': c_vals,
         'success_flags': success_flags,
     }
-
-
-
-
 
 def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, n_d, results=None):
     """
@@ -540,17 +533,61 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, n_d, res
         'success': success
     }
 
+# Define the plotting function
+def show_irfs(irfs_list, variables, labels=[" "], ylabel=r"Percentage points (dev. from ss)", T_plot=50, figsize=(18, 6)):
+    if len(irfs_list) != len(labels):
+        labels = [" "] * len(irfs_list)
+
+    n_var = len(variables)
+    fig, ax = plt.subplots(1, n_var, figsize=figsize, sharex=True)
+    if n_var == 1:
+        ax = [ax]  # Ensure ax is iterable
+
+    for i in range(n_var):
+        var = variables[i]
+
+        for j, irf in enumerate(irfs_list):
+            if var in irf:
+                data = 100 * np.array(irf[var][:T_plot])
+            else:
+                data = np.zeros(T_plot)
+            ax[i].plot(data, label=labels[j])
+
+        ax[i].set_title(var)
+        ax[i].set_xlabel(r"$t$")
+        if i == 0:
+            ax[i].set_ylabel(ylabel)
+        ax[i].legend()
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs,
+              rho=None, e=None, T=300, figsize=(18, 3), ylabel=r"Percentage points (dev. from ss)", labels=None):
+    # Default values if not provided
+    if rho is None:
+        rho = {shock: 0.8 for shock in shocks_list}
+    if e is None:
+        e = {shock: 0.01 for shock in shocks_list}
+    # Build shocks dictionary with time series
+    shocks = {
+        shock: e[shock] * rho[shock] ** np.arange(T)
+        for shock in shocks_list
+    }
+    # Solve the system
+    irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+    # Default label
+    if labels is None:
+        labels = [" + ".join(shocks_list)]
+    # Plot
+    show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T, figsize=figsize)
 
 
 
-
-
-
-
-#%% Stage 1 - Productivity shock (Expected value function given initial state of individual prod. level z_)
+#%% Stage 1 - Productivity shock (Expected value function given initial state of individual prod. level e_)
 
 #Initialize Stage 1a
-prod_stage = ExogenousMaker(markov_name='z_markov', index=1, name='prod')
+prod_stage = ExogenousMaker(markov_name='e_markov', index=1, name='prod')
 
 
 #Initialize Stage 1b
@@ -567,21 +604,25 @@ depreciation_stage = ExogenousMaker(markov_name='d_markov', index=0, name='durab
 #`taste_shock_scale`: name of $\sigma_\varepsilon$ parameter, needed for all formulas
 #`f`: (optional) function that implements additive utility cost on expanded state $(n| n_-, z, a_-)$. This is useful to implement costs that depend on origin as well as destination $(n|n_-)$. Setting some costs to infinity implements constraints on discrete choice (more on this below).
 
-labsup_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='labsup',
+durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='durables',
                            taste_shock_scale='taste_shock')
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
-#dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, shifters)
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
-def dcegm(V, Va, a_grid, disp_inc, durable_exp, y_w, r, beta, eis, shifters):
+def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters):
     """DC-EGM algorithm"""
-    n_d = durable_exp.shape[0] #Number of discrete choices
+    n_d = adj_matrix.shape[0] #Number of discrete choices
     # use all FOCs on endogenous grid
     W = beta * V                                                  # end-of-stage vfun
     W = np.stack([W] * n_d, axis=0)                               # Add first dimension to match the dimensions
     uc_endo = beta * Va                                           # envelope condition
     c_endo = uc_endo** (-eis)                                     # Euler equation
-    a_endo = (c_endo[np.newaxis, ...] + a_grid[np.newaxis, np.newaxis, np.newaxis, ...] + durable_exp[..., np.newaxis,np.newaxis] - y_w[np.newaxis, ..., np.newaxis]) / (1 + r)     # budget constraint
+    a_endo = (c_endo[np.newaxis, ...]
+              + a_grid[np.newaxis, np.newaxis, np.newaxis, ...]
+              + adj_matrix[..., np.newaxis,np.newaxis]
+              - z_grid[np.newaxis, np.newaxis, ..., np.newaxis]
+              - T[np.newaxis, np.newaxis, ..., np.newaxis]
+              ) / (1 + r)     # budget constraint
 
     #d_bool = np.zeros_like(a_endo)
     #d_bool[1,:,:,:] = 1 #Decide to have a car (either keeping the existing car or buying)
@@ -741,28 +782,56 @@ def hh_init(disp_inc, a_grid, eis, shifters):
     return V, Va
 
 #construct Markov process for productivity, for depreciation of durables and the assets grid
-def make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g):
-    z_grid, z_dist, z_markov = grids.markov_rouwenhorst(rho_z, sd_z, n_z)
+def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g):
+    e_grid, e_dist, e_markov = grids.markov_rouwenhorst(rho_e, sd_e, n_e)
     a_grid = grids.agrid(max_a, n_a, min_a)
     d_grid, d_markov, d_grid_name = make_d_grid(n_b, n_g, lifetime_b, lifetime_g)
-    return z_grid, z_dist, z_markov, a_grid, d_grid, d_markov, d_grid_name
+    return e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name
+
+#def income_grid(e_grid, tau, w, N):
+def income_grid(e_grid, Z):
+    #z_grid = (1 - tau) * w * N * e_grid
+    z_grid = Z * e_grid
+    return z_grid
+
+def transfers(e_dist, Div, Tax, e_grid):
+    # hardwired incidence rules are proportional to skill; scale does not matter
+    #tax_rule, div_rule = e_grid, e_grid
+    tax_rule, div_rule = np.ones_like(e_grid), np.ones_like(e_grid)               #Lump-Sum
+    div = Div / np.sum(e_dist * div_rule) * div_rule
+    tax = Tax / np.sum(e_dist * tax_rule) * tax_rule
+    T = div - tax
+    return T
+
+#Construct the adjustment costs matrix between durables
+def adj_costs(p_d, chi):
+    adj_matrix = p_d[:, None] - (1 - chi) * p_d
+    np.fill_diagonal(adj_matrix, 0)                            # set diagonal to 0 (no cost if no switching)
+    return adj_matrix
+
+#Define the disposable income
+def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable income for consumption and assets after buying the durable good
+    # Disposable income is:
+    # asset income          + labor income         - durable adjustment cost
+    disp_inc = (
+        (1 + r) * a_grid[np.newaxis, np.newaxis, np.newaxis, :]           # asset income
+        #+ z_grid[..., np.newaxis, np.newaxis]                 # labor income
+        + z_grid[np.newaxis, np.newaxis, ..., np.newaxis]                 # labor income
+        + T[np.newaxis, np.newaxis, ..., np.newaxis]                      # Transfers
+        - adj_matrix[..., np.newaxis, np.newaxis]                         # adjustment costs
+    )                                                         # on (nd, nd, e, a)
+    return disp_inc
+
 
 #Construct the utility shifter for durables
 def make_shifters(n_b, n_g, gamma_b, gamma_g):
     shifters = np.array([0.0] + [gamma_b] * n_b + [gamma_g] * n_g)
     return shifters
 
-def disp_inc_f(a_grid, z_grid, r, w, p_d, chi):                 #Disposable income for consumption and assets after buying the durable good
-    durable_exp = p_d[:, None] - (1 - chi) * p_d                # Create matrix of adjustment costs
-    np.fill_diagonal(durable_exp, 0)                            # set diagonal to 0 (no cost if no switching)
-    y_w = z_grid[np.newaxis] * w                                # on (1, z)
-    disp_inc = (1 + r) * a_grid[np.newaxis, np.newaxis, :] + y_w[..., np.newaxis] - durable_exp[..., np.newaxis, np.newaxis] # on (nd, z, a) #Disposable income for consumption
-    return y_w, disp_inc, durable_exp
-
 
 #%% Assemble the HH block (staged block)
-hh = StageBlock([depreciation_stage, prod_stage, labsup_stage, consav_stage], name='hh',
-                backward_init=hh_init, hetinputs=[make_grids, disp_inc_f, make_shifters])
+hh = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
+                backward_init=hh_init, hetinputs=[make_grids, income_grid, transfers, adj_costs, disp_inc_f, make_shifters])
 
 print(hh)
 print(f"Inputs: {hh.inputs}")
@@ -773,116 +842,325 @@ print(f"Outputs: {hh.outputs}")
 # --Solving the baseline hh block --
 # -------------------------------
 
-#Specify different calibration
-cali = dict()
-n_b = 2
-n_g = 2
-n_d = 1 + n_b + n_g
-lifetime_b = 60
-lifetime_g = 60
-p = 0.80
-p_b = 0.80
-p_g = 0.90
-p_d = np.array([0] + [p_b] * n_b + [p_g]  * n_g)
+#%% Calibration
 
-dep_rate = 0.25 #Depreciation rate/lost of value between newest and oldest vintage
+# === Model structure ===
+n_b = 2                    # Number of brown durable vintages
+n_g = 2                    # Number of green durable vintages
+n_d = 1 + n_b + n_g        # Total number of durable states (no durable + vintages)
+lifetime_b = 60            # Average lifetime of brown durables (quarters)
+lifetime_g = 60            # Average lifetime of green durables (quarters)
 
-# Linear depreciation of price across vintages (can be changed to exponential or other shape)
-p_b_vector = np.linspace(p_b, dep_rate * p_b, n_b)              # from full price to 10% for brown
-p_g_vector = np.linspace(p_g, dep_rate * p_g, n_g)              # from full price to 10% for green
+# === Depreciation and prices ===
+dep_rate = 0.25            # Depreciation rate between newest and oldest vintage
+p_b = 0.80                 # Initial price of brown durable
+p_g = 0.90                 # Initial price of green durable
 
-# Assemble full price vector: [no durable, brown vintages..., green vintages...]
+# Linear price depreciation across vintages (can be changed)
+p_b_vector = np.linspace(p_b, dep_rate * p_b, n_b)
+p_g_vector = np.linspace(p_g, dep_rate * p_g, n_g)
+
+# Full price vector: [no durable, brown vintages..., green vintages...]
 p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
 
-chi = 0.5 #Loss of value of durable if sold.
-gamma_b = 1 #Utility from having a brown durable
-gamma_g = 1.2 #Utility from having a green durable
-#shifters = np.array([0.0] + [gamma_b] * n_b  + [gamma_g] * n_b )
+# === Preferences over durables ===
+chi = 0.5                 # Loss in value when selling a durable
+gamma_b = 1.0             # Utility from brown durable
+gamma_g = 1.2             # Utility from green durable
 
+# === Calibration dictionary ===
+cali = {}
 
+cali["baseline"] = {
+    # Preferences and taste shocks
+    "taste_shock": 1e-1,       # Idiosyncratic taste shock
+    "vphi": 0.0,               # Value function penalty parameter
+    "beta": 0.97,              # Discount factor
+    "eis": 0.5,                # Elasticity of intertemporal substitution
+    "r": 0.02 / 4,             # Interest rate (quarterly)
+    # Productivity process
+    "rho_e": 0.95,             # Persistence of productivity shocks
+    "sd_e": 0.5,               # Std. deviation of productivity shocks
+    "n_e": 5,                  # Number of productivity grid points
+    # Asset grid
+    "min_a": 0.0,              # Minimum asset level
+    "max_a": 100,              # Maximum asset level
+    "n_a": 10,                 # Number of asset grid points
+    # Labor market
+    #"w": 1.0,                  # Wage level
+    "N": 1.0,                  # Labor supply
+    "tau":0,                   # Labor income tax
+    # Durable goods
+    "p_d": p_d,                # Durable price vector [no durable, brown..., green...]
+    "n_b": n_b,                # Number of brown vintages
+    "n_g": n_g,                # Number of green vintages
+    "n_d": n_d,                # Total durable states
+    "chi": chi,                # Resale loss
+    "gamma_b": gamma_b,        # Utility from brown durable
+    "gamma_g": gamma_g,        # Utility from green durable
+    "lifetime_b": lifetime_b,  # Lifetime of brown durables
+    "lifetime_g": lifetime_g,  # Lifetime of green durables
+    # Firms
+    "alpha": 1,                # Share of labor in prod. function
+    "Div": 0,                  # Dividends from firms
+    "Tax": 0.5,                # Total tax
+    #Government
+    #"Y" : 1,                   # Output
+    "B" : 4,                   # Stock of debt
+    "G" : 0.3,                 # Government spendings
+}
 
+#TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
+for k, v in cali["baseline"].items():
+    globals()[k] = v
 
-
-
-cali['baseline'] = {'taste_shock': 1E-1, 'vphi': 0.0, 'r': 0.02/4, 'beta': 0.97, 'eis': 0.5,
-               'rho_z': 0.95, 'sd_z': 0.5, 'n_z': 5,
-               'min_a': 0.0, 'max_a': 100, 'n_a': 10, 'w': 1.0, 'p_d': p_d, 'n_b': n_b, 'n_g':n_g,'n_d': n_d,
-                'chi' : chi, 'gamma_b':gamma_b, 'gamma_g':gamma_g, 'lifetime_b': lifetime_b, 'lifetime_g': lifetime_g}
-
-taste_shock = 1e-5
-vphi = 0.0
-r = 0.02 / 4
-beta = 0.97
-eis = 0.5
-rho_z = 0.95
-sd_z = 0.5
-n_z = 7
-min_a = 0.0
-max_a = 200
-n_a = 200
-w = 1.0
 
 #%% Only useful for debugging
-z_grid, z_dist, z_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_z, sd_z, n_z, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
-y_w, disp_inc, durable_exp = disp_inc_f(a_grid, z_grid, r, w, p_d, chi)
+e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
+z_grid = income_grid(e_grid, tau, w, N)
+T = transfers(e_dist, Div, Tax, e_grid)
+adj_matrix = adj_costs(p_d, chi)
+disp_inc = disp_inc_f(a_grid, z_grid, T, r, adj_matrix)
+shifters = make_shifters(n_b, n_g, gamma_b, gamma_g)
+
 V, Va = hh_init(disp_inc, a_grid, eis, shifters)
-#%% Baseline model
 
-ss = dict()
-ss['baseline'] = hh.steady_state(cali['baseline'])
-print(ss['baseline']['A'])
-print('Proportion of people with a brown car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_1'])
-print('Proportion of people with a green car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_2'])
-print('Proportion of people with a brown car at the beginning of the period (state variable)',ss['baseline']['DD_1'])
-print('Proportion of people with a green car at the beginning of the period (state variable)',ss['baseline']['DD_2'])
-print('Ratio of DD_1/DD_TILDE_1: ',ss['baseline']['DD_1'] / ss['baseline']['DD_TILDE_1'])
-print('Ratio of DD_2/DD_TILDE_2: ',ss['baseline']['DD_2'] / ss['baseline']['DD_TILDE_2'])
-print(ss['baseline']['C'])
+# #%% Baseline model
+
+# ss = dict()
+# ss['baseline'] = hh.steady_state(cali['baseline'])
+# print(ss['baseline']['A'])
+# print('Proportion of people with a brown car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_1'])
+# print('Proportion of people with a green car at the end of the period (choice variable)',ss['baseline']['DD_TILDE_2'])
+# print('Proportion of people with a brown car at the beginning of the period (state variable)',ss['baseline']['DD_1'])
+# print('Proportion of people with a green car at the beginning of the period (state variable)',ss['baseline']['DD_2'])
+# print('Ratio of DD_1/DD_TILDE_1: ',ss['baseline']['DD_1'] / ss['baseline']['DD_TILDE_1'])
+# print('Ratio of DD_2/DD_TILDE_2: ',ss['baseline']['DD_2'] / ss['baseline']['DD_TILDE_2'])
+# print(ss['baseline']['C'])
+# #%% Policy functions
+# policy_functions(ss, amax=150, d_tilde_list=ss['baseline'].internals['hh']['d_grid'] ,d_list = [0],ie_list=[0], figsize=0.8, models = ['baseline'])
+
+# #%% Comparative statics of SS - 2d
+# results = analyze_steady_state('chi', np.linspace(0.1, 0.5, 3), cali, hh, n_d)
+
+# #%% Comparative statics of SS - 3d
+# CS_dep_rate_chi_2 = analyze_steady_state_3d(
+#     param1='dep_rate',
+#     values1=np.linspace(0.05, 0.75, 5),
+#     param2='chi',
+#     values2=np.linspace(0.1, 0.8, 5),
+#     cali=cali,
+#     hh=hh,
+#     n_d=n_d
+#     )
+
+# #%% Comparative statics of SS - 3d
+# CS_lifetime = analyze_steady_state_3d(
+#     param1='lifetime_b',
+#     values1=np.linspace(30, 90, 5),
+#     param2='lifetime_g',
+#     values2=np.linspace(30, 90, 5),
+#     cali=cali,
+#     hh=hh,
+#     n_d=n_d
+#     )
+
+# #%% Comparative statics of SS - 3d
+# #Would be nice to analzye how it changes by changing gamma_g and gamma_b
+# CS_gammas = analyze_steady_state_3d(
+#     param1='gamma_b',
+#     values1=np.linspace(0.9, 1.1, 5),
+#     param2='gamma_g',
+#     values2=np.linspace(0.9, 1.1, 5),
+#     cali=cali,
+#     hh=hh,
+#     n_d=n_d
+#     )
+# # %%
+
+
+
+#%% Add other blocks
+
+@sj.simple
+def fiscal(B, r, G, Y):
+    Tax = (1 + r) * B(-1) + G - B  # total tax burden
+    Z = Y - Tax
+    deficit = G - Tax
+    return Tax, deficit, Z
+
+
+@sj.simple
+def mkt_clearing(A, B, Y, C, G):
+    asset_mkt = A - B
+    goods_mkt = Y - C - G
+    return asset_mkt, goods_mkt
+
+@sj.simple
+def prod(N, alpha):
+    Y = N**alpha
+    w = N**(alpha-1)
+    return Y, w
+
+#%% Create the model
+ha = sj.create_model([hh, fiscal, mkt_clearing, prod], name="Simple HA Model")
+print(ha)
+print('It has inputs: ' + str(ha.inputs))
+print('It has outputs: ' + str(ha.outputs))
+# %% Evalaute model with basic calibration
+cali['no_ss'] = deepcopy(cali['baseline'])
+cali['no_ss']['r'] = cali['baseline']['r'] + 0
+cali['no_ss']['G'] = cali['baseline']['G'] + 0.0
+cali['no_ss']['beta'] = cali['baseline']['beta'] + 0.00
+cali['no_ss']['B'] = cali['baseline']['B'] + 0
+cali['no_ss']['N'] = cali['baseline']['N'] + 0.0
+
+
+
+
+no_ss = ha.steady_state(cali['no_ss'])
+# Print the result
+print("Evaluating steady state with arbitrary calibration (no equilibrium solving):")
+print(f"  Given beta = {cali['no_ss']['beta']}")
+print(f"  Given r    = {cali['no_ss']['r']}")
+print(f"  Given G    = {cali['no_ss']['G']}")
+print(f"  Given B    = {cali['no_ss']['B']}")
+print("Resulting market clearing residuals:")
+print(f"  Goods market:  {np.round(no_ss['goods_mkt'], 5)}")
+print(f"  Asset market:  {np.round(no_ss['asset_mkt'], 5)}")
+print(f"  Tax:  {np.round(no_ss['Tax'], 5)}")
+
 #%%
-policy_functions(ss, amax=150, d_tilde_list=ss['baseline'].internals['hh']['d_grid'] ,d_list = [0],iz_list=[0], figsize=0.8, models = ['baseline'])
+
+from copy import deepcopy
+import numpy as np
+
+def evaluate_param_changes(param_name, values_list):
+    # Get baseline calibration and steady state
+    baseline_calib = deepcopy(cali['baseline'])
+    baseline_ss = ha.steady_state(baseline_calib)
+
+    # Variables to report in SS output
+    ss_vars = ['goods_mkt', 'asset_mkt', 'Tax', 'r', 'beta', 'G', 'B', 'N', 'Y', 'Z']
+
+    # Store results
+    calibration_results = []
+    ss_results = []
+
+    # Baseline row
+    calibration_results.append(('Baseline', baseline_calib.get(param_name, 'N/A')))
+    ss_results.append(('Baseline', [baseline_ss[v] if v in baseline_ss else 'N/A' for v in ss_vars]))
+
+    # Loop over alternative values
+    for val in values_list:
+        # Create new calibration
+        modified_calib = deepcopy(baseline_calib)
+        modified_calib[param_name] = val
+
+        # Compute steady state
+        ss = ha.steady_state(modified_calib)
+
+        # Store results
+        case_name = f"{param_name} = {val}"
+        calibration_results.append((case_name, val))
+        ss_results.append((case_name, [ss[v] if v in ss else 'N/A' for v in ss_vars]))
+
+    # Print Calibration Table
+    print(f"\n🔧 Parameter sweep for '{param_name}'")
+    print("\n📌 Calibration Values:")
+    print(f"{'Case':<20} | {param_name}")
+    print("-" * 35)
+    for case, val in calibration_results:
+        print(f"{case:<20} | {val:.5f}" if isinstance(val, (float, int)) else f"{case:<20} | {val}")
+
+    # Print SS Table
+    print("\n📈 Steady-State Outcomes:")
+    header = f"{'Case':<20} | " + " | ".join([f"{v:<10}" for v in ss_vars])
+    print(header)
+    print("-" * len(header))
+    for case, row in ss_results:
+        row_str = " | ".join(
+            [f"{x:>10.5f}" if isinstance(x, (float, int)) else f"{x:>10}" for x in row]
+        )
+        print(f"{case:<20} | {row_str}")
+
+
+
+#%% Find the values for SS
+#unknowns_ss = {'beta': 0.97, 'G': 0.3}
+#unknowns_ss = {'r':0.005, 'G': 0.3}
+#unknowns_ss = {'r':0.005, 'beta': 0.97}
+unknowns_ss = {'beta':0.90}
+targets_ss = {'asset_mkt'}
+
+ss = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss, solver='hybr')
+print(f"To attain SS, we need beta={np.round(ss['beta'],4)}")
+print(f"To attain SS, we need Y={np.round(ss['Y'],4)}")
+
+print(f"Check: Goods market clearing: {np.round(ss['goods_mkt'],5)}")
+print(f"Check: Assets market clearing: {np.round(ss['asset_mkt'],5)}")
+
+# %%
+T = 300
+#breakpoint()
+J_ha = hh.jacobian(ss, inputs=['r'], T=T)
+
+# %%
+s_to_plot = [0, 50, 100, 150]
+for s in s_to_plot:
+   plt.plot(J_ha['A']['r'][:, s], label =f's={s}')
+plt.legend()
+plt.show()
 
 #%%
-ss['baseline'].internals['hh']['labsup']['law_of_motion'].P.shape
+# %% IRFs
+T = 300  # <-- the length of the IRF
+rho_r = 0.8
+eR = 0.01
+rho_B = 0.8
+eB = 0.01
+dr = eR * rho_r ** np.arange(T)
+dB = eB * rho_B ** np.arange(T)
+shocks = {"r": dr, "B": dB}
+unknowns_td = ['N']
+targets_td = ["asset_mkt"]
+irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+show_irfs([irfs], ["gamma_g","N","w","C","Y", "A", "goods_mkt", "asset_mkt"],  labels=["..."], figsize=(18,3))
 
-#%% Comparative statics of SS
-#results = analyze_steady_state('p_d', np.linspace(0.8, 3, 2), cali, hh, n_d)
 
 #%%
-#%%
-results = analyze_steady_state('chi', np.linspace(0.1, 0.5, 3), cali, hh, n_d)
+plot_linear_irfs(
+    shocks_list=['r'],
+    unknowns_td=['G','N'],
+    targets_td=['asset_mkt',"goods_mkt"],
+    ha=ha,
+    ss=ss,
+    outputs=["N", "G", "Tax","r", "B", "w", "C", "Y", "A", "goods_mkt", "asset_mkt"]
+)
 
 
-#%% Comparative statics of SS - 3d
-CS_dep_rate_chi_2 = analyze_steady_state_3d(
-    param1='dep_rate',
-    values1=np.linspace(0.05, 0.75, 5),
-    param2='chi',
-    values2=np.linspace(0.1, 0.8, 5),
-    cali=cali,
-    hh=hh,
-    n_d=n_d
-    )
+# %% IRFs
+T = 300  # <-- the length of the IRF
+rho_r = 0.8
+dr = 0.01 * rho_r ** np.arange(T)
+shocks = {"G": dr}
+unknowns_td = ['N']
+targets_td = ["asset_mkt"]
+irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
 
-#%% Comparative statics of SS - 3d
-CS_lifetime = analyze_steady_state_3d(
-    param1='lifetime_b',
-    values1=np.linspace(30, 90, 5),
-    param2='lifetime_g',
-    values2=np.linspace(30, 90, 5),
-    cali=cali,
-    hh=hh,
-    n_d=n_d
-    )
+# %% IRFs
+T = 300  # <-- the length of the IRF
+dB = 0.01 * 0.8 ** np.arange(T)
+shocks = {"G": dr, "B": dB}
+unknowns_td = ['N']
+targets_td = ["asset_mkt"]
+irfs_B = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
 
-#%% Comparative statics of SS - 3d
-#Would be nice to analzye how it changes by changing gamma_g and gamma_b
-CS_gammas = analyze_steady_state_3d(
-    param1='gamma_b',
-    values1=np.linspace(0.9, 1.1, 5),
-    param2='gamma_g',
-    values2=np.linspace(0.9, 1.1, 5),
-    cali=cali,
-    hh=hh,
-    n_d=n_d
-    )
+#%% Plot IRFs
+show_irfs([irfs, irfs_B], ["r","C","Y", "A", "goods_mkt", "asset_mkt", "B"],  labels=["..."], figsize=(18,3))
+
+
+
+# %%
+print(f"Execution time: {time.time() - start:.2f} seconds")
 # %%
