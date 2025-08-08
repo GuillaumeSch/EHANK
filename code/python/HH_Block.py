@@ -813,8 +813,10 @@ def D_demand(c):
     d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO = (dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4)
     #d_t_N, d_N, d_t_BN, d_BN, d_t_BM, d_BM, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GM, d_GM, d_t_GO, d_GO = (dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4, dd_tilde_5, dd_5, dd_tilde_6, dd_6)
 
+    d_B = d_BN + d_BO
+    d_G = d_GN + d_GO
 #return d_t_N, d_N, d_t_BN, d_BN, d_t_BM, d_BM, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GM, d_GM, d_t_GO, d_GO
-    return d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO
+    return d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO, d_B, d_G
 #return dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4
 
 
@@ -879,8 +881,19 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable in
     return disp_inc
 
 #Construct the utility shifter for durables
-def make_shifters(n_b, n_g, gamma_b, gamma_g):
-    shifters = np.array([0.0] + [gamma_b] * n_b + [gamma_g] * n_g)
+#def make_shifters(n_b, n_g, gamma_b, gamma_g):
+#    shifters = np.array([0.0] + [gamma_b] * n_b + [gamma_g] * n_g)
+#    return shifters
+
+def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g):
+    dep_rate_b = 1 - (dep_util_frac_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
+    vintages_b = np.arange(n_b)
+    gammas_b_vector = gamma_b * (1 - dep_rate_b) ** vintages_b
+    dep_rate_g = 1 - (dep_util_frac_g) ** (1 / (n_g - 1))        # Depreciation rate for good g
+    vintages_g = np.arange(n_g)
+    gammas_g_vector = gamma_g * (1 - dep_rate_g) ** vintages_g
+    # Combine
+    shifters = np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))
     return shifters
 
 def make_prices_durables(p_b, dep_frac_b, n_b, p_g, dep_frac_g, n_g):
@@ -926,7 +939,7 @@ cali["baseline"] = {
     # Asset grid
     "min_a": 0.0,              # Minimum asset level
     "max_a": 100,              # Maximum asset level
-    "n_a": 10,                 # Number of asset grid points
+    "n_a": 20,                 # Number of asset grid points
     # Labor market
     #"w": 1.0,                  # Wage level
     "N": 1.0,                  # Labor supply
@@ -941,7 +954,9 @@ cali["baseline"] = {
     #"n_d": 1 + n_b + n_g,      # Total durable states
     "chi": 0.5,                # Resale loss (fraction)
     "gamma_b": 1.0,            # Utility from brown durable
+    "dep_util_frac_b": 1,    # Depreciation utility brown (Fraction of oldest vintage relative to newest)
     "gamma_g": 1.2,            # Utility from green durable
+    "dep_util_frac_g": 1,    # Depreciation utility green (Fraction of oldest vintage relative to newest)
     "lifetime_b": 60,          # Average lifetime of brown durables (quarters)
     "lifetime_g": 60,          # Average lifetime of green durables (quarters)
     # Firms
@@ -1106,6 +1121,7 @@ def display_ss_durables(ss):
 
     #display(Math(r"\tilde{D}^{Brown, Old} = " + str(np.round(ss['D_T_BO'], 3))))
     display(Math(r"D^{Brown, Old} = " + str(np.round(ss['D_BO'], 3))))
+    display(Math(r"D^{Brown} = " + str(np.round(ss['D_B'], 3))))
 
 
     #display(Math(r"\tilde{D}^{Green, New} = " + str(np.round(ss['D_T_GN'], 3))))
@@ -1116,51 +1132,70 @@ def display_ss_durables(ss):
 
     #display(Math(r"\tilde{D}^{Green, Old} = " + str(np.round(ss['D_T_GO'], 3))))
     display(Math(r"D^{Green, Old} = " + str(np.round(ss['D_GO'], 3))))
+    display(Math(r"D^{Green} = " + str(np.round(ss['D_G'], 3))))
+
 
     #display(Math(r"Check. Total(Tilde) = " + str(ss['D_T_N'] + ss['D_T_BN']+ ss['D_T_BM']+ ss['D_T_BO']+ ss['D_T_GN']+ ss['D_T_GM'] + ss['D_T_GO'])))
     #display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BM']+ ss['D_BO']+ ss['D_GN']+ ss['D_GM'] + ss['D_GO'])))
     #display(Math(r"Check. Total(Tilde) = " + str(ss['D_T_N'] + ss['D_T_BN']+ ss['D_T_BO']+ ss['D_T_GN'] + ss['D_T_GO'])))
     display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BO']+ ss['D_GN'] + ss['D_GO'])))
+    
+def display_calibrated_from_unknowns(ss_dict, unknowns_dict):
+    """
+    Display calibrated parameters from ss_dict,
+    only for keys in unknowns_dict.
+    Works with SteadyStateDict (no .get method).
+    """
+    print(f"{'Parameter':<10} | {'Calibrated Value':>15}")
+    print("-" * 30)
+    for param in unknowns_dict.keys():
+        try:
+            value = np.round(ss_dict[param], 3)
+        except KeyError:
+            value = 'N/A'
+        print(f"{param:<10} | {value:>15}")
 
 
-#%%
-unknowns_ss = {'beta': 0.91,
-    'p_b':0.1, #'dep_frac_b': 0.25, 'lifetime_b': 60,
-    'p_g':0.9,
-    #'dep_frac_b': 0.25
-    #'lifetime_b': 60, #'dep_frac_g': 0.25, 'lifetime_g': 60,
-}
-
-
-#targets_ss = {'asset_mkt': 0., 'D_N': 0.30, 'D_BO': 0.5}  # <-- with a dict rather than a list, we can specify specific targets for output variables
-
+#%% Calibrate to attain the empirical fractions of cars 
 
 targets_ss = {'asset_mkt': 0.,
-    'D_N': 0.28,
-    'D_GO': 0.01
-    #'D_BO': 0.12, #'D_BM': 0.41, 'D_BN': 0.12,
-    #'D_BN': 0.013, #'D_GM': 0.0457, 'D_GN': 0.0137,
+    'D_N': 1-0.075 - 0.55,
+    'D_G': 0.075,
+    'D_B':0.55,
+    #'D_BN':0.007,
     }  # <-- with a dict rather than a list, we can specify specific targets for output variables
 
-
 unknowns_ss = {
-    'beta': (0.85, 0.91, 0.95),
-    'p_b': (0.00, 0.15, 1),  # add bounds around 0.15 guess
-    'p_g': (0.5, 0.9, 1)
+    'beta': (0.80, 0.881, 0.95),
+    'p_b': (0.01, 0.273, 10),
+    'p_g': (0.01, 0.9, 10),
+    'gamma_g': (0,1.243,100),
+    #'dep_util_frac_b': (0.1,0.99,1)
 }
 
-targets_ss = {
-    'asset_mkt': 0.,
-    'D_N': 0.28,
-    'D_GO': 0.008
-}
-#unknowns_ss = {'beta': 0.90}
-#targets_ss = {'asset_mkt': 0}
 ss_DD = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss, solver = 'broyden_custom')
 
 display_ss_durables(ss_DD)
-print(ss_DD['p_g'])
-print(ss_DD['p_b'])
+display_calibrated_from_unknowns(ss_DD, unknowns_ss)
+
+#%%
+cali['ss_DD'] = ha.steady_state(ss_DD)
+cali['ss_DD_mod'] = deepcopy(cali['ss_DD'])
+cali['ss_DD_mod']['dep_util_frac_b'] = cali['ss_DD_mod']['dep_util_frac_b']*0.50
+#cali['ss_DD_mod']['gamma_b'] = cali['ss_DD_mod']['gamma_b']*1.50
+
+
+print('Original model:')
+display_ss_durables(ha.steady_state(cali['ss_DD']))
+print('Modified model:')
+display_ss_durables(ha.steady_state(cali['ss_DD_mod']))
+
+
+#%%
+for key, value in cali['ss_DD'].items():
+    if 'D_' in key:
+        print(key, ":", np.round(value, 2))
+
 
 #%% Use the ss
 cali['ss'] = ha.steady_state(ss)
