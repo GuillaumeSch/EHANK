@@ -1221,14 +1221,16 @@ T = 300  # <-- the length of the IRF
 rho_r = 0.8
 eR = 0.01
 rho_B = 0.8
-eB = 0.01
+eB = 0.01*0
 dr = eR * rho_r ** np.arange(T)
 dB = eB * rho_B ** np.arange(T)
 shocks = {"r": dr, "B": dB}
 unknowns_td = ['N']
 targets_td = ["asset_mkt"]
 irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
-show_irfs([irfs], ["gamma_g","N","w","C","Y", "A", "goods_mkt", "asset_mkt"],  labels=["..."], figsize=(18,3))
+irfs_alt = ha.solve_impulse_linear(ss_DD, unknowns_td, targets_td, shocks)
+show_irfs([irfs, irfs_alt], ["N","w","C","Y", "A", "goods_mkt", "asset_mkt"],  labels=["Default Calib","Calibrated"], figsize=(18,3))
+show_irfs([irfs, irfs_alt], ["D_N","D_BO","D_BN","D_GO","D_GN"],  labels=["Default Calib","Calibrated"], figsize=(18,3))
 
 
 #%% Compute and plot directly
