@@ -811,7 +811,9 @@ def D_demand(c):
         out_vars.append(dd_list[i])
 
     d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO = (dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4)
+    #d_t_N, d_N, d_t_BN, d_BN, d_t_BM, d_BM, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GM, d_GM, d_t_GO, d_GO = (dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4, dd_tilde_5, dd_5, dd_tilde_6, dd_6)
 
+#return d_t_N, d_N, d_t_BN, d_BN, d_t_BM, d_BM, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GM, d_GM, d_t_GO, d_GO
     return d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO
 #return dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4
 
@@ -1093,27 +1095,68 @@ print(f"Check: Assets market clearing: {np.round(ss['asset_mkt'],5)}")
 
 #%%
 def display_ss_durables(ss):
-    display(Math(r"\tilde{D}^{None} = " + str(np.round(ss['D_T_N'], 3))))
+    #display(Math(r"\tilde{D}^{None} = " + str(np.round(ss['D_T_N'], 3))))
     display(Math(r"D^{None} = " + str(np.round(ss['D_N'], 3))))
 
-    display(Math(r"\tilde{D}^{Brown, New} = " + str(np.round(ss['D_T_BN'], 3))))
+    #display(Math(r"\tilde{D}^{Brown, New} = " + str(np.round(ss['D_T_BN'], 3))))
     display(Math(r"D^{Brown, New} = " + str(np.round(ss['D_BN'], 3))))
 
-    display(Math(r"\tilde{D}^{Brown, Old} = " + str(np.round(ss['D_T_BO'], 3))))
+    #display(Math(r"\tilde{D}^{Brown, Medium} = " + str(np.round(ss['D_T_BM'], 3))))
+    #display(Math(r"D^{Brown, Medium} = " + str(np.round(ss['D_BM'], 3))))
+
+    #display(Math(r"\tilde{D}^{Brown, Old} = " + str(np.round(ss['D_T_BO'], 3))))
     display(Math(r"D^{Brown, Old} = " + str(np.round(ss['D_BO'], 3))))
 
-    display(Math(r"\tilde{D}^{Green, New} = " + str(np.round(ss['D_T_GN'], 3))))
+
+    #display(Math(r"\tilde{D}^{Green, New} = " + str(np.round(ss['D_T_GN'], 3))))
     display(Math(r"D^{Green, New} = " + str(np.round(ss['D_GN'], 3))))
 
-    display(Math(r"\tilde{D}^{Green, Old} = " + str(np.round(ss['D_T_GO'], 3))))
+    #display(Math(r"\tilde{D}^{Green, Medium} = " + str(np.round(ss['D_T_GM'], 3))))
+    #display(Math(r"D^{Green, Medium} = " + str(np.round(ss['D_GM'], 3))))
+
+    #display(Math(r"\tilde{D}^{Green, Old} = " + str(np.round(ss['D_T_GO'], 3))))
     display(Math(r"D^{Green, Old} = " + str(np.round(ss['D_GO'], 3))))
+
+    #display(Math(r"Check. Total(Tilde) = " + str(ss['D_T_N'] + ss['D_T_BN']+ ss['D_T_BM']+ ss['D_T_BO']+ ss['D_T_GN']+ ss['D_T_GM'] + ss['D_T_GO'])))
+    #display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BM']+ ss['D_BO']+ ss['D_GN']+ ss['D_GM'] + ss['D_GO'])))
+    #display(Math(r"Check. Total(Tilde) = " + str(ss['D_T_N'] + ss['D_T_BN']+ ss['D_T_BO']+ ss['D_T_GN'] + ss['D_T_GO'])))
+    display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BO']+ ss['D_GN'] + ss['D_GO'])))
 
 
 #%%
-unknowns_ss = {'beta': 0.91, 'p_g': 0.4, 'p_b':0.1}
-targets_ss = {'asset_mkt': 0., 'D_N': 0.30, 'D_BO': 0.5}  # <-- with a dict rather than a list, we can specify specific targets for output variables
+unknowns_ss = {'beta': 0.91,
+    'p_b':0.1, #'dep_frac_b': 0.25, 'lifetime_b': 60,
+    'p_g':0.9,
+    #'dep_frac_b': 0.25
+    #'lifetime_b': 60, #'dep_frac_g': 0.25, 'lifetime_g': 60,
+}
 
-ss_DD = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss)
+
+#targets_ss = {'asset_mkt': 0., 'D_N': 0.30, 'D_BO': 0.5}  # <-- with a dict rather than a list, we can specify specific targets for output variables
+
+
+targets_ss = {'asset_mkt': 0.,
+    'D_N': 0.28,
+    'D_GO': 0.01
+    #'D_BO': 0.12, #'D_BM': 0.41, 'D_BN': 0.12,
+    #'D_BN': 0.013, #'D_GM': 0.0457, 'D_GN': 0.0137,
+    }  # <-- with a dict rather than a list, we can specify specific targets for output variables
+
+
+unknowns_ss = {
+    'beta': (0.85, 0.91, 0.95),
+    'p_b': (0.00, 0.15, 1),  # add bounds around 0.15 guess
+    'p_g': (0.5, 0.9, 1)
+}
+
+targets_ss = {
+    'asset_mkt': 0.,
+    'D_N': 0.28,
+    'D_GO': 0.008
+}
+#unknowns_ss = {'beta': 0.90}
+#targets_ss = {'asset_mkt': 0}
+ss_DD = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss, solver = 'broyden_custom')
 
 display_ss_durables(ss_DD)
 print(ss_DD['p_g'])
