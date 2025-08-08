@@ -4,6 +4,7 @@
 
 # Standard libraries
 import inspect
+from IPython.display import display, Math
 # Numerical computing
 import numpy as np
 from numba import njit
@@ -809,7 +810,10 @@ def D_demand(c):
     for i in range(D):
         out_vars.append(dd_list[i])
 
-    return dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4
+    d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO = (dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4)
+
+    return d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO
+#return dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4
 
 
 
@@ -1088,10 +1092,32 @@ print(f"Check: Goods market clearing: {np.round(ss['goods_mkt'],5)}")
 print(f"Check: Assets market clearing: {np.round(ss['asset_mkt'],5)}")
 
 #%%
-unknowns_ss = {'beta': 0.9, 'dep_frac_g': 0.2}
-targets_ss = {'asset_mkt': 0., 'DD_TILDE_4': 0.20}  # <-- with a dict rather than a list, we can specify specific targets for output variables
+def display_ss_durables(ss):
+    display(Math(r"\tilde{D}^{None} = " + str(np.round(ss['D_T_N'], 3))))
+    display(Math(r"D^{None} = " + str(np.round(ss['D_N'], 3))))
+
+    display(Math(r"\tilde{D}^{Brown, New} = " + str(np.round(ss['D_T_BN'], 3))))
+    display(Math(r"D^{Brown, New} = " + str(np.round(ss['D_BN'], 3))))
+
+    display(Math(r"\tilde{D}^{Brown, Old} = " + str(np.round(ss['D_T_BO'], 3))))
+    display(Math(r"D^{Brown, Old} = " + str(np.round(ss['D_BO'], 3))))
+
+    display(Math(r"\tilde{D}^{Green, New} = " + str(np.round(ss['D_T_GN'], 3))))
+    display(Math(r"D^{Green, New} = " + str(np.round(ss['D_GN'], 3))))
+
+    display(Math(r"\tilde{D}^{Green, Old} = " + str(np.round(ss['D_T_GO'], 3))))
+    display(Math(r"D^{Green, Old} = " + str(np.round(ss['D_GO'], 3))))
+
+
+#%%
+unknowns_ss = {'beta': 0.91, 'p_g': 0.4, 'p_b':0.1}
+targets_ss = {'asset_mkt': 0., 'D_N': 0.30, 'D_BO': 0.5}  # <-- with a dict rather than a list, we can specify specific targets for output variables
 
 ss_DD = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss)
+
+display_ss_durables(ss_DD)
+print(ss_DD['p_g'])
+print(ss_DD['p_b'])
 
 #%% Use the ss
 cali['ss'] = ha.steady_state(ss)
