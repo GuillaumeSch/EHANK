@@ -1077,7 +1077,7 @@ print(f"  Tax:  {np.round(no_ss['Tax'], 5)}")
 #unknowns_ss = {'beta': 0.97, 'G': 0.3}
 #unknowns_ss = {'r':0.005, 'G': 0.3}
 #unknowns_ss = {'r':0.005, 'beta': 0.97}
-unknowns_ss = {'beta':0.90}
+unknowns_ss = {'beta':0.91}
 targets_ss = {'asset_mkt'}
 
 ss = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss, solver='hybr')
