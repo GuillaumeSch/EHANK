@@ -813,10 +813,13 @@ def D_demand(c):
 
 
 
+def compute_distr(c):
+    distr = np.ones_like(c)
+    return distr
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand])
+                            name='consav', hetoutputs=[D_demand, compute_distr])
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
@@ -863,23 +866,33 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable in
     # asset income          + labor income         - durable adjustment cost
     disp_inc = (
         (1 + r) * a_grid[np.newaxis, np.newaxis, np.newaxis, :]           # asset income
-        #+ z_grid[..., np.newaxis, np.newaxis]                 # labor income
         + z_grid[np.newaxis, np.newaxis, ..., np.newaxis]                 # labor income
         + T[np.newaxis, np.newaxis, ..., np.newaxis]                      # Transfers
         - adj_matrix[..., np.newaxis, np.newaxis]                         # adjustment costs
     )                                                         # on (nd, nd, e, a)
     return disp_inc
 
-
 #Construct the utility shifter for durables
 def make_shifters(n_b, n_g, gamma_b, gamma_g):
     shifters = np.array([0.0] + [gamma_b] * n_b + [gamma_g] * n_g)
     return shifters
 
+def make_prices_durables(p_b, dep_frac_b, n_b, p_g, dep_frac_g, n_g):
+    dep_rate_b = 1 - (dep_frac_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
+    vintages_b = np.arange(n_b)
+    p_b_vector = p_b * (1 - dep_rate_b) ** vintages_b
+    dep_rate_g = 1 - (dep_frac_g) ** (1 / (n_g - 1))        # Depreciation rate for good g
+    vintages_g = np.arange(n_g)
+    p_g_vector = p_g * (1 - dep_rate_g) ** vintages_g
+    # Combine
+    p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
+    return p_d
+
 
 #%% Assemble the HH block (staged block)
 hh = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
-                backward_init=hh_init, hetinputs=[make_grids, income_grid, transfers, adj_costs, disp_inc_f, make_shifters])
+                backward_init=hh_init,
+                hetinputs=[make_grids, income_grid, transfers, adj_costs, disp_inc_f, make_shifters, make_prices_durables])
 
 print(hh)
 print(f"Inputs: {hh.inputs}")
@@ -891,34 +904,8 @@ print(f"Outputs: {hh.outputs}")
 # -------------------------------
 
 #%% Calibration
-
-# === Model structure ===
-n_b = 2                    # Number of brown durable vintages
-n_g = 2                    # Number of green durable vintages
-n_d = 1 + n_b + n_g        # Total number of durable states (no durable + vintages)
-lifetime_b = 60            # Average lifetime of brown durables (quarters)
-lifetime_g = 60            # Average lifetime of green durables (quarters)
-
-# === Depreciation and prices ===
-dep_rate = 0.25            # Depreciation rate between newest and oldest vintage
-p_b = 0.80                 # Initial price of brown durable
-p_g = 0.90                 # Initial price of green durable
-
-# Linear price depreciation across vintages (can be changed)
-p_b_vector = np.linspace(p_b, dep_rate * p_b, n_b)
-p_g_vector = np.linspace(p_g, dep_rate * p_g, n_g)
-
-# Full price vector: [no durable, brown vintages..., green vintages...]
-p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
-
-# === Preferences over durables ===
-chi = 0.5                 # Loss in value when selling a durable
-gamma_b = 1.0             # Utility from brown durable
-gamma_g = 1.2             # Utility from green durable
-
 # === Calibration dictionary ===
 cali = {}
-
 cali["baseline"] = {
     # Preferences and taste shocks
     "taste_shock": 1e-1,       # Idiosyncratic taste shock
@@ -939,15 +926,18 @@ cali["baseline"] = {
     "N": 1.0,                  # Labor supply
     "tau":0,                   # Labor income tax
     # Durable goods
-    "p_d": p_d,                # Durable price vector [no durable, brown..., green...]
-    "n_b": n_b,                # Number of brown vintages
-    "n_g": n_g,                # Number of green vintages
-    "n_d": n_d,                # Total durable states
-    "chi": chi,                # Resale loss
-    "gamma_b": gamma_b,        # Utility from brown durable
-    "gamma_g": gamma_g,        # Utility from green durable
-    "lifetime_b": lifetime_b,  # Lifetime of brown durables
-    "lifetime_g": lifetime_g,  # Lifetime of green durables
+    "p_b": 0.80,               # Initial price of brown durable
+    "dep_frac_b": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
+    "n_b": 2,                  # Number of brown vintages
+    "p_g": 0.90,               # Initial price of green durable
+    "dep_frac_g": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
+    "n_g": 2,                  # Number of green vintages
+    #"n_d": 1 + n_b + n_g,      # Total durable states
+    "chi": 0.5,                # Resale loss (fraction)
+    "gamma_b": 1.0,            # Utility from brown durable
+    "gamma_g": 1.2,            # Utility from green durable
+    "lifetime_b": 60,          # Average lifetime of brown durables (quarters)
+    "lifetime_g": 60,          # Average lifetime of green durables (quarters)
     # Firms
     "alpha": 1,                # Share of labor in prod. function
     "Div": 0,                  # Dividends from firms
@@ -963,15 +953,15 @@ for k, v in cali["baseline"].items():
     globals()[k] = v
 
 
-#%% Only useful for debugging
-e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
-z_grid = income_grid(e_grid, tau, w, N)
-T = transfers(e_dist, Div, Tax, e_grid)
-adj_matrix = adj_costs(p_d, chi)
-disp_inc = disp_inc_f(a_grid, z_grid, T, r, adj_matrix)
-shifters = make_shifters(n_b, n_g, gamma_b, gamma_g)
+# %% Only useful for debugging
+# e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
+# z_grid = income_grid(e_grid, tau, w, N)
+# T = transfers(e_dist, Div, Tax, e_grid)
+# adj_matrix = adj_costs(p_d, chi)
+# disp_inc = disp_inc_f(a_grid, z_grid, T, r, adj_matrix)
+# shifters = make_shifters(n_b, n_g, gamma_b, gamma_g)
 
-V, Va = hh_init(disp_inc, a_grid, eis, shifters)
+# V, Va = hh_init(disp_inc, a_grid, eis, shifters)
 
 # #%% Baseline model
 
@@ -1097,6 +1087,18 @@ print(f"To attain SS, we need Y={np.round(ss['Y'],4)}")
 print(f"Check: Goods market clearing: {np.round(ss['goods_mkt'],5)}")
 print(f"Check: Assets market clearing: {np.round(ss['asset_mkt'],5)}")
 
+#%%
+unknowns_ss = {'beta': 0.9, 'dep_frac_g': 0.2}
+targets_ss = {'asset_mkt': 0., 'DD_TILDE_4': 0.20}  # <-- with a dict rather than a list, we can specify specific targets for output variables
+
+ss_DD = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss)
+
+#%% Use the ss
+cali['ss'] = ha.steady_state(ss)
+#%%
+for key, value in ss.items():
+    print(key, ":", np.round(value,2))
+
 # %%
 T = 300
 #breakpoint()
@@ -1125,7 +1127,7 @@ irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
 show_irfs([irfs], ["gamma_g","N","w","C","Y", "A", "goods_mkt", "asset_mkt"],  labels=["..."], figsize=(18,3))
 
 
-#%%
+#%% Compute and plot directly
 plot_linear_irfs(
     shocks_list=['r'],
     unknowns_td=['G','N'],
@@ -1135,6 +1137,15 @@ plot_linear_irfs(
     outputs=["N", "G", "Tax","r", "B", "w", "C", "Y", "A", "goods_mkt", "asset_mkt"]
 )
 
+#%%
+plot_linear_irfs(
+    shocks_list=['tau'],
+    unknowns_td=['G','N'],
+    targets_td=['asset_mkt',"goods_mkt"],
+    ha=ha,
+    ss=ss,
+    outputs=["N", "G", "Tax","r", "B", "w", "C", "Y", "A", "goods_mkt", "asset_mkt"]
+)
 
 # %% IRFs
 T = 300  # <-- the length of the IRF
