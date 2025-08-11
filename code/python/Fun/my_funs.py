@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from IPython.display import display, Math
+
 
 
 #Function to vizualize policy function
@@ -607,3 +609,49 @@ def evaluate_param_changes(param_name, values_list):
         )
         print(f"{case:<20} | {row_str}")
 
+#Display the aggregates for durables given a SS.
+def display_ss_durables(ss):
+    #display(Math(r"\tilde{D}^{None} = " + str(np.round(ss['D_T_N'], 3))))
+    display(Math(r"D^{None} = " + str(np.round(ss['D_N'], 3))))
+
+    #display(Math(r"\tilde{D}^{Brown, New} = " + str(np.round(ss['D_T_BN'], 3))))
+    display(Math(r"D^{Brown, New} = " + str(np.round(ss['D_BN'], 3))))
+
+    #display(Math(r"\tilde{D}^{Brown, Medium} = " + str(np.round(ss['D_T_BM'], 3))))
+    #display(Math(r"D^{Brown, Medium} = " + str(np.round(ss['D_BM'], 3))))
+
+    #display(Math(r"\tilde{D}^{Brown, Old} = " + str(np.round(ss['D_T_BO'], 3))))
+    display(Math(r"D^{Brown, Old} = " + str(np.round(ss['D_BO'], 3))))
+    display(Math(r"D^{Brown} = " + str(np.round(ss['D_B'], 3))))
+
+
+    #display(Math(r"\tilde{D}^{Green, New} = " + str(np.round(ss['D_T_GN'], 3))))
+    display(Math(r"D^{Green, New} = " + str(np.round(ss['D_GN'], 3))))
+
+    #display(Math(r"\tilde{D}^{Green, Medium} = " + str(np.round(ss['D_T_GM'], 3))))
+    #display(Math(r"D^{Green, Medium} = " + str(np.round(ss['D_GM'], 3))))
+
+    #display(Math(r"\tilde{D}^{Green, Old} = " + str(np.round(ss['D_T_GO'], 3))))
+    display(Math(r"D^{Green, Old} = " + str(np.round(ss['D_GO'], 3))))
+    display(Math(r"D^{Green} = " + str(np.round(ss['D_G'], 3))))
+
+
+    #display(Math(r"Check. Total(Tilde) = " + str(ss['D_T_N'] + ss['D_T_BN']+ ss['D_T_BM']+ ss['D_T_BO']+ ss['D_T_GN']+ ss['D_T_GM'] + ss['D_T_GO'])))
+    #display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BM']+ ss['D_BO']+ ss['D_GN']+ ss['D_GM'] + ss['D_GO'])))
+    #display(Math(r"Check. Total(Tilde) = " + str(ss['D_T_N'] + ss['D_T_BN']+ ss['D_T_BO']+ ss['D_T_GN'] + ss['D_T_GO'])))
+    display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BO']+ ss['D_GN'] + ss['D_GO'])))
+    
+def display_calibrated_from_unknowns(ss_dict, unknowns_dict):
+    """
+    Display calibrated parameters from ss_dict,
+    only for keys in unknowns_dict.
+    Works with SteadyStateDict (no .get method).
+    """
+    print(f"{'Parameter':<10} | {'Calibrated Value':>15}")
+    print("-" * 30)
+    for param in unknowns_dict.keys():
+        try:
+            value = np.round(ss_dict[param], 3)
+        except KeyError:
+            value = 'N/A'
+        print(f"{param:<10} | {value:>15}")
