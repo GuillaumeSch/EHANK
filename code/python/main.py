@@ -1,5 +1,5 @@
 #%%
-from HH_Durables_Block import hh
+from HH_Durables_Block import hh_durables
 from Model_Blocks import fiscal, mkt_clearing, prod
 import sequence_jacobian as sj
 import json
@@ -77,11 +77,14 @@ for key in cali_DD.keys():
     
 
 #%% === Create the model ===
-ha = sj.create_model([hh, fiscal, mkt_clearing, prod], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
+
+#%%
+ha.steady_state(cali['baseline_DD'])
 
 #%% === Solve the model Steady State ===
 unknowns_ss = {'B':(0.80,0.999)}

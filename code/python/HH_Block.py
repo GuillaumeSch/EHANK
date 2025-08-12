@@ -16,10 +16,10 @@ from matplotlib.colors import LinearSegmentedColormap
 import colorsys
 # Sequence-Jacobian framework
 from sequence_jacobian import grids, interpolate
-#from sequence_jacobian.blocks.stage_block import StageBlock
+from sequence_jacobian.blocks.support.stages import ExogenousMaker
 import sequence_jacobian as sj
 # Custom utilities
-from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables, StageBlockDurables
+from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, Continuous1D_Durables, StageBlockDurables
 from Fun.my_funs import *
 import json
 

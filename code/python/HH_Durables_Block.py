@@ -1,14 +1,12 @@
 # Standard libraries
-from IPython.display import display, Math
 # Numerical computing
 import numpy as np
 from numba import njit
 # Sequence-Jacobian framework
 from sequence_jacobian import grids, interpolate
-#from sequence_jacobian.blocks.stage_block import StageBlock
-import sequence_jacobian as sj
+from sequence_jacobian.blocks.support.stages import ExogenousMaker
 # Custom utilities
-from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, ExogenousMaker, Continuous1D_Durables, StageBlockDurables
+from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, Continuous1D_Durables, StageBlockDurables
 from Fun.my_funs import *
 
 def make_strictly_decreasing(uc):
@@ -227,9 +225,14 @@ def compute_distr(c):
     distr = np.ones_like(c)
     return distr
 
+def compute_Agg_Transf(T, c):
+    np.zeros_like(c)
+    Agg_Transf = np.zeros_like(c) + T[np.newaxis, np.newaxis, ..., np.newaxis]
+    return Agg_Transf
+
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand, compute_distr])
+                            name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf])
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
@@ -319,7 +322,7 @@ def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu
 
 
 #%% Assemble the HH block (staged block)
-hh = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
+hh_durables = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
                 backward_init=hh_init,
                 hetinputs=[make_grids, income_grid, transfers, adj_costs, 
                            disp_inc_f, make_shifters, make_prices_durables, 

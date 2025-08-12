@@ -281,20 +281,6 @@ def multiply_ith_dimension(Pi, i, X):
     X = X.reshape((Pi.shape[0], *shape[1:]))
     return X.swapaxes(0, i)
 
-class ExogenousMaker:
-    """Call make_stage with backward returned by next stage to get Exogenous stage"""
-    def __init__(self, markov_name, index, name=None, hetoutputs=None):
-        self.markov_name = markov_name
-        self.index = index
-        if name is None:
-            name = f"exog_{markov_name}"
-        self.name = name
-        self.hetoutputs = hetoutputs
-
-    def make_stage(self, backward):
-        return Exogenous(self.markov_name, self.index, self.name, backward, self.hetoutputs)
-
-
 
 
 class Continuous1D_Durables(Continuous1D):
