@@ -541,7 +541,7 @@ def show_irfs(irfs_list, variables, labels=[" "], ylabel=r"Percentage points (de
     plt.tight_layout()
     plt.show()
 
-def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs,
+def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs, T_plot=50,
               rho=None, e=None, T=300, figsize=(18, 3), ylabel=r"Percentage points (dev. from ss)", labels=None):
     # Default values if not provided
     if rho is None:
@@ -559,34 +559,40 @@ def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs,
     if labels is None:
         labels = [" + ".join(shocks_list)]
     # Plot
-    show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T, figsize=figsize)
+    show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T_plot, figsize=figsize)
 
-def evaluate_param_changes(param_name, values_list, ha, cali):
-    # Get baseline calibration and steady state
+def evaluate_param_changes(param_name, values_list, ha, cali, 
+                           ss_vars=['goods_mkt', 'asset_mkt', 'Tax', 'r', 'beta', 'G', 'B', 'N', 'Y', 'Z']):
+     # Get baseline calibration and steady state
     baseline_calib = deepcopy(cali)
     baseline_ss = ha.steady_state(baseline_calib)
-
-    # Variables to report in SS output
-    ss_vars = ['goods_mkt', 'asset_mkt', 'Tax', 'r', 'beta', 'G', 'B', 'N', 'Y', 'Z']
 
     # Store results
     calibration_results = []
     ss_results = []
 
     # Baseline row
-    calibration_results.append(('Baseline', baseline_calib.get(param_name, 'N/A')))
+    try:
+        baseline_value = (
+            baseline_calib[param_name] 
+            if param_name in baseline_calib 
+            else 'N/A'
+        )
+    except TypeError:  
+        try:
+            baseline_value = baseline_calib[param_name]
+        except KeyError:
+            baseline_value = 'N/A'
+            
+    calibration_results.append(('Baseline', baseline_value))
     ss_results.append(('Baseline', [baseline_ss[v] if v in baseline_ss else 'N/A' for v in ss_vars]))
 
     # Loop over alternative values
     for val in values_list:
-        # Create new calibration
         modified_calib = deepcopy(baseline_calib)
         modified_calib[param_name] = val
-
-        # Compute steady state
         ss = ha.steady_state(modified_calib)
-
-        # Store results
+        
         case_name = f"{param_name} = {val}"
         calibration_results.append((case_name, val))
         ss_results.append((case_name, [ss[v] if v in ss else 'N/A' for v in ss_vars]))
