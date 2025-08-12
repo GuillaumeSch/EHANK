@@ -84,28 +84,33 @@ durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='du
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
-def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters):
+def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters, bundle_price):
     """DC-EGM algorithm"""
     n_d = adj_matrix.shape[0] #Number of discrete choices
     # use all FOCs on endogenous grid
     W = beta * V                                                  # end-of-stage vfun
     W = np.stack([W] * n_d, axis=0)                               # Add first dimension to match the dimensions
-    uc_endo = beta * Va                                           # envelope condition
+    
+    uc_endo = (beta * Va)[np.newaxis, ...] * bundle_price[..., np.newaxis ,np.newaxis, np.newaxis]     # FOC
     c_endo = uc_endo** (-eis)                                     # Euler equation
-    a_endo = (c_endo[np.newaxis, ...]
+    a_endo = (c_endo * bundle_price[..., np.newaxis, np.newaxis, np.newaxis]
               + a_grid[np.newaxis, np.newaxis, np.newaxis, ...]
               + adj_matrix[..., np.newaxis,np.newaxis]
               - z_grid[np.newaxis, np.newaxis, ..., np.newaxis]
               - T[np.newaxis, np.newaxis, ..., np.newaxis]
               ) / (1 + r)     # budget constraint
 
-    # Mark the presence of each durable
+    # Mark the presence of each durable 
     d_type = np.zeros_like(a_endo)
     for d in range(0, n_d):
         d_type[d, :, :, :] = d
+    # Mark the presence of price of consumption bundle
+    p_c_type = np.zeros_like(a_endo)
+    for d in range(0, n_d):
+        p_c_type[d, :, :, :] = bundle_price[d]
 
     # interpolate with upper envelope, enforce borrowing limit
-    V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, eis, shifters)
+    V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, p_c_type, eis, shifters)
 
     # update Va on exogenous grid
     uc = c ** (-1 / eis)                                          # Euler equation
@@ -117,14 +122,15 @@ def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters
 
 
 #Simple wrapper to make it independent of the size of the state space. Temporarily collapse states associated with all other stages into a single axis.
-def upperenv(W, a_endo, disp_inc, a_grid, d_type, *args):
+def upperenv(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args):
     # collapse (d_tilde, d, z, a) into (b, a)
     shape = W.shape
     W = W.reshape((-1, shape[-1]))
     a_endo = a_endo.reshape((-1, shape[-1]))
     d_type = d_type.reshape((-1, shape[-1]))
+    p_c_type = p_c_type.reshape((-1, shape[-1]))
     disp_inc = disp_inc.reshape((-1, shape[-1]))
-    V, c, a = upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args)
+    V, c, a = upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args)
 
     # report on (d_tilde, d, z, a)
     return V.reshape(shape), c.reshape(shape), a.reshape(shape)
@@ -136,7 +142,7 @@ def upperenv(W, a_endo, disp_inc, a_grid, d_type, *args):
 # Since the endogenous grid is non-monotonic, the same point $a^{grid}_i$ may be bracketed by another segment $(a_{\tilde j}^{endo}, a_{\tilde j+1}^{endo}).$
 # When this happens, we keep the solution that gives higher value.
 @njit
-def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args):
+def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args):
     """Interpolate value function and consumption to exogenous grid."""
     n_b, n_a = W.shape
     a = np.zeros_like(W)
@@ -145,8 +151,8 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args):
 
     # loop over other states, collapsed into single axis
     for ib in range(n_b):
-        #d = min(ib * 2 // n_b, 2 - 1)
         d = int(d_type[ib,0])
+        p_c = p_c_type[ib,0]
         # loop over segments of endogenous asset grid from EGM (not necessarily increasing)
         for ja in range(n_a - 1):
             a_low, a_high = a_endo[ib, ja], a_endo[ib, ja + 1]
@@ -168,7 +174,7 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args):
                 if interp or extrap:
                     W0 = interpolate.interpolate_point(acur, a_low, a_high, W_low, W_high)
                     a0 = interpolate.interpolate_point(acur, a_low, a_high, ap_low, ap_high)
-                    c0 = coh_cur - a0
+                    c0 = (coh_cur - a0)/p_c
                     V0 = util(c0, d, *args) + W0
 
                     # upper envelope, update if new is better
@@ -181,7 +187,7 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, *args):
         ia = 0
         while ia < n_a and a_grid[ia] <= a_endo[ib, 0]:
             a[ib, ia] = a_grid[0]
-            c[ib, ia] = max(0.0001,disp_inc[ib, ia]) # Correct for negative values. Replace by small consumption (Unlikely to choose this consumption)
+            c[ib, ia] = max(0.0001,disp_inc[ib, ia]/p_c) # Correct for negative values. Replace by small consumption (Unlikely to choose this consumption)
             V[ib, ia] = util(c[ib, ia], d, *args) + W[ib, 0]
             ia += 1
 
@@ -256,7 +262,7 @@ consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
 # hh_init: function that constructs the initial guess for backward variables
 def hh_init(disp_inc, a_grid, eis, shifters):
     V = util(disp_inc-np.min(disp_inc)+1, 0, eis, shifters)         #Avoid strange behaviour due to negative values. Not too important as only for first guess.
-    V = (V[0,:,:,:] + V[1,:,:,:])/2                                 #Get rid of first dimension
+    V = np.mean(V, axis=0)                                          #Get rid of first dimension
     Va = np.empty_like(V)
     Va[..., 1:-1] = (V[..., 2:] - V[..., :-2]) / (a_grid[2:] - a_grid[:-2])
     Va[..., 0] = (V[..., 1] - V[..., 0]) / (a_grid[1] - a_grid[0])
@@ -327,11 +333,24 @@ def make_prices_durables(p_b, dep_frac_b, n_b, p_g, dep_frac_g, n_g):
     p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
     return p_d
 
+#Price of the household consumption bundle
+def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu):
+    p_e_total_b = np.ones(n_b) * (1 + tau_b) * p_e_b
+    p_e_total_g = np.ones(n_g) * (1 + tau_g) * p_e_g
+    p_e = np.concatenate([[0], p_e_total_b, p_e_total_g])
+    if nu != 1:
+        bundle_price = (xi * p_core**(1-nu) + (1-xi) * p_e**(1-nu))**(1/(1-nu))
+    else:
+        bundle_price = p_core**xi * p_e**(1-xi)
+    return bundle_price
+
 
 #%% Assemble the HH block (staged block)
 hh = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
                 backward_init=hh_init,
-                hetinputs=[make_grids, income_grid, transfers, adj_costs, disp_inc_f, make_shifters, make_prices_durables])
+                hetinputs=[make_grids, income_grid, transfers, adj_costs, 
+                           disp_inc_f, make_shifters, make_prices_durables, 
+                           make_consu_bundle_price])
 
 print(hh)
 print(f"Inputs: {hh.inputs}")
@@ -381,12 +400,21 @@ cali["baseline"] = {
     "lifetime_g": 60,          # Average lifetime of green durables (quarters)
     # Firms
     "alpha": 1,                # Share of labor in prod. function
+    "p_core": 1,               # Price of core, non-durable goods
     "Div": 0,                  # Dividends from firms
     "Tax": 0.5,                # Total tax
     #Government
     #"Y" : 1,                   # Output
     "B" : 4,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
+    #Energy
+    "p_e_b" : 0.5,               # Price of brown energy (gas/petrol)
+    "p_e_g" : 0.5,               # Price of green energy (electricity)
+    "tau_b" : 0,               # Carbon tax
+    "tau_g" : 0,               # Green energy subsidy
+    #Prices
+    "xi" : 1,#0.9,                # Relative share of core good in non-durable consumption basket
+    "nu" : 0,#0.01,                   # Elasticity of substitution between core and energy consumption
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
@@ -395,14 +423,14 @@ for k, v in cali["baseline"].items():
 
 
 # %% Only useful for debugging
-# e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
-# z_grid = income_grid(e_grid, tau, w, N)
-# T = transfers(e_dist, Div, Tax, e_grid)
-# adj_matrix = adj_costs(p_d, chi)
-# disp_inc = disp_inc_f(a_grid, z_grid, T, r, adj_matrix)
-# shifters = make_shifters(n_b, n_g, gamma_b, gamma_g)
+#e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name = make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g)
+#z_grid = income_grid(e_grid, Z)
+#T = transfers(e_dist, Div, Tax, e_grid)
+#adj_matrix = adj_costs(p_d, chi)
+#disp_inc = disp_inc_f(a_grid, z_grid, T, r, adj_matrix)
+#shifters = make_shifters(n_b, n_g, gamma_b, gamma_g)
 
-# V, Va = hh_init(disp_inc, a_grid, eis, shifters)
+#V, Va = hh_init(disp_inc, a_grid, eis, shifters)
 
 # #%% Baseline model
 
@@ -490,7 +518,7 @@ print('It has outputs: ' + str(ha.outputs))
 cali['no_ss'] = deepcopy(cali['baseline'])
 cali['no_ss']['r'] = cali['baseline']['r'] + 0
 cali['no_ss']['G'] = cali['baseline']['G'] + 0.0
-cali['no_ss']['beta'] = cali['baseline']['beta'] + 0.00
+cali['no_ss']['beta'] = cali['baseline']['beta'] + -0.015
 cali['no_ss']['B'] = cali['baseline']['B'] + 0
 cali['no_ss']['N'] = cali['baseline']['N'] + 0.0
 
@@ -512,21 +540,40 @@ print(f"  Tax:  {np.round(no_ss['Tax'], 5)}")
 
 
 
-
-
 #%% Find the values for SS
-#unknowns_ss = {'beta': 0.97, 'G': 0.3}
-#unknowns_ss = {'r':0.005, 'G': 0.3}
-#unknowns_ss = {'r':0.005, 'beta': 0.97}
-unknowns_ss = {'beta':0.91}
+unknowns_ss = {'beta':(0.92,0.92)}
 targets_ss = {'asset_mkt'}
 
 ss = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss, solver='hybr')
+#ss = ha.solve_steady_state(cali['baseline'], unknowns_ss, targets_ss)
 print(f"To attain SS, we need beta={np.round(ss['beta'],4)}")
 print(f"To attain SS, we need Y={np.round(ss['Y'],4)}")
 
 print(f"Check: Goods market clearing: {np.round(ss['goods_mkt'],5)}")
 print(f"Check: Assets market clearing: {np.round(ss['asset_mkt'],5)}")
+
+display_ss_durables(ss)
+
+#%%
+evaluate_param_changes('beta', [0.97, 0.96, 0.95], ha, cali['baseline'])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

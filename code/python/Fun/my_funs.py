@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from IPython.display import display, Math
+from copy import deepcopy
 
 
 
@@ -560,9 +561,9 @@ def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs,
     # Plot
     show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T, figsize=figsize)
 
-def evaluate_param_changes(param_name, values_list):
+def evaluate_param_changes(param_name, values_list, ha, cali):
     # Get baseline calibration and steady state
-    baseline_calib = deepcopy(cali['baseline'])
+    baseline_calib = deepcopy(cali)
     baseline_ss = ha.steady_state(baseline_calib)
 
     # Variables to report in SS output
