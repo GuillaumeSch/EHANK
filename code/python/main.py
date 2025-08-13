@@ -58,13 +58,12 @@ cali["baseline"] = {
     "tau_b" : 0,               # Carbon tax
     "tau_g" : 0,               # Green energy subsidy
     #Prices
-    "xi" : 0.80,             # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
+    "xi" : 0.8,             # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,#0.01,                   # Elasticity of substitution between core and energy consumption
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
-for k, v in cali["baseline"].items():
-    globals()[k] = v
+
     
 #Import the DD calibration (Some parameters are not present in the DD calibration.)
 with open('calibration_ss_DD.json', 'r') as f:
@@ -74,6 +73,9 @@ cali['baseline_DD'] = deepcopy(cali['baseline'])
 for key in cali_DD.keys():
     if key in cali['baseline_DD']:
         cali['baseline_DD'][key] = cali_DD[key]
+        
+for k, v in cali["baseline_DD"].items():
+    globals()[k] = v
     
 
 #%% === Create the model ===
@@ -83,8 +85,6 @@ print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
 
-#%%
-ha.steady_state(cali['baseline_DD'])
 
 #%% === Solve the model Steady State ===
 unknowns_ss = {'B':(0.80,0.999)}
@@ -93,6 +93,12 @@ targets_ss = {'asset_mkt'}
 ss_DD = ha.solve_steady_state(cali['baseline_DD'] , unknowns_ss, targets_ss, solver='hybr')
 display_ss_durables(ss_DD)
 display_calibrated_from_unknowns(ss_DD, unknowns_ss)
+
+#Check that the decomposition is correct.
+ss_DD['C_P'] - (ss_DD['C_CORE_P_CORE'] + ss_DD['C_E_P_E'])
+
+
+
 
 #%% === Solve the model transition dynmamics and get IRFs === §
 plot_linear_irfs(

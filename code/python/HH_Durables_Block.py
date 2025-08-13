@@ -57,16 +57,16 @@ durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='du
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
-def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters, bundle_price):
+def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters, p_bundle):
     """DC-EGM algorithm"""
     n_d = adj_matrix.shape[0] #Number of discrete choices
     # use all FOCs on endogenous grid
     W = beta * V                                                  # end-of-stage vfun
     W = np.stack([W] * n_d, axis=0)                               # Add first dimension to match the dimensions
     
-    uc_endo = (beta * Va)[np.newaxis, ...] * bundle_price[..., np.newaxis ,np.newaxis, np.newaxis]     # FOC
+    uc_endo = (beta * Va)[np.newaxis, ...] * p_bundle[..., np.newaxis ,np.newaxis, np.newaxis]     # FOC
     c_endo = uc_endo** (-eis)                                     # Euler equation
-    a_endo = (c_endo * bundle_price[..., np.newaxis, np.newaxis, np.newaxis]
+    a_endo = (c_endo * p_bundle[..., np.newaxis, np.newaxis, np.newaxis]
               + a_grid[np.newaxis, np.newaxis, np.newaxis, ...]
               + adj_matrix[..., np.newaxis,np.newaxis]
               - z_grid[np.newaxis, np.newaxis, ..., np.newaxis]
@@ -80,7 +80,7 @@ def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters
     # Mark the presence of price of consumption bundle
     p_c_type = np.zeros_like(a_endo)
     for d in range(0, n_d):
-        p_c_type[d, :, :, :] = bundle_price[d]
+        p_c_type[d, :, :, :] = p_bundle[d]
 
     # interpolate with upper envelope, enforce borrowing limit
     V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, p_c_type, eis, shifters)
@@ -226,13 +226,24 @@ def compute_distr(c):
     return distr
 
 def compute_Agg_Transf(T, c):
-    np.zeros_like(c)
     Agg_Transf = np.zeros_like(c) + T[np.newaxis, np.newaxis, ..., np.newaxis]
     return Agg_Transf
 
+def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
+    c_core = xi * (p_core/p_bundle[...,np.newaxis,np.newaxis, np.newaxis])**(-nu)*c
+    mask = p_e == 0
+    c_E = np.zeros_like(c)
+    non_zero_mask = ~mask
+    c_E[non_zero_mask] = (1-xi) * (p_e[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]/
+                          p_bundle[non_zero_mask,np.newaxis,np.newaxis,np.newaxis])**(-nu)*c[non_zero_mask]
+    c_p = c*p_bundle[...,np.newaxis,np.newaxis, np.newaxis]
+    c_core_p_core = c_core*p_core 
+    c_E_p_e = c_E*p_e[...,np.newaxis,np.newaxis,np.newaxis]
+    return c_core, c_E, c_p, c_core_p_core, c_E_p_e
+
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf])
+                            name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf, decomposition_consu_bundle])
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
@@ -309,16 +320,17 @@ def make_prices_durables(p_b, dep_frac_b, n_b, p_g, dep_frac_g, n_g):
     p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
     return p_d
 
-#Price of the household consumption bundle
+#Price of the household consumption bundle + Decomposition of core and energy consumption
 def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu):
     p_e_total_b = np.ones(n_b) * (1 + tau_b) * p_e_b
     p_e_total_g = np.ones(n_g) * (1 + tau_g) * p_e_g
-    p_e = np.concatenate([[0], p_e_total_b, p_e_total_g])
+    p_e = np.concatenate([[0.0], p_e_total_b, p_e_total_g])
     if nu != 1:
-        bundle_price = (xi * p_core**(1-nu) + (1-xi) * p_e**(1-nu))**(1/(1-nu))
+        p_bundle = (xi * p_core**(1-nu) + (1-xi) * p_e**(1-nu))**(1/(1-nu))
     else:
-        bundle_price = p_core**xi * p_e**(1-xi)
-    return bundle_price
+        p_bundle = p_core**xi * p_e**(1-xi)
+    return p_bundle, p_e
+    
 
 
 #%% Assemble the HH block (staged block)
