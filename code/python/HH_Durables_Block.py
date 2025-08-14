@@ -264,9 +264,10 @@ def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifeti
     return e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name
 
 #def income_grid(e_grid, tau, w, N):
-def income_grid(e_grid, Z):
+def income_grid(e_grid, w, N):
     #z_grid = (1 - tau) * w * N * e_grid
-    z_grid = Z * e_grid
+    #z_grid = Z * e_grid
+    z_grid = w * N * e_grid
     return z_grid
 
 def transfers(e_dist, Div, Tax, e_grid):

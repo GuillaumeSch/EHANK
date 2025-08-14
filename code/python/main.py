@@ -16,6 +16,7 @@ cali["baseline"] = {
     "beta": 0.97,              # Discount factor
     "eis": 0.5,                # Elasticity of intertemporal substitution
     "r": 0.02 / 4,             # Interest rate (quarterly)
+    "N": 1,                    # Total labor supply
     # Productivity process
     "rho_e": 0.95,             # Persistence of productivity shocks
     "sd_e": 0.5,               # Std. deviation of productivity shocks
@@ -26,8 +27,9 @@ cali["baseline"] = {
     "n_a": 20,                 # Number of asset grid points
     # Labor market
     #"w": 1.0,                  # Wage level
-    "N_core": 1.0,             # Labor supply for core goods
-    "N_d1": 1.0, "N_d2": 1.0, "N_d3": 1.0, "N_d4": 1.0,                # Labor supply for durable goods
+    "N_core": 0.5,             # Labor demand for core goods
+    "N_d1_b": 1.0, "N_d2_b": 1.0, "N_d3_b": 1.0, "N_d4_b": 1.0,                # Labor demand for durable goods
+    "mu_N_d": 0.05,            # Fraction that is applied to all labor demand for durables.
     "tau":0,                   # Labor income tax
     # Durable goods
     "p_b": 0.80,               # Initial price of brown durable
@@ -39,34 +41,33 @@ cali["baseline"] = {
     #"n_d": 1 + n_b + n_g,      # Total durable states
     "chi": 0.5,                # Resale loss (fraction)
     "gamma_b": 1.0,            # Utility from brown durable
-    "dep_util_frac_b": 1,    # Depreciation utility brown (Fraction of oldest vintage relative to newest)
+    "dep_util_frac_b": 1,      # Depreciation utility brown (Fraction of oldest vintage relative to newest)
     "gamma_g": 1.2,            # Utility from green durable
-    "dep_util_frac_g": 1,    # Depreciation utility green (Fraction of oldest vintage relative to newest)
+    "dep_util_frac_g": 1,      # Depreciation utility green (Fraction of oldest vintage relative to newest)
     "lifetime_b": 60,          # Average lifetime of brown durables (quarters)
     "lifetime_g": 60,          # Average lifetime of green durables (quarters)
     # Firms
     "alpha": 1,                # Share of labor in prod. function
     "p_core": 1,               # Price of core, non-durable goods
     "Div": 0,                  # Dividends from firms
-    "Tax": 0.5,                # Total tax
+    #"Tax": 0.5,                # Total tax
     "Z_core": 1,               # Core productivity
     "Z_d1": 1, "Z_d2": 1, "Z_d3": 1, "Z_d4": 1, # Durables productivities
     #Government
-    #"Y" : 1,                   # Output
-    "B" : 4,                   # Stock of debt
+    #"Y" : 1,                  # Output
+    "B" : 1,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
     #Energy
-    "p_e_b" : 0.3,               # Price of brown energy (gas/petrol)
-    "p_e_g" : 0.3,               # Price of green energy (electricity)
+    "p_e_b" : 0.3,             # Price of brown energy (gas/petrol)
+    "p_e_g" : 0.3,             # Price of green energy (electricity)
     "tau_b" : 0,               # Carbon tax
     "tau_g" : 0,               # Green energy subsidy
     #Prices
-    "xi" : 0.8,             # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
-    "nu" : 0.4,#0.01,                   # Elasticity of substitution between core and energy consumption
+    "xi" : 0.8,                # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
+    "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
-
     
 #Import the DD calibration (Some parameters are not present in the DD calibration.)
 with open('calibration_ss_DD.json', 'r') as f:
@@ -76,10 +77,9 @@ cali['baseline_DD'] = deepcopy(cali['baseline'])
 for key in cali_DD.keys():
     if key in cali['baseline_DD']:
         cali['baseline_DD'][key] = cali_DD[key]
-        
+    
 for k, v in cali["baseline_DD"].items():
     globals()[k] = v
-    
 
 #%% === Create the model ===
 ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables], name="Simple HA Model")
@@ -89,14 +89,25 @@ print('It has outputs: ' + str(ha.outputs))
 
 
 
-#%% === Solve the model Steady State ===
-unknowns_ss = {'B':(0.80,0.999)}
-targets_ss = {'asset_mkt'}
+#%%
+evaluate_param_changes('N', [0.60, 0.7, 0.8, 0.99], ha, cali['baseline'], 
+                           ss_vars=['N_core', 'labor_mkt','asset_mkt', 'Tax',
+                                    'A', 'B', 'N', 'C', 'C_CORE', 'C_E',])
 
-ss_DD = ha.solve_steady_state(cali['baseline_DD'] , unknowns_ss, targets_ss, solver='hybr')
+#%% === Solve the model Steady State ===
+unknowns_ss = {'N':(0.60,0.8),'mu_N_d':(0,1)}
+targets_ss = {'asset_mkt':0,'labor_mkt':0}
+
+#ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
+ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='broyden_custom')
+
 display_ss_durables(ss_DD)
 display_calibrated_from_unknowns(ss_DD, unknowns_ss)
 
+#%%
+evaluate_param_changes('N', [0.60, 0.7, 0.8, 0.99], ha, ss_DD, 
+                           ss_vars=['N_core', 'labor_mkt','asset_mkt', 'Tax',
+                                    'A', 'B', 'N', 'C', 'C_CORE', 'C_E',])
 
 #%%
 cali_DD_alt = ss_DD.copy()
