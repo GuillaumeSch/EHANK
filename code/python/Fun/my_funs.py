@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from IPython.display import display, Math
 from copy import deepcopy
+from scipy.interpolate import interp1d, griddata
+
 
 
 
@@ -265,252 +267,176 @@ def make_strictly_increasing(uc):
 
     return uc_fixed
 
-def analyze_steady_state(param_name, param_values, cali, hh, n_d):
+
+
+
+def analyze_steady_state(param_name, param_values, cali, hh, variables, n_d=None):
     """
-    Vary a calibration parameter and plot steady-state outcomes for DD_i and DD_TILDE_i, A, and C.
+    Vary a calibration parameter and plot steady-state outcomes for chosen variables.
 
     Args:
-        param_name (str): Name of the parameter in cali['baseline'] to vary.
+        param_name (str): Name of the parameter in cali to vary.
         param_values (array-like): Grid of values to assign to the parameter.
         cali (dict): Dictionary containing the baseline calibration.
-        hh (module/object): Object with a method `steady_state(cali_dict)`.
-        n_d (int): Number of durable states (e.g. 1 + n_b + n_g)
+        hh (object): Object with a method `steady_state(cali_dict)` returning dict-like steady-state values.
+        variables (list[str]): List of variable names to track (e.g., ['A', 'C', 'DD_0', 'DD_TILDE_2']).
+        n_d (int, optional): Number of durable states (if plotting DD/DD_TILDE across vintages).
 
     Returns:
-        dict: Dictionary with raw and interpolated results for DD_i, A, and C.
+        dict: Dictionary with results {var_name: np.array of results}.
     """
-    # Store DD and DD_TILDE as list of lists, one per vintage i
-    dd_vals = [[] for _ in range(n_d)]
-    dd_tilde_vals = [[] for _ in range(n_d)]
-    a_vals = []
-    c_vals = []
+    # Storage for each variable
+    results = {var: [] for var in variables}
     success_flags = []
 
     for val in param_values:
-        cali_try = cali['baseline'].copy()
+        cali_try = cali.copy()
         cali_try[param_name] = val
         try:
             ss_try = hh.steady_state(cali_try)
 
-            for i in range(n_d):
-                dd_vals[i].append(ss_try[f'DD_{i}'])
-                dd_tilde_vals[i].append(ss_try[f'DD_TILDE_{i}'])
+            for var in variables:
+                if var in ss_try:
+                    results[var].append(ss_try[var])
+                else:
+                    results[var].append(np.nan)
 
-            a_vals.append(ss_try['A'])
-            c_vals.append(ss_try['C'])
             success_flags.append(True)
             print(f"SS found for {param_name} = {val:.3f}!")
         except Exception as e:
             print(f"Failed for {param_name} = {val:.3f}: {e}")
-            for i in range(n_d):
-                dd_vals[i].append(np.nan)
-                dd_tilde_vals[i].append(np.nan)
-            a_vals.append(np.nan)
-            c_vals.append(np.nan)
+            for var in variables:
+                results[var].append(np.nan)
             success_flags.append(False)
 
     # Convert to arrays
     param_values = np.array(param_values)
-    dd_vals = [np.array(v) for v in dd_vals]
-    dd_tilde_vals = [np.array(v) for v in dd_tilde_vals]
-    a_vals = np.array(a_vals)
-    c_vals = np.array(c_vals)
+    for var in variables:
+        results[var] = np.array(results[var])
 
-    # Plotting DD_i and DD_TILDE_i
-    fig, axs = plt.subplots(1, n_d, figsize=(3 * n_d, 2), sharex=True)
-    if n_d == 1:
-        axs = [axs]  # ensure list-like even for 1 subplot
+    # --- Plotting ---
+    n_vars = len(variables)
+    fig, axs = plt.subplots(1, n_vars, figsize=(4 * n_vars, 3), sharex=True)
+    if n_vars == 1:
+        axs = [axs]
 
-    for i in range(n_d):
-        mask_dd = ~np.isnan(dd_vals[i])
-        mask_dd_tilde = ~np.isnan(dd_tilde_vals[i])
+    for ax, var in zip(axs, variables):
+        vals = results[var]
+        mask = ~np.isnan(vals)
 
-        # Interpolate missing values
-        interp_dd = interp1d(param_values[mask_dd], dd_vals[i][mask_dd], kind='linear', fill_value="extrapolate")
-        interp_dd_tilde = interp1d(param_values[mask_dd_tilde], dd_tilde_vals[i][mask_dd_tilde], kind='linear', fill_value="extrapolate")
-        dd_vals_interp = dd_vals[i].copy()
-        dd_tilde_vals_interp = dd_tilde_vals[i].copy()
-        dd_vals_interp[~mask_dd] = interp_dd(param_values[~mask_dd])
-        dd_tilde_vals_interp[~mask_dd_tilde] = interp_dd_tilde(param_values[~mask_dd_tilde])
+        if mask.sum() >= 2:  # enough points for interpolation
+            interp_func = interp1d(param_values[mask], vals[mask], kind='linear', fill_value="extrapolate")
+            vals_interp = vals.copy()
+            vals_interp[~mask] = interp_func(param_values[~mask])
+        else:
+            vals_interp = vals
 
-        # Plot both
-        axs[i].plot(param_values, dd_vals_interp, '--', color='blue', label=f'DD_{i}')
-        axs[i].plot(param_values, dd_tilde_vals_interp, '--', color='green', label=f'DD_TILDE_{i}')
-        axs[i].plot(param_values[mask_dd], dd_vals[i][mask_dd], 'o', color='blue')
-        axs[i].plot(param_values[mask_dd_tilde], dd_tilde_vals[i][mask_dd_tilde], 's', color='green')
-        axs[i].set_title(f'Durable state {i}')
-        axs[i].set_xlabel(param_name)
-        axs[i].set_ylim(0, 1)
-        axs[i].grid(True)
-        axs[i].legend()
-
-    axs[0].set_ylabel("Durable Ownership Share")
-
-    # A and C
-    fig_ac, axs_ac = plt.subplots(1, 2, figsize=(8, 3), sharex=True)
-
-    # A
-    mask_a = ~np.isnan(a_vals)
-    interp_a = interp1d(param_values[mask_a], a_vals[mask_a], kind='linear', fill_value="extrapolate")
-    a_vals_interp = a_vals.copy()
-    a_vals_interp[~mask_a] = interp_a(param_values[~mask_a])
-    axs_ac[0].plot(param_values, a_vals_interp, '--', color='gray')
-    axs_ac[0].plot(param_values[mask_a], a_vals[mask_a], 'o', color='blue')
-    axs_ac[0].plot(param_values[~mask_a], a_vals_interp[~mask_a], 'x', color='red')
-    axs_ac[0].set_ylabel("A (Assets)")
-    axs_ac[0].set_title("Steady-state A")
-
-    # C
-    mask_c = ~np.isnan(c_vals)
-    interp_c = interp1d(param_values[mask_c], c_vals[mask_c], kind='linear', fill_value="extrapolate")
-    c_vals_interp = c_vals.copy()
-    c_vals_interp[~mask_c] = interp_c(param_values[~mask_c])
-    axs_ac[1].plot(param_values, c_vals_interp, '--', color='gray')
-    axs_ac[1].plot(param_values[mask_c], c_vals[mask_c], 'o', color='blue')
-    axs_ac[1].plot(param_values[~mask_c], c_vals_interp[~mask_c], 'x', color='red')
-    axs_ac[1].set_ylabel("C (Consumption)")
-    axs_ac[1].set_title("Steady-state C")
-
-    for ax in axs_ac:
+        ax.plot(param_values, vals_interp, '--', label=var)
+        ax.plot(param_values[mask], vals[mask], 'o', label=f"{var} (ok)")
+        ax.plot(param_values[~mask], vals_interp[~mask], 'x', color='red', label=f"{var} (interp)")
+        ax.set_title(var)
         ax.set_xlabel(param_name)
         ax.grid(True)
+        ax.legend()
 
+    axs[0].set_ylabel("Value")
     plt.tight_layout()
     plt.show()
 
     return {
         'param_values': param_values,
-        'dd_vals': dd_vals,
-        'dd_tilde_vals': dd_tilde_vals,
-        'a_vals': a_vals,
-        'c_vals': c_vals,
+        'results': results,
         'success_flags': success_flags,
     }
 
-def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, n_d, results=None):
+
+
+def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, variables, n_d=None, results=None):
     """
-    Vary two calibration parameters and plot steady-state outcomes:
-    - One big figure for DD_k and DD_TILDE_k for each durable choice (vintage).
-    - One second figure for A and C.
+    Vary two calibration parameters and plot steady-state outcomes
+    for chosen variables (not hardcoded).
 
     Args:
         param1 (str): First parameter name.
         values1 (array-like): Grid for the first parameter.
         param2 (str): Second parameter name.
         values2 (array-like): Grid for the second parameter.
-        cali (dict): Calibration dictionary with 'baseline'.
+        cali (dict): Calibration dictionary.
         hh (object): Must have method `steady_state(cali_dict)`.
-        n_d (int): Number of durable choices (vintages).
+        variables (list[str]): List of variable names to track (e.g., ['A','C','DD_0','DD_TILDE_2']).
+        n_d (int, optional): Number of durable choices (for shorthand expansion).
         results (dict, optional): Previous results object to reuse.
 
     Returns:
-        dict: Grid and results for DD_k, A, and C.
+        dict: Grid and results {var_name: 2D arrays}.
     """
 
     values1 = np.array(values1)
     values2 = np.array(values2)
     X, Y = np.meshgrid(values1, values2, indexing='ij')
 
+    # Storage
     if results is None:
-        DD_all = [np.full_like(X, np.nan, dtype=float) for _ in range(n_d)]
-        DD_tilde_all = [np.full_like(X, np.nan, dtype=float) for _ in range(n_d)]
-        A = np.full_like(X, np.nan, dtype=float)
-        C = np.full_like(X, np.nan, dtype=float)
+        results = {var: np.full_like(X, np.nan, dtype=float) for var in variables}
         success = np.full_like(X, False, dtype=bool)
 
         for i, v1 in enumerate(values1):
             for j, v2 in enumerate(values2):
-                cali_try = cali['baseline'].copy()
+                cali_try = cali.copy()
                 cali_try[param1] = v1
                 cali_try[param2] = v2
                 try:
                     ss_try = hh.steady_state(cali_try)
-                    for k in range(n_d):
-                        DD_all[k][i, j] = ss_try[f'DD_{k}']
-                        DD_tilde_all[k][i, j] = ss_try[f'DD_TILDE_{k}']
-                    A[i, j] = ss_try['A']
-                    C[i, j] = ss_try['C']
+                    for var in variables:
+                        if var in ss_try:
+                            results[var][i, j] = ss_try[var]
+                        else:
+                            results[var][i, j] = np.nan
                     success[i, j] = True
                     print(f"Success: {param1}={v1:.2f}, {param2}={v2:.2f}")
                 except Exception as e:
                     print(f"Fail: {param1}={v1:.2f}, {param2}={v2:.2f} | {e}")
     else:
-        DD_all = results['DD_all']
-        DD_tilde_all = results['DD_tilde_all']
-        A = results['A']
-        C = results['C']
         success = results['success']
 
-    # === Interpolation ===
+    # === Interpolation helper ===
     def interpolate_missing(Z):
-        points = np.column_stack((X[~np.isnan(Z)], Y[~np.isnan(Z)]))
-        values = Z[~np.isnan(Z)]
+        mask = ~np.isnan(Z)
+        if mask.sum() < 3:  # not enough points for griddata
+            return Z
+        points = np.column_stack((X[mask], Y[mask]))
+        values = Z[mask]
         return griddata(points, values, (X, Y), method='linear')
 
-    DD_interp_all = [interpolate_missing(DD) for DD in DD_all]
-    DD_tilde_interp_all = [interpolate_missing(DD_tilde) for DD_tilde in DD_tilde_all]
-    A_interp = interpolate_missing(A)
-    C_interp = interpolate_missing(C)
+    # Interpolated versions
+    interp_results = {var: interpolate_missing(results[var]) for var in variables}
 
-    # === First figure: DD and DD_TILDE by vintage ===
-    ncols = 4
-    nrows = int(np.ceil(n_d / ncols))
-    #fig1 = plt.figure(figsize=(6 * ncols, 5 * nrows))
-    fig1 = plt.figure(figsize=(18,9))
+    # === Plotting ===
+    n_vars = len(variables)
+    ncols = min(4, n_vars)
+    nrows = int(np.ceil(n_vars / ncols))
+    fig = plt.figure(figsize=(5 * ncols, 4 * nrows))
 
-
-    for k in range(n_d):
-        ax = fig1.add_subplot(nrows, ncols, k + 1, projection='3d')
-
-        ax.plot_surface(X, Y, DD_interp_all[k], cmap='cividis', alpha=0.60, edgecolor='none')
-        ax.plot_surface(X, Y, DD_tilde_interp_all[k], cmap='viridis', alpha=0.60, edgecolor='none')
-        ax.scatter(X[success], Y[success], DD_all[k][success], color='blue', s=10, label='DD')
-        ax.scatter(X[success], Y[success], DD_tilde_all[k][success], color='green', s=10, label='DD_TILDE')
-
+    for k, var in enumerate(variables):
+        ax = fig.add_subplot(nrows, ncols, k + 1, projection='3d')
+        ax.plot_surface(X, Y, interp_results[var], cmap='viridis', alpha=0.7, edgecolor='none')
+        ax.scatter(X[success], Y[success], results[var][success], s=10, color='black')
         ax.set_xlabel(param1)
         ax.set_ylabel(param2)
-        ax.set_zlabel(f'DD / DD_TILDE')
-        ax.set_title(f'Durable state {k}')
-        if k == 0:
-            ax.legend()
+        ax.set_zlabel(var)
+        ax.set_title(var)
 
     plt.tight_layout()
     plt.show()
 
-    # === Second figure: A and C ===
-    #fig2 = plt.figure(figsize=(12, 6))
-    fig2 = plt.figure(figsize=(8, 4))
-
-    ax1 = fig2.add_subplot(1, 2, 1, projection='3d')
-    ax1.plot_surface(X, Y, A_interp, cmap='Oranges', alpha=0.7, edgecolor='none')
-    ax1.scatter(X[success], Y[success], A[success], color='darkorange', s=10)
-    ax1.set_xlabel(param1)
-    ax1.set_ylabel(param2)
-    ax1.set_zlabel('A')
-    ax1.set_title('Assets (A)')
-
-    ax2 = fig2.add_subplot(1, 2, 2, projection='3d')
-    ax2.plot_surface(X, Y, C_interp, cmap='Purples', alpha=0.7, edgecolor='none')
-    ax2.scatter(X[success], Y[success], C[success], color='indigo', s=10)
-    ax2.set_xlabel(param1)
-    ax2.set_ylabel(param2)
-    ax2.set_zlabel('C')
-    ax2.set_title('Consumption (C)')
-
-    plt.tight_layout()
-    plt.show()
-
+    # Return both raw and interpolated
     return {
         'X': X, 'Y': Y,
-        'DD_all': DD_all,
-        'DD_tilde_all': DD_tilde_all,
-        'DD_interp_all': DD_interp_all,
-        'DD_tilde_interp_all': DD_tilde_interp_all,
-        'A': A, 'C': C,
-        'A_interp': A_interp,
-        'C_interp': C_interp,
+        'results': results,
+        'interp_results': interp_results,
         'success': success
     }
+
 
 # Define the plotting function
 def show_irfs(irfs_list, variables, labels=[" "], ylabel=r"Percentage points (dev. from ss)", T_plot=50, figsize=(18, 6)):

@@ -210,7 +210,6 @@ def batch_multiply_ith_dimension_keep_shape(P, i, X):
 
 
 class Exogenous(Stage):
-    """Stage that applies exogenous Markov process along one dimension"""
     def __init__(self, markov_name, index, name, backward, hetoutputs=None):
         # subclass-specific attributes
         self.markov_name = markov_name

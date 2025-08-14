@@ -105,9 +105,45 @@ display_ss_durables(ss_DD)
 display_calibrated_from_unknowns(ss_DD, unknowns_ss)
 
 #%%
-evaluate_param_changes('N', [0.60, 0.7, 0.8, 0.99], ha, ss_DD, 
+evaluate_param_changes('gamma_g', [1, 2, 3, 4], ha, ss_DD, 
                            ss_vars=['N_core', 'labor_mkt','asset_mkt', 'Tax',
-                                    'A', 'B', 'N', 'C', 'C_CORE', 'C_E',])
+                                    'A', 'B', 'N', 'C', 'C_CORE', 'C_E','D_N','D_G','D_B'])
+
+
+analyze_steady_state('gamma_g', [1, 2, 3, 4, 10], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
+
+#%% 
+
+analyze_steady_state_3d('gamma_g', [1, 2],'gamma_b', [1, 2], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
+
+
+#%%
+unknowns_ss_2 = {'N':ss_DD['N'],'mu_N_d':ss_DD['mu_N_d'], 'p_b': 0.80, 'gamma_g':1.2}
+targets_ss_2 = {'asset_mkt':0,'labor_mkt':0, 'D_B':0.050,'D_G':0.020, }
+
+
+unknowns_ss_2 = {
+    'N': (0, ss_DD['N'], 1),
+    'mu_N_d':(0, ss_DD['mu_N_d'], 1),
+    'p_b': (0.01, 0.273, 10),
+    'p_g': (0.01, 0.9, 10),
+    'gamma_g': (0,1.243,100),
+    #'dep_util_frac_b': (0.1,0.99,1)
+}
+
+targets_ss_2 = {
+    'asset_mkt': 0,
+    'labor_mkt': 0.,
+    'D_N': 1-0.05 - 0.05,
+    'D_G': 0.05,
+    'D_B':0.05,
+}
+
+#ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
+ss_DD_2 = ha.solve_steady_state(ss_DD , unknowns_ss_2, targets_ss_2, solver='broyden_custom')
+
+display_ss_durables(ss_DD_2)
+display_calibrated_from_unknowns(ss_DD_2, unknowns_ss_2)
 
 #%%
 cali_DD_alt = ss_DD.copy()
