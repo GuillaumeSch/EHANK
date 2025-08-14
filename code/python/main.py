@@ -98,6 +98,50 @@ display_calibrated_from_unknowns(ss_DD, unknowns_ss)
 ss_DD['C_P'] - (ss_DD['C_CORE_P_CORE'] + ss_DD['C_E_P_E'])
 
 
+D = ss_DD.internals['hh']['consav']['D']
+
+c = ss_DD.internals['hh']['consav']['c']
+c_core = ss_DD.internals['hh']['consav']['c_core']
+c_E = ss_DD.internals['hh']['consav']['c_E']
+
+p_core = p_core
+p_e = ss_DD.internals['hh']['p_e']
+p_bundle = ss_DD.internals['hh']['p_bundle']
+
+
+
+np.sum(D * c_core * p_core) + 
+
+
+P = ss_DD.internals['hh']['durables']['law_of_motion'].P
+
+P[:,:,:,:]
+
+D[:,0,0,0]
+
+
+xplus = P.copy()  # Create a copy to avoid modifying the original
+for i in range(xplus.shape[2]):  # Loop over 3rd dimension
+    for j in range(xplus.shape[3]):  # Loop over 4th dimension
+        np.fill_diagonal(xplus[:,:,i,j], 0)
+        
+xminus = P.copy()  # Create a copy to avoid modifying the original
+for i in range(xminus.shape[2]):  # Loop over 3rd dimension
+    for j in range(xminus.shape[3]):  # Loop over 4th dimension
+        np.fill_diagonal(xminus[:,:,i,j], 0)
+
+Xplus = np.sum(xplus * D, axis=(1,2,3))
+
+Xminus = np.sum(xminus * D, axis=(0,2,3))
+
+
+
+np.sum(D * c_core * p_core)
+np.sum(D * c_E * np.array(p_e)[..., np.newaxis, np.newaxis, np.newaxis])
+np.sum(D * c * np.array(p_bundle)[..., np.newaxis, np.newaxis, np.newaxis])
+
+
+
 
 
 #%% === Solve the model transition dynmamics and get IRFs === §
