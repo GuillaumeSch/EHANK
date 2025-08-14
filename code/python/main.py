@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block import hh_durables
-from Model_Blocks import fiscal, mkt_clearing, prod
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -26,7 +26,8 @@ cali["baseline"] = {
     "n_a": 20,                 # Number of asset grid points
     # Labor market
     #"w": 1.0,                  # Wage level
-    "N": 1.0,                  # Labor supply
+    "N_core": 1.0,             # Labor supply for core goods
+    "N_d1": 1.0, "N_d2": 1.0, "N_d3": 1.0, "N_d4": 1.0,                # Labor supply for durable goods
     "tau":0,                   # Labor income tax
     # Durable goods
     "p_b": 0.80,               # Initial price of brown durable
@@ -48,6 +49,8 @@ cali["baseline"] = {
     "p_core": 1,               # Price of core, non-durable goods
     "Div": 0,                  # Dividends from firms
     "Tax": 0.5,                # Total tax
+    "Z_core": 1,               # Core productivity
+    "Z_d1": 1, "Z_d2": 1, "Z_d3": 1, "Z_d4": 1, # Durables productivities
     #Government
     #"Y" : 1,                   # Output
     "B" : 4,                   # Stock of debt
@@ -79,7 +82,7 @@ for k, v in cali["baseline_DD"].items():
     
 
 #%% === Create the model ===
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
@@ -94,6 +97,20 @@ ss_DD = ha.solve_steady_state(cali['baseline_DD'] , unknowns_ss, targets_ss, sol
 display_ss_durables(ss_DD)
 display_calibrated_from_unknowns(ss_DD, unknowns_ss)
 
+
+#%%
+cali_DD_alt = ss_DD.copy()
+cali_DD_alt['Z_d1'] = 0.5
+
+unknowns_ss = {'B':(0.80,0.999)}
+targets_ss = {'asset_mkt'}
+
+ss_DD_alt = ha.solve_steady_state(cali_DD_alt , unknowns_ss, targets_ss, solver='hybr')
+display_ss_durables(ss_DD_alt)
+display_calibrated_from_unknowns(ss_DD, ss_DD_alt)
+
+
+#%%
 #Check that the decomposition is correct.
 ss_DD['C_P'] - (ss_DD['C_CORE_P_CORE'] + ss_DD['C_E_P_E'])
 
@@ -106,11 +123,11 @@ c_E = ss_DD.internals['hh']['consav']['c_E']
 
 p_core = p_core
 p_e = ss_DD.internals['hh']['p_e']
+p_d = ss_DD.internals['hh']['p_d']
 p_bundle = ss_DD.internals['hh']['p_bundle']
 
 
 
-np.sum(D * c_core * p_core) + 
 
 
 P = ss_DD.internals['hh']['durables']['law_of_motion'].P
@@ -136,10 +153,17 @@ Xminus = np.sum(xminus * D, axis=(0,2,3))
 
 
 
-np.sum(D * c_core * p_core)
-np.sum(D * c_E * np.array(p_e)[..., np.newaxis, np.newaxis, np.newaxis])
+C_core_p_core = np.sum(D * c_core * p_core)
+C_E_p_e = np.sum(D * c_E * np.array(p_e)[..., np.newaxis, np.newaxis, np.newaxis])
 np.sum(D * c * np.array(p_bundle)[..., np.newaxis, np.newaxis, np.newaxis])
 
+
+
+
+
+ss_DD['C_CORE_P_CORE'] + C_E_p_e + np.sum(p_d * (Xplus - (1-chi)*Xminus))
+
+ss_DD['w'] * N + ss_DD['r'] * ss_DD['A'] + -ss_DD['Tax']
 
 
 
