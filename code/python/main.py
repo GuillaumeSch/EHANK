@@ -23,8 +23,8 @@ cali["baseline"] = {
     "n_e": 5,                  # Number of productivity grid points
     # Asset grid
     "min_a": 0.0,              # Minimum asset level
-    "max_a": 100,              # Maximum asset level
-    "n_a": 20,                 # Number of asset grid points
+    "max_a": 10,              # Maximum asset level
+    "n_a": 100,                 # Number of asset grid points
     # Labor market
     #"w": 1.0,                  # Wage level
     "N_core": 0.5,             # Labor demand for core goods
@@ -68,16 +68,16 @@ cali["baseline"] = {
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
-    
+
 #Import the DD calibration (Some parameters are not present in the DD calibration.)
 with open('calibration_ss_DD.json', 'r') as f:
     cali_DD = json.load(f)
-    
+
 cali['baseline_DD'] = deepcopy(cali['baseline'])
 for key in cali_DD.keys():
     if key in cali['baseline_DD']:
         cali['baseline_DD'][key] = cali_DD[key]
-    
+
 for k, v in cali["baseline_DD"].items():
     globals()[k] = v
 
@@ -90,7 +90,7 @@ print('It has outputs: ' + str(ha.outputs))
 
 
 #%%
-evaluate_param_changes('N', [0.60, 0.7, 0.8, 0.99], ha, cali['baseline'], 
+evaluate_param_changes('N', [0.60, 0.7, 0.8, 0.99], ha, cali['baseline'],
                            ss_vars=['N_core', 'labor_mkt','asset_mkt', 'Tax',
                                     'A', 'B', 'N', 'C', 'C_CORE', 'C_E',])
 
@@ -105,14 +105,17 @@ display_ss_durables(ss_DD)
 display_calibrated_from_unknowns(ss_DD, unknowns_ss)
 
 #%%
-evaluate_param_changes('gamma_g', [1, 2, 3, 4], ha, ss_DD, 
+plot_distribution(ss_DD,lines_dim = None, labels = ['e0','e1','e2','e3','e4',], truncate_at = 2)
+
+#%%
+evaluate_param_changes('gamma_g', [1, 2, 3, 4], ha, ss_DD,
                            ss_vars=['N_core', 'labor_mkt','asset_mkt', 'Tax',
                                     'A', 'B', 'N', 'C', 'C_CORE', 'C_E','D_N','D_G','D_B'])
 
 
 analyze_steady_state('gamma_g', [1, 2, 3, 4, 10], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
 
-#%% 
+#%%
 
 analyze_steady_state_3d('gamma_g', [1, 2],'gamma_b', [1, 2], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
 
@@ -188,7 +191,7 @@ xplus = P.copy()  # Create a copy to avoid modifying the original
 for i in range(xplus.shape[2]):  # Loop over 3rd dimension
     for j in range(xplus.shape[3]):  # Loop over 4th dimension
         np.fill_diagonal(xplus[:,:,i,j], 0)
-        
+
 xminus = P.copy()  # Create a copy to avoid modifying the original
 for i in range(xminus.shape[2]):  # Loop over 3rd dimension
     for j in range(xminus.shape[3]):  # Loop over 4th dimension

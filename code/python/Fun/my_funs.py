@@ -487,7 +487,7 @@ def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs, T_pl
     # Plot
     show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T_plot, figsize=figsize)
 
-def evaluate_param_changes(param_name, values_list, ha, cali, 
+def evaluate_param_changes(param_name, values_list, ha, cali,
                            ss_vars=['goods_mkt', 'asset_mkt', 'Tax', 'r', 'beta', 'G', 'B', 'N', 'Y', 'Z']):
      # Get baseline calibration and steady state
     baseline_calib = deepcopy(cali)
@@ -500,16 +500,16 @@ def evaluate_param_changes(param_name, values_list, ha, cali,
     # Baseline row
     try:
         baseline_value = (
-            baseline_calib[param_name] 
-            if param_name in baseline_calib 
+            baseline_calib[param_name]
+            if param_name in baseline_calib
             else 'N/A'
         )
-    except TypeError:  
+    except TypeError:
         try:
             baseline_value = baseline_calib[param_name]
         except KeyError:
             baseline_value = 'N/A'
-            
+
     calibration_results.append(('Baseline', baseline_value))
     ss_results.append(('Baseline', [baseline_ss[v] if v in baseline_ss else 'N/A' for v in ss_vars]))
 
@@ -518,7 +518,7 @@ def evaluate_param_changes(param_name, values_list, ha, cali,
         modified_calib = deepcopy(baseline_calib)
         modified_calib[param_name] = val
         ss = ha.steady_state(modified_calib)
-        
+
         case_name = f"{param_name} = {val}"
         calibration_results.append((case_name, val))
         ss_results.append((case_name, [ss[v] if v in ss else 'N/A' for v in ss_vars]))
@@ -573,7 +573,7 @@ def display_ss_durables(ss):
     #display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BM']+ ss['D_BO']+ ss['D_GN']+ ss['D_GM'] + ss['D_GO'])))
     #display(Math(r"Check. Total(Tilde) = " + str(ss['D_T_N'] + ss['D_T_BN']+ ss['D_T_BO']+ ss['D_T_GN'] + ss['D_T_GO'])))
     display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BO']+ ss['D_GN'] + ss['D_GO'])))
-    
+
 def display_calibrated_from_unknowns(ss_dict, unknowns_dict):
     """
     Display calibrated parameters from ss_dict,
@@ -588,3 +588,88 @@ def display_calibrated_from_unknowns(ss_dict, unknowns_dict):
         except KeyError:
             value = 'N/A'
         print(f"{param:<10} | {value:>15}")
+
+
+
+def plot_distribution(
+    SS_object,
+    lines_dim=None,       # dimension to split lines (0,1,2), or None
+    truncate_at=None,     # float, asset level at which to truncate
+    labels=None           # list of labels
+):
+    """
+    Plot 4D distribution D along assets (x-axis).
+
+    Parameters
+    ----------
+    SS_object : object
+        Object containing D at SS_object.internals['hh']['consav']['D']
+        and a_grid at SS_object.internals['hh']['a_grid']
+    lines_dim : int or None
+        Dimension to separate lines (0,1,2) or None for total marginal
+    truncate_at : float or None
+        If specified, all asset levels >= truncate_at are combined in last bin
+    labels : list or None
+        List of labels for the lines_dim
+    """
+
+    D = np.asarray(SS_object.internals['hh']['consav']['D'])
+    a_grid = np.asarray(SS_object.internals['hh']['a_grid'])
+    assert D.ndim == 4, "D must be 4D (choice, durable state, productivity, assets)"
+
+    # Determine lines
+    if lines_dim is None:
+        lines = [D.sum(axis=(0,1,2))]  # marginalize all except assets
+        line_labels = ["Total"]
+    else:
+        axes_to_sum = tuple(ax for ax in range(4) if ax not in (3, lines_dim))
+        lines = D.sum(axis=axes_to_sum)  # KEEP your working line
+
+        # Ensure lines is iterable along the lines_dim
+        if lines_dim != 3:  # assets is 3rd dim
+            lines = [lines[i, :] for i in range(lines.shape[0])]
+        else:
+            lines = [lines[i] for i in range(lines.shape[0])]
+
+        # Set labels
+        if labels is None:
+            line_labels = [f"{lines_dim}={i}" for i in range(len(lines))]
+        else:
+            line_labels = labels
+            assert len(line_labels) == len(lines), "Number of labels must match number of lines"
+
+    # Truncate assets if requested
+    if truncate_at is not None:
+        # Find the index corresponding to the truncation asset level
+        truncate_idx = np.searchsorted(a_grid, truncate_at, side='right') - 1
+        truncated_lines = []
+        for line in lines:
+            if truncate_idx < len(line):
+                new_line = np.zeros(truncate_idx+1)
+                new_line[:-1] = line[:truncate_idx]
+                new_line[-1] = line[truncate_idx:].sum()
+                truncated_lines.append(new_line)
+            else:
+                truncated_lines.append(line)
+        lines = truncated_lines
+        x_axis = a_grid[:truncate_idx+1]
+    else:
+        x_axis = a_grid
+
+    # Normalize each line
+    lines = [line / line.sum() for line in lines]
+
+    # Plot
+    plt.figure(figsize=(8,5))
+    for line, lbl in zip(lines, line_labels):
+        plt.plot(x_axis, line, marker='o', label=lbl)
+
+    plt.xlabel("Assets")
+    plt.ylabel("Probability (conditional)")
+    if lines_dim is not None:
+        plt.legend()
+    plt.title("Distribution along assets")
+    plt.grid(True)
+    plt.show()
+
+
