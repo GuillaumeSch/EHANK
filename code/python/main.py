@@ -23,8 +23,8 @@ cali["baseline"] = {
     "n_e": 5,                  # Number of productivity grid points
     # Asset grid
     "min_a": 0.0,              # Minimum asset level
-    "max_a": 10,              # Maximum asset level
-    "n_a": 100,                 # Number of asset grid points
+    "max_a": 100,              # Maximum asset level
+    "n_a": 20,                 # Number of asset grid points
     # Labor market
     #"w": 1.0,                  # Wage level
     "N_core": 0.5,             # Labor demand for core goods
@@ -55,8 +55,8 @@ cali["baseline"] = {
     "Z_d1": 1, "Z_d2": 1, "Z_d3": 1, "Z_d4": 1, # Durables productivities
     #Government
     #"Y" : 1,                  # Output
-    "B" : 1,                   # Stock of debt
-    "G" : 0.3,                 # Government spendings
+    "B" : 0,                   # Stock of debt
+    "G" : 0.0,                 # Government spendings
     #Energy
     "p_e_b" : 0.3,             # Price of brown energy (gas/petrol)
     "p_e_g" : 0.3,             # Price of green energy (electricity)
@@ -88,15 +88,10 @@ print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
 
-
-#%%
-evaluate_param_changes('N', [0.60, 0.7, 0.8, 0.99], ha, cali['baseline'],
-                           ss_vars=['N_core', 'labor_mkt','asset_mkt', 'Tax',
-                                    'A', 'B', 'N', 'C', 'C_CORE', 'C_E',])
-
 #%% === Solve the model Steady State ===
-unknowns_ss = {'N':(0.60,0.8),'mu_N_d':(0,1)}
-targets_ss = {'asset_mkt':0,'labor_mkt':0}
+#unknowns_ss = {'N':(0.60,0.8),'mu_N_d':(0,1)}
+unknowns_ss = {'beta':(0.80,0.99), 'N':(0.60,0.8)}
+targets_ss = {'asset_mkt':0.0,'labor_mkt':0}
 
 #ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
 ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='broyden_custom')
@@ -105,60 +100,7 @@ display_ss_durables(ss_DD)
 display_calibrated_from_unknowns(ss_DD, unknowns_ss)
 
 #%%
-plot_distribution(ss_DD,lines_dim = None, labels = ['e0','e1','e2','e3','e4',], truncate_at = 2)
-
-#%%
-evaluate_param_changes('gamma_g', [1, 2, 3, 4], ha, ss_DD,
-                           ss_vars=['N_core', 'labor_mkt','asset_mkt', 'Tax',
-                                    'A', 'B', 'N', 'C', 'C_CORE', 'C_E','D_N','D_G','D_B'])
-
-
-analyze_steady_state('gamma_g', [1, 2, 3, 4, 10], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
-
-#%%
-
-analyze_steady_state_3d('gamma_g', [1, 2],'gamma_b', [1, 2], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
-
-
-#%%
-unknowns_ss_2 = {'N':ss_DD['N'],'mu_N_d':ss_DD['mu_N_d'], 'p_b': 0.80, 'gamma_g':1.2}
-targets_ss_2 = {'asset_mkt':0,'labor_mkt':0, 'D_B':0.050,'D_G':0.020, }
-
-
-unknowns_ss_2 = {
-    'N': (0, ss_DD['N'], 1),
-    'mu_N_d':(0, ss_DD['mu_N_d'], 1),
-    'p_b': (0.01, 0.273, 10),
-    'p_g': (0.01, 0.9, 10),
-    'gamma_g': (0,1.243,100),
-    #'dep_util_frac_b': (0.1,0.99,1)
-}
-
-targets_ss_2 = {
-    'asset_mkt': 0,
-    'labor_mkt': 0.,
-    'D_N': 1-0.05 - 0.05,
-    'D_G': 0.05,
-    'D_B':0.05,
-}
-
-#ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
-ss_DD_2 = ha.solve_steady_state(ss_DD , unknowns_ss_2, targets_ss_2, solver='broyden_custom')
-
-display_ss_durables(ss_DD_2)
-display_calibrated_from_unknowns(ss_DD_2, unknowns_ss_2)
-
-#%%
-cali_DD_alt = ss_DD.copy()
-cali_DD_alt['Z_d1'] = 0.5
-
-unknowns_ss = {'B':(0.80,0.999)}
-targets_ss = {'asset_mkt'}
-
-ss_DD_alt = ha.solve_steady_state(cali_DD_alt , unknowns_ss, targets_ss, solver='hybr')
-display_ss_durables(ss_DD_alt)
-display_calibrated_from_unknowns(ss_DD, ss_DD_alt)
-
+plot_distribution(ss_DD,lines_dim = 2, labels = ['e0','e1','e2','e3','e4',], truncate_at = 2)
 
 #%%
 #Check that the decomposition is correct.
@@ -213,8 +155,43 @@ np.sum(D * c * np.array(p_bundle)[..., np.newaxis, np.newaxis, np.newaxis])
 
 ss_DD['C_CORE_P_CORE'] + C_E_p_e + np.sum(p_d * (Xplus - (1-chi)*Xminus))
 
+
 ss_DD['w'] * N + ss_DD['r'] * ss_DD['A'] + -ss_DD['Tax']
 
+
+
+#% Save the variables
+p_bundle = ss_DD.internals['hh']['p_bundle']
+c = ss_DD.internals['hh']['consav']['c']
+a_choice = ss_DD.internals['hh']['consav']['a']
+a_grid = ss_DD.internals['hh']['a_grid']
+adj_matrix = ss_DD.internals['hh']['adj_matrix']
+r = ss_DD['r']
+N = ss_DD['N']
+w = ss_DD['w']
+e_grid = ss_DD.internals['hh']['e_grid']
+T = ss_DD.internals['hh']['T']
+
+
+
+#% Individual BC
+#LHS
+LHS = p_bundle[...,np.newaxis,np.newaxis,np.newaxis] * c \
+    + a_choice \
+    +adj_matrix[..., np.newaxis,np.newaxis]
+
+#RHS
+RHS = ((1+ r) * a_grid)[np.newaxis,np.newaxis,np.newaxis,...] \
+    + w * N * e_grid[np.newaxis, np.newaxis, :, np.newaxis] \
+    + T[np.newaxis, np.newaxis, :, np.newaxis]
+    
+diff = LHS - RHS
+
+plt.plot(np.mean(diff, axis=(0,1,2)))
+
+
+BC_error = np.max(np.abs(diff))
+print("Max BC error:", BC_error)
 
 
 
@@ -228,3 +205,67 @@ plot_linear_irfs(
     outputs=["tau_b","N", "G", "Tax","D_BO", "D_BN", "D_GO", "D_GN", "goods_mkt", "asset_mkt"]
 )
 # %%
+
+
+
+
+
+
+
+
+
+# === Analyze the steady state ===
+#%%
+evaluate_param_changes('gamma_g', [1, 2, 3, 4], ha, ss_DD,
+                           ss_vars=['N_core', 'labor_mkt','asset_mkt', 'Tax',
+                                    'A', 'B', 'N', 'C', 'C_CORE', 'C_E','D_N','D_G','D_B'])
+
+
+analyze_steady_state('gamma_g', [1, 2, 3, 4, 10], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
+
+#%%
+
+analyze_steady_state_3d('gamma_g', [1, 2],'gamma_b', [1, 2], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
+
+
+#%%
+unknowns_ss_2 = {'N':ss_DD['N'],'mu_N_d':ss_DD['mu_N_d'], 'p_b': 0.80, 'gamma_g':1.2}
+targets_ss_2 = {'asset_mkt':0,'labor_mkt':0, 'D_B':0.050,'D_G':0.020, }
+
+
+unknowns_ss_2 = {
+    #'N': (0, ss_DD['N'], 1),
+    'B': (0, ss_DD['B'], 4),
+    'N': (0, ss_DD['N'], 1),
+    #'mu_N_d':(0, ss_DD['mu_N_d'], 1),
+    'p_b': (0.01, 0.273, 10),
+    #'p_g': (0.01, 0.9, 10),
+    'gamma_g': (0,1.243,100),
+    #'dep_util_frac_b': (0.1,0.99,1)
+}
+
+targets_ss_2 = {
+    'asset_mkt': 0,
+    'labor_mkt': 0.,
+    'D_N': 0.80,
+    #'D_G': 0.05,
+    'D_B':0.01,
+}
+
+#ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
+ss_DD_2 = ha.solve_steady_state(ss_DD , unknowns_ss_2, targets_ss_2, solver='broyden_custom')
+
+display_ss_durables(ss_DD_2)
+display_calibrated_from_unknowns(ss_DD_2, unknowns_ss_2)
+
+#%%
+cali_DD_alt = ss_DD.copy()
+cali_DD_alt['Z_d1'] = 0.5
+
+unknowns_ss = {'B':(0.80,0.999)}
+targets_ss = {'asset_mkt'}
+
+ss_DD_alt = ha.solve_steady_state(cali_DD_alt , unknowns_ss, targets_ss, solver='hybr')
+display_ss_durables(ss_DD_alt)
+display_calibrated_from_unknowns(ss_DD, ss_DD_alt)
+
