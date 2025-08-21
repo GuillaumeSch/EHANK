@@ -310,16 +310,18 @@ def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g):
     shifters = np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))
     return shifters
 
-def make_prices_durables(p_b, dep_frac_b, n_b, p_g, dep_frac_g, n_g):
-    dep_rate_b = 1 - (dep_frac_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
-    vintages_b = np.arange(n_b)
-    p_b_vector = p_b * (1 - dep_rate_b) ** vintages_b
-    dep_rate_g = 1 - (dep_frac_g) ** (1 / (n_g - 1))        # Depreciation rate for good g
-    vintages_g = np.arange(n_g)
-    p_g_vector = p_g * (1 - dep_rate_g) ** vintages_g
-    # Combine
-    p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
-    return p_d
+# def make_prices_durables(p_b, dep_frac_b, n_b, p_g, dep_frac_g, n_g):
+#     dep_rate_b = 1 - (dep_frac_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
+#     vintages_b = np.arange(n_b)
+#     p_b_vector = p_b * (1 - dep_rate_b) ** vintages_b
+#     dep_rate_g = 1 - (dep_frac_g) ** (1 / (n_g - 1))        # Depreciation rate for good g
+#     vintages_g = np.arange(n_g)
+#     p_g_vector = p_g * (1 - dep_rate_g) ** vintages_g
+#     # Combine
+#     p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
+#     return p_d
+
+
 
 #Price of the household consumption bundle + Decomposition of core and energy consumption
 def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu):
@@ -338,5 +340,5 @@ def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu
 hh_durables = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
                 backward_init=hh_init,
                 hetinputs=[make_grids, income_grid, transfers, adj_costs, 
-                           disp_inc_f, make_shifters, make_prices_durables, 
+                           disp_inc_f, make_shifters, #make_prices_durables, 
                            make_consu_bundle_price])

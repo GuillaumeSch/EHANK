@@ -5,6 +5,8 @@ import sequence_jacobian as sj
 import json
 from copy import deepcopy
 from Fun.my_funs import *
+#%matplotlib qt
+
 
 # %%
 # === Calibration dictionary ===
@@ -24,12 +26,13 @@ cali["baseline"] = {
     # Asset grid
     "min_a": 0.0,              # Minimum asset level
     "max_a": 100,              # Maximum asset level
-    "n_a": 20,                 # Number of asset grid points
+    "n_a": 100,                 # Number of asset grid points
     # Labor market
     #"w": 1.0,                  # Wage level
-    "N_core": 0.5,             # Labor demand for core goods
-    "N_d1_b": 1.0, "N_d2_b": 1.0, "N_d3_b": 1.0, "N_d4_b": 1.0,                # Labor demand for durable goods
-    "mu_N_d": 0.05,            # Fraction that is applied to all labor demand for durables.
+    "N_core": 0.6,             # Labor demand for core goods
+    #"N_d1": 0.1, "N_d2": 0.1, "N_d3": 0.1, "N_d4": 0.1,                # Labor demand for durable goods
+    "N_d": np.array([ 0.1, 0.1, 0.1, 0.1]),                # Labor demand for durable goods
+    "mu_Z_d": 0.05,            # Fraction that is applied to all labor demand for durables.
     "tau":0,                   # Labor income tax
     # Durable goods
     "p_b": 0.80,               # Initial price of brown durable
@@ -48,22 +51,23 @@ cali["baseline"] = {
     "lifetime_g": 60,          # Average lifetime of green durables (quarters)
     # Firms
     "alpha": 1,                # Share of labor in prod. function
-    "p_core": 1,               # Price of core, non-durable goods
+    #"p_core": 1,               # Price of core, non-durable goods
     "Div": 0,                  # Dividends from firms
     #"Tax": 0.5,                # Total tax
     "Z_core": 1,               # Core productivity
-    "Z_d1": 1, "Z_d2": 1, "Z_d3": 1, "Z_d4": 1, # Durables productivities
+    #"Z_d1": 1, "Z_d2": 1, "Z_d3": 1, "Z_d4": 1, # Durables productivities
+    "Z_d": np.array([310.58416461, 1242.33665845, 22.22222222, 88.88888889]),                # Labor demand for durable goods
     #Government
     #"Y" : 1,                  # Output
-    "B" : 0,                   # Stock of debt
-    "G" : 0.0,                 # Government spendings
+    "B" : 4,                   # Stock of debt
+    "G" : 0.3,                 # Government spendings
     #Energy
-    "p_e_b" : 0.3,             # Price of brown energy (gas/petrol)
-    "p_e_g" : 0.3,             # Price of green energy (electricity)
+    "p_e_b" : 0.0,             # Price of brown energy (gas/petrol)
+    "p_e_g" : 0.0,             # Price of green energy (electricity)
     "tau_b" : 0,               # Carbon tax
     "tau_g" : 0,               # Green energy subsidy
     #Prices
-    "xi" : 0.8,                # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
+    "xi" : 1,                # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
 }
 
@@ -88,6 +92,11 @@ print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
 
+#%% Not SS
+evaluate_param_changes('p_g', [0.1], ha, cali['baseline'],
+                       ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax'])
+
+
 #%% === Solve the model Steady State ===
 #unknowns_ss = {'N':(0.60,0.8),'mu_N_d':(0,1)}
 unknowns_ss = {'beta':(0.80,0.99), 'N':(0.60,0.8)}
@@ -99,15 +108,46 @@ ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver
 display_ss_durables(ss_DD)
 display_calibrated_from_unknowns(ss_DD, unknowns_ss)
 
-#%%
-plot_distribution(ss_DD,lines_dim = 2, labels = ['e0','e1','e2','e3','e4',], truncate_at = 2)
+#%% === Solve the model Steady State ===
+#unknowns_ss = {'N':(0.60,0.8),'mu_N_d':(0,1)}
+unknowns_ss = {'beta':0.95}
+targets_ss = {'asset_mkt':0.0}
 
+#ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
+ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
+
+display_ss_durables(ss_DD)
+display_calibrated_from_unknowns(ss_DD, unknowns_ss)
+
+#%% Not SS
+evaluate_param_changes('mu_N_d', [0.05, 0.04, 0.06], ha, ss_DD,
+                       ss_vars = ['labor_mkt','B', 'D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN', 'D_GO', 'asset_mkt', 'C', 'A','Tax'])
+
+#%%
+ss = dict()
+ss['baseline'] = ss_DD
+
+policy_functions(ss, ie_list=[0, 4],  amax=50, figsize=0.8)
+
+#%%
+plot_distribution(ss_DD, lines_dim = 0, 
+                 labels = ['$\\tilde{D}$ = None','$\\tilde{D}$ = New Brown','$\\tilde{D}$ = Old Brown','$\\tilde{D}$ = New Green','$\\tilde{D}$ = Old Green'],
+                 truncate_at = 50)
+plot_distribution(ss_DD, lines_dim = 1, 
+                 labels = ['$D$ = None','$D$ = New Brown','$D$ = Old Brown','$D$ = New Green','$D$ = Old Green'],
+                 truncate_at = 50)
+plot_distribution(ss_DD, lines_dim = 2, 
+                 labels = ['Prod = Very Low','Prod = Low','Prod = Middle','Prod = High','Prod = Very High'],
+                 truncate_at = 50)
 #%%
 #Check that the decomposition is correct.
 ss_DD['C_P'] - (ss_DD['C_CORE_P_CORE'] + ss_DD['C_E_P_E'])
 
 
 D = ss_DD.internals['hh']['consav']['D']
+V = ss_DD.internals['hh']['consav']['V']
+Va = ss_DD.internals['hh']['consav']['Va']
+
 
 c = ss_DD.internals['hh']['consav']['c']
 c_core = ss_DD.internals['hh']['consav']['c_core']
@@ -161,6 +201,7 @@ ss_DD['w'] * N + ss_DD['r'] * ss_DD['A'] + -ss_DD['Tax']
 
 
 #% Save the variables
+D = ss_DD.internals['hh']['consav']['D']
 p_bundle = ss_DD.internals['hh']['p_bundle']
 c = ss_DD.internals['hh']['consav']['c']
 a_choice = ss_DD.internals['hh']['consav']['a']
@@ -171,27 +212,84 @@ N = ss_DD['N']
 w = ss_DD['w']
 e_grid = ss_DD.internals['hh']['e_grid']
 T = ss_DD.internals['hh']['T']
+A = ss_DD['A']
+Tax = ss_DD['Tax']
+p_core = ss_DD['p_core']
+c_core = ss_DD.internals['hh']['consav']['c_core']
+C_core = np.sum(c_core*D)
+c_E = ss_DD.internals['hh']['consav']['c_E']
+C_E = np.sum(c_E*D, axis=(1,2,3))
+p_E = ss_DD.internals['hh']['p_e']
+p_d = ss_DD.internals['hh']['p_d']
+Y_core = ss_DD['Y_core']
+Y_d = ss_DD['Y_d']
+G = ss_DD['G']
+
+
 
 
 
 #% Individual BC
 #LHS
-LHS = p_bundle[...,np.newaxis,np.newaxis,np.newaxis] * c \
+lhs = p_bundle[...,np.newaxis,np.newaxis,np.newaxis] * c \
     + a_choice \
-    +adj_matrix[..., np.newaxis,np.newaxis]
+    + adj_matrix[..., np.newaxis,np.newaxis]
 
 #RHS
-RHS = ((1+ r) * a_grid)[np.newaxis,np.newaxis,np.newaxis,...] \
+rhs = ((1 + r) * a_grid)[np.newaxis,np.newaxis,np.newaxis,...] \
     + w * N * e_grid[np.newaxis, np.newaxis, :, np.newaxis] \
     + T[np.newaxis, np.newaxis, :, np.newaxis]
     
-diff = LHS - RHS
+diff = lhs - rhs
 
-plt.plot(np.mean(diff, axis=(0,1,2)))
+# Aggregated BC
+LHS_0 = np.sum(lhs * D)
+RHS_0 = np.sum(rhs * D)
 
 
-BC_error = np.max(np.abs(diff))
-print("Max BC error:", BC_error)
+# Get X: Sum over e and a, then remove diagonal for inflows/outflows
+S = np.sum(D, axis=(2, 3)) 
+X_plus = np.sum(S * (1 - np.eye(S.shape[0])), axis=1)
+X_minus = np.sum(S * (1 - np.eye(S.shape[0])), axis=0)
+
+#(1)
+LHS = p_core*C_core + np.sum(p_E * C_E) + A + np.sum(X_plus * p_d - X_minus * chi * p_d)
+RHS = (1+r)*A + w*N - Tax
+DIFF = LHS - RHS
+print(DIFF)
+
+
+#(2) using GBC
+
+LHS_1 = p_core*C_core + np.sum(p_E * C_E) + np.sum(X_plus * p_d - X_minus * chi * p_d) + G
+RHS_1 = w*N
+print(LHS_1 - RHS_1)
+
+
+print(w*N)
+#1) Using Labor clearing (1)
+print(w*(ss_DD['N_core'] + np.sum(ss_DD['N_d'])))
+
+#2) Using Prod function
+w * (Y_core / ss_DD['Z_core'] + np.sum(Y_d / (mu_Z_d * np.mean(ss_DD['Z_d']))))
+
+#3) Using pricing equation
+w*(p_core * Y_core / w + np.sum(p_d * Y_d / w))
+
+
+
+# Aggregate resource constraint
+#LHS
+LHS_2 = p_core*C_core + np.sum((1+tau_b)**(-1)*p_E * C_E) + np.sum(X_plus * p_d) + G
+
+RHS_2 = p_core * Y_core + np.sum(p_d * (Y_d + (1-chi)*X_minus))
+
+print(LHS_2 - RHS_2)
+
+print(ss_DD['labor_mkt'])
+
+
+
 
 
 
