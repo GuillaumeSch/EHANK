@@ -26,7 +26,7 @@ cali["baseline"] = {
     # Asset grid
     "min_a": 0.0,              # Minimum asset level
     "max_a": 100,              # Maximum asset level
-    "n_a": 100,                 # Number of asset grid points
+    "n_a": 20,                 # Number of asset grid points
     # Labor market
     #"w": 1.0,                  # Wage level
     "N_core": 0.6,             # Labor demand for core goods
@@ -62,12 +62,12 @@ cali["baseline"] = {
     "B" : 4,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
     #Energy
-    "p_e_b" : 0.0,             # Price of brown energy (gas/petrol)
-    "p_e_g" : 0.0,             # Price of green energy (electricity)
+    "p_e_b" : 0.08,             # Price of brown energy (gas/petrol)
+    "p_e_g" : 0.04,             # Price of green energy (electricity)
     "tau_b" : 0,               # Carbon tax
     "tau_g" : 0,               # Green energy subsidy
     #Prices
-    "xi" : 1,                # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
+    "xi" : 0.98,                # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
 }
 
@@ -93,25 +93,13 @@ print('It has outputs: ' + str(ha.outputs))
 
 
 #%% Not SS
-evaluate_param_changes('p_g', [0.1], ha, cali['baseline'],
-                       ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax'])
+#evaluate_param_changes('p_g', [0.1], ha, cali['baseline'],
+#                       ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax'])
 
 
 #%% === Solve the model Steady State ===
-#unknowns_ss = {'N':(0.60,0.8),'mu_N_d':(0,1)}
-unknowns_ss = {'beta':(0.80,0.99), 'N':(0.60,0.8)}
-targets_ss = {'asset_mkt':0.0,'labor_mkt':0}
-
-#ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
-ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='broyden_custom')
-
-display_ss_durables(ss_DD)
-display_calibrated_from_unknowns(ss_DD, unknowns_ss)
-
-#%% === Solve the model Steady State ===
-#unknowns_ss = {'N':(0.60,0.8),'mu_N_d':(0,1)}
-unknowns_ss = {'beta':0.95}
-targets_ss = {'asset_mkt':0.0}
+unknowns_ss = {'beta':0.946, 'N':1}
+targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0}
 
 #ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
 ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
@@ -119,8 +107,29 @@ ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver
 display_ss_durables(ss_DD)
 display_calibrated_from_unknowns(ss_DD, unknowns_ss)
 
+check_resource_constraint(ss_DD)
+
+
+#%% One shot deviation of SS
+
+param_grid = {'gamma_b': np.linspace(0.90, 1.10, 3)}
+
+# Track output, wage, and interest rate
+outputs = ['C', 'D_N', 'D_B', 'D_G', 'A']
+
+results = comparative_statics_plot(
+    ha=ha,
+    ss_base=ss_DD,
+    param_grid=param_grid,
+    unknowns_ss=unknowns_ss,
+    targets_ss=targets_ss,
+    outputs=outputs
+)
+
+
+
 #%% Not SS
-evaluate_param_changes('mu_N_d', [0.05, 0.04, 0.06], ha, ss_DD,
+evaluate_param_changes('mu_Z_d', [0.05, 0.04, 0.06], ha, ss_DD,
                        ss_vars = ['labor_mkt','B', 'D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN', 'D_GO', 'asset_mkt', 'C', 'A','Tax'])
 
 #%%
@@ -139,154 +148,8 @@ plot_distribution(ss_DD, lines_dim = 1,
 plot_distribution(ss_DD, lines_dim = 2, 
                  labels = ['Prod = Very Low','Prod = Low','Prod = Middle','Prod = High','Prod = Very High'],
                  truncate_at = 50)
-#%%
-#Check that the decomposition is correct.
-ss_DD['C_P'] - (ss_DD['C_CORE_P_CORE'] + ss_DD['C_E_P_E'])
+#%% Check that the resource constraint holds
 
-
-D = ss_DD.internals['hh']['consav']['D']
-V = ss_DD.internals['hh']['consav']['V']
-Va = ss_DD.internals['hh']['consav']['Va']
-
-
-c = ss_DD.internals['hh']['consav']['c']
-c_core = ss_DD.internals['hh']['consav']['c_core']
-c_E = ss_DD.internals['hh']['consav']['c_E']
-
-p_core = p_core
-p_e = ss_DD.internals['hh']['p_e']
-p_d = ss_DD.internals['hh']['p_d']
-p_bundle = ss_DD.internals['hh']['p_bundle']
-
-
-
-
-
-P = ss_DD.internals['hh']['durables']['law_of_motion'].P
-
-P[:,:,:,:]
-
-D[:,0,0,0]
-
-
-xplus = P.copy()  # Create a copy to avoid modifying the original
-for i in range(xplus.shape[2]):  # Loop over 3rd dimension
-    for j in range(xplus.shape[3]):  # Loop over 4th dimension
-        np.fill_diagonal(xplus[:,:,i,j], 0)
-
-xminus = P.copy()  # Create a copy to avoid modifying the original
-for i in range(xminus.shape[2]):  # Loop over 3rd dimension
-    for j in range(xminus.shape[3]):  # Loop over 4th dimension
-        np.fill_diagonal(xminus[:,:,i,j], 0)
-
-Xplus = np.sum(xplus * D, axis=(1,2,3))
-
-Xminus = np.sum(xminus * D, axis=(0,2,3))
-
-
-
-C_core_p_core = np.sum(D * c_core * p_core)
-C_E_p_e = np.sum(D * c_E * np.array(p_e)[..., np.newaxis, np.newaxis, np.newaxis])
-np.sum(D * c * np.array(p_bundle)[..., np.newaxis, np.newaxis, np.newaxis])
-
-
-
-
-
-ss_DD['C_CORE_P_CORE'] + C_E_p_e + np.sum(p_d * (Xplus - (1-chi)*Xminus))
-
-
-ss_DD['w'] * N + ss_DD['r'] * ss_DD['A'] + -ss_DD['Tax']
-
-
-
-#% Save the variables
-D = ss_DD.internals['hh']['consav']['D']
-p_bundle = ss_DD.internals['hh']['p_bundle']
-c = ss_DD.internals['hh']['consav']['c']
-a_choice = ss_DD.internals['hh']['consav']['a']
-a_grid = ss_DD.internals['hh']['a_grid']
-adj_matrix = ss_DD.internals['hh']['adj_matrix']
-r = ss_DD['r']
-N = ss_DD['N']
-w = ss_DD['w']
-e_grid = ss_DD.internals['hh']['e_grid']
-T = ss_DD.internals['hh']['T']
-A = ss_DD['A']
-Tax = ss_DD['Tax']
-p_core = ss_DD['p_core']
-c_core = ss_DD.internals['hh']['consav']['c_core']
-C_core = np.sum(c_core*D)
-c_E = ss_DD.internals['hh']['consav']['c_E']
-C_E = np.sum(c_E*D, axis=(1,2,3))
-p_E = ss_DD.internals['hh']['p_e']
-p_d = ss_DD.internals['hh']['p_d']
-Y_core = ss_DD['Y_core']
-Y_d = ss_DD['Y_d']
-G = ss_DD['G']
-
-
-
-
-
-#% Individual BC
-#LHS
-lhs = p_bundle[...,np.newaxis,np.newaxis,np.newaxis] * c \
-    + a_choice \
-    + adj_matrix[..., np.newaxis,np.newaxis]
-
-#RHS
-rhs = ((1 + r) * a_grid)[np.newaxis,np.newaxis,np.newaxis,...] \
-    + w * N * e_grid[np.newaxis, np.newaxis, :, np.newaxis] \
-    + T[np.newaxis, np.newaxis, :, np.newaxis]
-    
-diff = lhs - rhs
-
-# Aggregated BC
-LHS_0 = np.sum(lhs * D)
-RHS_0 = np.sum(rhs * D)
-
-
-# Get X: Sum over e and a, then remove diagonal for inflows/outflows
-S = np.sum(D, axis=(2, 3)) 
-X_plus = np.sum(S * (1 - np.eye(S.shape[0])), axis=1)
-X_minus = np.sum(S * (1 - np.eye(S.shape[0])), axis=0)
-
-#(1)
-LHS = p_core*C_core + np.sum(p_E * C_E) + A + np.sum(X_plus * p_d - X_minus * chi * p_d)
-RHS = (1+r)*A + w*N - Tax
-DIFF = LHS - RHS
-print(DIFF)
-
-
-#(2) using GBC
-
-LHS_1 = p_core*C_core + np.sum(p_E * C_E) + np.sum(X_plus * p_d - X_minus * chi * p_d) + G
-RHS_1 = w*N
-print(LHS_1 - RHS_1)
-
-
-print(w*N)
-#1) Using Labor clearing (1)
-print(w*(ss_DD['N_core'] + np.sum(ss_DD['N_d'])))
-
-#2) Using Prod function
-w * (Y_core / ss_DD['Z_core'] + np.sum(Y_d / (mu_Z_d * np.mean(ss_DD['Z_d']))))
-
-#3) Using pricing equation
-w*(p_core * Y_core / w + np.sum(p_d * Y_d / w))
-
-
-
-# Aggregate resource constraint
-#LHS
-LHS_2 = p_core*C_core + np.sum((1+tau_b)**(-1)*p_E * C_E) + np.sum(X_plus * p_d) + G
-
-RHS_2 = p_core * Y_core + np.sum(p_d * (Y_d + (1-chi)*X_minus))
-
-print(LHS_2 - RHS_2)
-
-print(ss_DD['labor_mkt'])
 
 
 
@@ -297,7 +160,7 @@ print(ss_DD['labor_mkt'])
 plot_linear_irfs(
     shocks_list=['tau_b'],
     unknowns_td=['G','N'],
-    targets_td=['asset_mkt',"goods_mkt"],
+    targets_td=['asset_mkt',"labor_mkt"],
     ha=ha,
     ss=ss_DD,
     outputs=["tau_b","N", "G", "Tax","D_BO", "D_BN", "D_GO", "D_GN", "goods_mkt", "asset_mkt"]

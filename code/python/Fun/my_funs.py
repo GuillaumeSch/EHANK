@@ -4,6 +4,7 @@ from IPython.display import display, Math
 from copy import deepcopy
 from scipy.interpolate import interp1d, griddata
 import colorsys
+import time
 
 
 
@@ -673,4 +674,218 @@ def plot_distribution(
     plt.grid(True)
     plt.show()
 
+def check_resource_constraint(ss):
+    """
+    Production version: check key equilibrium conditions.
+    Checks:
+      - Aggregate resource constraint
+      - Labor market clearing
+      - Asset market clearing
+    Returns a dictionary with differences.
+    """
+    results = {}
 
+    # Household objects
+    D = ss.internals['hh']['consav']['D']
+    c_core = ss.internals['hh']['consav']['c_core']
+    C_core = np.sum(c_core * D)
+    c_E = ss.internals['hh']['consav']['c_E']
+    C_E = np.sum(c_E * D, axis=(1,2,3))
+
+    # Prices
+    p_core = ss['p_core']
+    p_E = ss.internals['hh']['p_e']
+    p_d = ss.internals['hh']['p_d']
+
+    # Adjustment matrix: aggregate inflows/outflows
+    S = np.sum(D, axis=(2, 3)) 
+    X_plus = np.sum(S * (1 - np.eye(S.shape[0])), axis=1)
+    X_minus = np.sum(S * (1 - np.eye(S.shape[0])), axis=0)
+
+    # Other aggregates
+    Y_core = ss['Y_core']
+    Y_d = ss['Y_d']
+    G = ss['G']
+    chi = ss['chi']
+    tau_b = ss['tau_b']
+
+    # --- (1) Aggregate resource constraint ---
+    LHS = p_core * C_core \
+        + np.sum((1+tau_b)**(-1) * p_E * C_E) \
+        + np.sum(X_plus * p_d) \
+        + G
+    RHS = p_core * Y_core \
+        + np.sum(p_d * (Y_d + (1-chi) * X_minus))
+    results["resource_constraint"] = LHS - RHS
+
+    # --- (2) Labor clearing ---
+    N = ss['N']
+    N_core = ss['N_core']
+    N_d = np.sum(ss['N_d'])
+    results["labor_clearing"] = N - (N_core + N_d)
+
+    # --- (3) Asset clearing ---
+    A = ss['A']
+    B = ss['B']
+    results["asset_clearing"] = A - B
+
+    # Print summary
+    print("Resource constraint difference (LHS - RHS):", results["resource_constraint"])
+    print("Labor clearing difference (N - (N_core + sum(N_d))):", results["labor_clearing"])
+    print("Asset clearing difference (A - B):", results["asset_clearing"])
+
+    #return results
+
+
+def check_resource_constraint_debug(ss):
+    """
+    Debug version: compute and print intermediate steps as well as the final RC.
+    Useful for diagnosing inconsistencies.
+    """
+    # Household objects
+    D = ss.internals['hh']['consav']['D']
+    p_bundle = ss.internals['hh']['p_bundle']
+    c = ss.internals['hh']['consav']['c']
+    a_choice = ss.internals['hh']['consav']['a']
+    a_grid = ss.internals['hh']['a_grid']
+    adj_matrix = ss.internals['hh']['adj_matrix']
+    r = ss['r']
+    N = ss['N']
+    w = ss['w']
+    e_grid = ss.internals['hh']['e_grid']
+    T = ss.internals['hh']['T']
+    A = ss['A']
+    Tax = ss['Tax']
+
+    p_core = ss['p_core']
+    c_core = ss.internals['hh']['consav']['c_core']
+    C_core = np.sum(c_core * D)
+    c_E = ss.internals['hh']['consav']['c_E']
+    C_E = np.sum(c_E * D, axis=(1,2,3))
+    p_E = ss.internals['hh']['p_e']
+    p_d = ss.internals['hh']['p_d']
+    Y_core = ss['Y_core']
+    Y_d = ss['Y_d']
+    G = ss['G']
+    chi = ss['chi']
+    tau_b = ss['tau_b']
+    mu_Z_d = ss['mu_Z_d']
+
+    # Individual BC
+    lhs = p_bundle[...,np.newaxis,np.newaxis,np.newaxis] * c \
+        + a_choice \
+        + adj_matrix[..., np.newaxis,np.newaxis]
+    rhs = ((1 + r) * a_grid)[np.newaxis,np.newaxis,np.newaxis,...] \
+        + w * N * e_grid[np.newaxis, np.newaxis, :, np.newaxis] \
+        + T[np.newaxis, np.newaxis, :, np.newaxis]
+    print("Max individual BC deviation:", np.max(np.abs(lhs - rhs)))
+
+    # Aggregated BC
+    LHS_0 = np.sum(lhs * D)
+    RHS_0 = np.sum(rhs * D)
+    print("Aggregating the individual BC:", LHS_0 - RHS_0)
+
+    # Get X flows
+    S = np.sum(D, axis=(2, 3)) 
+    X_plus = np.sum(S * (1 - np.eye(S.shape[0])), axis=1)
+    X_minus = np.sum(S * (1 - np.eye(S.shape[0])), axis=0)
+
+    # Government BC
+    LHS_1 = p_core*C_core + np.sum(p_E * C_E) + np.sum(X_plus * p_d - X_minus * chi * p_d) + G
+    RHS_1 = w*N
+    print("Aggregated BC (with flows of durables and government BC)", LHS_1 - RHS_1)
+
+    # Labor clearing checks
+    #print("Labor clearing (market):", w*N)
+    #print("Labor clearing (core+d):", w*(ss['N_core'] + np.sum(ss['N_d'])))
+    #print("Labor clearing (prod fn):", w * (Y_core / ss['Z_core'] + np.sum(Y_d / (mu_Z_d * np.mean(ss['Z_d'])))))
+    #print("Labor clearing (pricing eq):", w*(p_core * Y_core / w + np.sum(p_d * Y_d / w)))
+
+    # Final aggregate resource constraint
+    LHS_2 = p_core*C_core \
+        + np.sum((1+tau_b)**(-1) * p_E * C_E) \
+        + np.sum(X_plus * p_d) \
+        + G
+    RHS_2 = p_core * Y_core \
+        + np.sum(p_d * (Y_d + (1-chi)*X_minus))
+
+    print("Final resource constraint difference (LHS - RHS):", LHS_2 - RHS_2)
+    return LHS_2 - RHS_2
+
+
+def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, outputs, solver='hybr'):
+    """
+    Run comparative statics over a grid of parameter values and plot 
+    how outputs vary relative to the baseline, one plot per output.
+
+    Parameters
+    ----------
+    ss_base : dict
+        Baseline steady state.
+    param_grid : dict
+        Dictionary of parameters and the grid of values to loop over.
+        Example: {'B': np.linspace(2.0, 4.0, 5)}
+        Only supports one parameter at a time.
+    unknowns_ss, targets_ss : dict
+        Inputs to ha.solve_steady_state.
+    outputs : list of str
+        Outputs to track and plot.
+    solver : str
+        Solver for steady state.
+
+    Returns
+    -------
+    results : dict
+        Dictionary with arrays of output values across the grid.
+    """
+
+    # --- Check param_grid ---
+    if len(param_grid) != 1:
+        raise NotImplementedError("Plotting supports only one varied parameter at a time.")
+    param, grid = list(param_grid.items())[0]
+
+    # --- Baseline values ---
+    baseline_values = {key: ss_base[key] for key in outputs}
+
+    # --- Storage ---
+    results = {key: [] for key in outputs}
+
+    # --- Runtime estimate ---
+    n_points = len(grid)
+    print(f"Running comparative statics for parameter '{param}' with {n_points} points...")
+    print("Estimating runtime with one trial solve...")
+    calib_test = deepcopy(ss_base)
+    calib_test[param] = grid[0]
+    t0 = time.time()
+    ha.solve_steady_state(calib_test, unknowns_ss, targets_ss, solver=solver)
+    t1 = time.time()
+    est_total = (t1 - t0) * n_points
+    print(f"Estimated runtime: ~{est_total:.1f} seconds ({est_total/60:.1f} minutes)")
+
+    # --- Loop over grid ---
+    for i, val in enumerate(grid, start=1):
+        calib_dev = deepcopy(ss_base)
+        calib_dev[param] = val
+        ss_dev = ha.solve_steady_state(calib_dev, unknowns_ss, targets_ss, solver=solver)
+
+        for key in outputs:
+            results[key].append(ss_dev[key])
+
+        print(f"Solved {i}/{n_points} steady states for {param} = {val:.3f}")
+
+    # Convert to arrays
+    for key in results:
+        results[key] = np.array(results[key])
+
+    # --- Plot: one per output ---
+    for key in outputs:
+        plt.figure(figsize=(7,4))
+        plt.plot(grid, results[key] - baseline_values[key], marker='o')
+        plt.axhline(0, color='gray', linestyle='--', linewidth=0.8)
+        plt.xlabel(param)
+        plt.ylabel(f"{key} deviation from baseline")
+        plt.title(f"Comparative statics: {key} vs {param}")
+        plt.tight_layout()
+        plt.show()
+
+    return results

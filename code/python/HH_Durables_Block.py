@@ -333,6 +333,10 @@ def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu
     else:
         p_bundle = p_core**xi * p_e**(1-xi)
     return p_bundle, p_e
+
+# def make_price_durable_vector(p_d0, p_d1, p_d2, p_d3, p_d4):
+#     p_d = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
+#     return p_d
     
 
 
@@ -340,5 +344,5 @@ def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu
 hh_durables = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
                 backward_init=hh_init,
                 hetinputs=[make_grids, income_grid, transfers, adj_costs, 
-                           disp_inc_f, make_shifters, #make_prices_durables, 
+                           disp_inc_f, make_shifters, #, make_price_durable_vector,#make_prices_durables, 
                            make_consu_bundle_price])
