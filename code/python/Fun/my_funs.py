@@ -704,7 +704,8 @@ def check_resource_constraint(ss):
 
     # Other aggregates
     Y_core = ss['Y_core']
-    Y_d = ss['Y_d']
+    #Y_d = ss['Y_d']
+    Y_d = ss.internals['hh']['Y_d']
     G = ss['G']
     chi = ss['chi']
     tau_b = ss['tau_b']

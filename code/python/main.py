@@ -32,14 +32,14 @@ cali["baseline"] = {
     "N_core": 0.6,             # Labor demand for core goods
     #"N_d1": 0.1, "N_d2": 0.1, "N_d3": 0.1, "N_d4": 0.1,                # Labor demand for durable goods
     "N_d": np.array([ 0.1, 0.1, 0.1, 0.1]),                # Labor demand for durable goods
-    "mu_Z_d": 0.05,            # Fraction that is applied to all labor demand for durables.
+    #"mu_Z_d": 0.05,            # Fraction that is applied to all labor demand for durables.
     "tau":0,                   # Labor income tax
     # Durable goods
-    "p_b": 0.80,               # Initial price of brown durable
-    "dep_frac_b": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
+    #"p_b": 0.80,               # Initial price of brown durable
+    #"dep_frac_b": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
     "n_b": 2,                  # Number of brown vintages
-    "p_g": 0.90,               # Initial price of green durable
-    "dep_frac_g": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
+    #"p_g": 0.90,               # Initial price of green durable
+    #"dep_frac_g": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
     "n_g": 2,                  # Number of green vintages
     #"n_d": 1 + n_b + n_g,      # Total durable states
     "chi": 0.5,                # Resale loss (fraction)
@@ -56,7 +56,7 @@ cali["baseline"] = {
     #"Tax": 0.5,                # Total tax
     "Z_core": 1,               # Core productivity
     #"Z_d1": 1, "Z_d2": 1, "Z_d3": 1, "Z_d4": 1, # Durables productivities
-    "Z_d": np.array([310.58416461, 1242.33665845, 22.22222222, 88.88888889]),                # Labor demand for durable goods
+    "Z_d": np.array([15.52920823, 62.11683292,  1.11111111,  4.44444444]),                # Labor demand for durable goods
     #Government
     #"Y" : 1,                  # Output
     "B" : 4,                   # Stock of debt
