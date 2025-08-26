@@ -45,7 +45,7 @@ cali["baseline"] = {
     "chi": 0.5,                # Resale loss (fraction)
     "gamma_b": 1.0,            # Utility from brown durable
     "dep_util_frac_b": 1,      # Depreciation utility brown (Fraction of oldest vintage relative to newest)
-    "gamma_g": 1.2,            # Utility from green durable
+    "gamma_g": 1.5,            # Utility from green durable
     "dep_util_frac_g": 1,      # Depreciation utility green (Fraction of oldest vintage relative to newest)
     "lifetime_b": 60,          # Average lifetime of brown durables (quarters)
     "lifetime_g": 60,          # Average lifetime of green durables (quarters)
@@ -55,8 +55,8 @@ cali["baseline"] = {
     "Div": 0,                  # Dividends from firms
     #"Tax": 0.5,                # Total tax
     "Z_core": 1,               # Core productivity
-    #"Z_d1": 1, "Z_d2": 1, "Z_d3": 1, "Z_d4": 1, # Durables productivities
-    "Z_d": np.array([15.52920823, 62.11683292,  1.11111111,  4.44444444]),                # Labor demand for durable goods
+    "Z_d1": 15, "Z_d2": 60, "Z_d3": 2, "Z_d4": 1, # Durables productivities
+    #"Z_d": np.array([15.52920823, 62.11683292,  1.11111111,  4.44444444]),                # 
     #Government
     #"Y" : 1,                  # Output
     "B" : 4,                   # Stock of debt
@@ -74,15 +74,15 @@ cali["baseline"] = {
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
 
 #Import the DD calibration (Some parameters are not present in the DD calibration.)
-with open('calibration_ss_DD.json', 'r') as f:
-    cali_DD = json.load(f)
+# with open('calibration_ss_DD.json', 'r') as f:
+#     cali_DD = json.load(f)
 
-cali['baseline_DD'] = deepcopy(cali['baseline'])
-for key in cali_DD.keys():
-    if key in cali['baseline_DD']:
-        cali['baseline_DD'][key] = cali_DD[key]
+# cali['baseline_DD'] = deepcopy(cali['baseline'])
+# for key in cali_DD.keys():
+#     if key in cali['baseline_DD']:
+#         cali['baseline_DD'][key] = cali_DD[key]
 
-for k, v in cali["baseline_DD"].items():
+for k, v in cali["baseline"].items():
     globals()[k] = v
 
 #%% === Create the model ===
@@ -112,10 +112,11 @@ check_resource_constraint(ss_DD)
 
 #%% One shot deviation of SS
 
-param_grid = {'gamma_b': np.linspace(0.90, 1.10, 3)}
+param_grid = {'Z_d4': np.linspace(1, 4.5, 5)}
+
 
 # Track output, wage, and interest rate
-outputs = ['C', 'D_N', 'D_B', 'D_G', 'A']
+outputs = ['C', 'D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN','D_GO']
 
 results = comparative_statics_plot(
     ha=ha,
@@ -123,7 +124,8 @@ results = comparative_statics_plot(
     param_grid=param_grid,
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
-    outputs=outputs
+    outputs=outputs,
+    plot_deviation=False
 )
 
 
@@ -136,7 +138,7 @@ evaluate_param_changes('mu_Z_d', [0.05, 0.04, 0.06], ha, ss_DD,
 ss = dict()
 ss['baseline'] = ss_DD
 
-policy_functions(ss, ie_list=[0, 4],  amax=50, figsize=0.8)
+policy_functions(ss, ie_list=[2], d_tilde_list=[0, 1, 2, 3, 4], amax=50, figsize=0.8)
 
 #%%
 plot_distribution(ss_DD, lines_dim = 0, 

@@ -287,7 +287,8 @@ def vector_Y_d(Y_d0, Y_d1, Y_d2, Y_d3, Y_d4):
 def adj_costs(p_d0, p_d1, p_d2, p_d3, p_d4, chi):
     p_d = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
     adj_matrix = p_d[:, None] - (1 - chi) * p_d
-    np.fill_diagonal(adj_matrix, 0)                            # set diagonal to 0 (no cost if no switching)
+    #adj_matrix[:,-1] = -10                            # Reflect impossibility to buy second market green.
+    np.fill_diagonal(adj_matrix, 0)                     # set diagonal to 0 (no cost if no switching)
     return adj_matrix, p_d
 
 #Define the disposable income

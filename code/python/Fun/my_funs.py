@@ -814,13 +814,16 @@ def check_resource_constraint_debug(ss):
     return LHS_2 - RHS_2
 
 
-def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, outputs, solver='hybr'):
+def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, outputs, 
+                             solver='hybr', plot_deviation=True):
     """
     Run comparative statics over a grid of parameter values and plot 
-    how outputs vary relative to the baseline, one plot per output.
+    how outputs vary relative to the baseline, one subplot per output.
 
     Parameters
     ----------
+    ha : object
+        Model object with a method solve_steady_state(calib, unknowns, targets, solver).
     ss_base : dict
         Baseline steady state.
     param_grid : dict
@@ -833,6 +836,8 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
         Outputs to track and plot.
     solver : str
         Solver for steady state.
+    plot_deviation : bool
+        If True, plots deviation from baseline. If False, plots absolute levels.
 
     Returns
     -------
@@ -878,15 +883,38 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
     for key in results:
         results[key] = np.array(results[key])
 
-    # --- Plot: one per output ---
-    for key in outputs:
-        plt.figure(figsize=(7,4))
-        plt.plot(grid, results[key] - baseline_values[key], marker='o')
-        plt.axhline(0, color='gray', linestyle='--', linewidth=0.8)
-        plt.xlabel(param)
-        plt.ylabel(f"{key} deviation from baseline")
-        plt.title(f"Comparative statics: {key} vs {param}")
-        plt.tight_layout()
-        plt.show()
+    # --- Plot: subplots, one per output ---
+    n_outputs = len(outputs)
+    ncols = 2 if n_outputs > 1 else 1
+    nrows = int(np.ceil(n_outputs / ncols))
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(6*ncols, 4*nrows), squeeze=False)
+
+    for idx, key in enumerate(outputs):
+        r, c = divmod(idx, ncols)
+        ax = axes[r, c]
+
+        if plot_deviation:
+            y_values = results[key] - baseline_values[key]
+            ylabel = f"{key} deviation"
+        else:
+            y_values = results[key]
+            ylabel = f"{key} level"
+
+        ax.plot(grid, y_values, marker='o')
+        if plot_deviation:
+            ax.axhline(0, color='gray', linestyle='--', linewidth=0.8)
+        ax.set_xlabel(param)
+        ax.set_ylabel(ylabel)
+        ax.set_title(f"{key} vs {param}")
+
+    # Remove any empty subplots
+    for idx in range(len(outputs), nrows*ncols):
+        r, c = divmod(idx, ncols)
+        fig.delaxes(axes[r, c])
+
+    fig.suptitle(f"Comparative Statics: varying {param}", fontsize=14, y=1.02)
+    fig.tight_layout()
+    plt.show()
 
     return results
