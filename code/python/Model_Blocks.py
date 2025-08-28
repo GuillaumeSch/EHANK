@@ -2,8 +2,8 @@ import sequence_jacobian as sj
 import numpy as np
 
 @sj.simple
-def fiscal(B, r, G, T_E):
-    Tax = (1 + r) * B(-1) + G - B - T_E # total tax burden
+def fiscal(B, r, G):
+    Tax = (1 + r) * B(-1) + G - B# - T_E  # total tax burden
     deficit = G - Tax
     return Tax, deficit
 
