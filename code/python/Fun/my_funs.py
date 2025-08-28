@@ -5,22 +5,28 @@ from copy import deepcopy
 from scipy.interpolate import interp1d, griddata
 import colorsys
 import time
+import math
 
 
-
-
-#Function to vizualize policy function
 def policy_functions(
     ss,
-    amax=150,
-    amin=0,
+    xmax=10,               # max ratio on x-axis (e.g., 10 means show up to 10× average wealth)
+    xmin=0,                # min ratio on x-axis
     d_tilde_list=[0],
     d_list=[0],
     ie_list=[3],
     figsize=0.6,
-    models=['baseline']
+    models=['baseline'],
+    save_path=None         # str or None, path to save figure
 ):
     a_grid = ss['baseline'].internals['hh']['a_grid']
+    A = ss['baseline']['A']
+
+    # find index cutoffs corresponding to xmin/xmax ratios
+    max_val = xmax * A
+    min_val = xmin * A
+    amax_idx = np.searchsorted(a_grid, max_val)   # index for xmax
+    amin_idx = np.searchsorted(a_grid, min_val)   # index for xmin
 
     a, da, c, P, V = dict(), dict(), dict(), dict(), dict()
 
@@ -31,7 +37,7 @@ def policy_functions(
         P[model] = ss[model].internals['hh']['durables']['law_of_motion'].P
         V[model] = ss[model].internals['hh']['durables']['V']
 
-    fig, axes = plt.subplots(1, 3, figsize=(12 * figsize, 4 * figsize))
+    fig, axes = plt.subplots(2, 2, figsize=(12 * figsize, 8 * figsize))
     ax = axes.flatten()
 
     # Define line styles for each iz (cycle if fewer styles than ie_list)
@@ -41,22 +47,20 @@ def policy_functions(
         for i, iz in enumerate(ie_list)
     }
 
+    # Colors for d_tilde
     n = len(d_tilde_list)
     color_map = {}
     for i, d_tilde in enumerate(d_tilde_list):
-        hue = i / n  # equally spaced hues on color wheel
-        r, g, b = colorsys.hsv_to_rgb(hue, 1, 1)  # full saturation and brightness
-        color_map[d_tilde] = (r, g, b)  # matplotlib accepts RGB tuples (0-1 range)
+        hue = i / n
+        r, g, b = colorsys.hsv_to_rgb(hue, 1, 1)
+        color_map[d_tilde] = (r, g, b)
 
-    # Define alpha values for d_list, normalized between 0.3 and 1 for visibility
+    # Transparency for d values
     if len(d_list) > 1:
         alphas = np.linspace(0.3, 1.0, len(d_list))
     else:
         alphas = [1.0]
-    alpha_map = {
-        d_val: alpha
-        for d_val, alpha in zip(d_list, alphas)
-    }
+    alpha_map = {d_val: alpha for d_val, alpha in zip(d_list, alphas)}
 
     # Plot
     for model in models:
@@ -66,56 +70,60 @@ def policy_functions(
                     linestyle = linestyle_map[iz]
                     color = color_map[d_tilde]
                     alpha = alpha_map[d]
-
                     label = f"{model} ($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
 
                     # Asset policy function
                     ax[0].plot(
-                        a_grid[:amax],
-                        a[model][d_tilde, d, iz, :amax],
-                        label=label,
-                        linewidth=2,
-                        color=color,
-                        linestyle=linestyle,
-                        alpha=alpha
+                        a_grid[amin_idx:amax_idx]/A,
+                        a[model][d_tilde, d, iz, amin_idx:amax_idx],
+                        label=label, linewidth=2, color=color,
+                        linestyle=linestyle, alpha=alpha
                     )
-
-                    # Consumption policy function
+                    
                     ax[1].plot(
-                        a_grid[:amax],
-                        c[model][d_tilde, d, iz, :amax],
-                        label=label,
-                        linewidth=2,
-                        color=color,
-                        linestyle=linestyle,
-                        alpha=alpha
+                        a_grid[amin_idx:amax_idx]/A,
+                        da[model][d_tilde, d, iz, amin_idx:amax_idx],
+                        label=label, linewidth=2, color=color,
+                        linestyle=linestyle, alpha=alpha
+                    )
+                    
+                    # Consumption policy function
+                    ax[2].plot(
+                        a_grid[amin_idx:amax_idx]/A,
+                        c[model][d_tilde, d, iz, amin_idx:amax_idx],
+                        label=label, linewidth=2, color=color,
+                        linestyle=linestyle, alpha=alpha
                     )
 
                     # Discrete choice probability
-                    ax[2].plot(
-                        a_grid[amin:amax],
-                        P[model][d_tilde, d, iz, amin:amax],
-                        label=label,
-                        linewidth=2,
-                        color=color,
-                        linestyle=linestyle,
-                        alpha=alpha
+                    ax[3].plot(
+                        a_grid[amin_idx:amax_idx]/A,
+                        P[model][d_tilde, d, iz, amin_idx:amax_idx],
+                        label=label, linewidth=2, color=color,
+                        linestyle=linestyle, alpha=alpha
                     )
 
-    # Reference lines for assets plot
-    ax[0].plot(a_grid[:amax], a_grid[:amax], color='gray', linestyle=':')
-    ax[0].axhline(0, color='gray', linestyle=':')
+    # Reference lines
+    ax[0].plot(a_grid[amin_idx:amax_idx]/A, a_grid[amin_idx:amax_idx], color='gray', linestyle=':')
+    ax[1].axhline(y=0, color='gray', linestyle=':')
 
     # Titles
     ax[0].set_title(r'Assets ($a^*(\tilde{d},\, d,\, z,\, a^{-})$)')
-    ax[1].set_title(r'Consumption ($c^*(\tilde{d},\, d,\, z,\, a^{-})$)')
-    ax[2].set_title(r'Discrete choice ($Pr(\tilde{d}^*(d,\, z,\, a^{-})=1)$)')
+    ax[1].set_title(r'$\Delta$ Assets ($da^*(\tilde{d},\, d,\, z,\, a^{-})$)')
+    ax[2].set_title(r'Consumption ($c^*(\tilde{d},\, d,\, z,\, a^{-})$)')
+    ax[3].set_title(r'Discrete choice ($Pr(\tilde{d}^*(d,\, z,\, a^{-})=1)$)')
 
     for axis in ax:
-        axis.set_xlabel('assets')
+        axis.set_xlabel('Ratio of ind. wealth to avg. wealth')
+        axis.set_xlim([xmin, xmax])
         axis.legend(frameon=False)
 
     plt.tight_layout()
+
+    # Save figure if save_path is provided
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+
     plt.show()
 
 def plot_heatmap(Pi, title="Matrix Heatmap", fmt=".2f"):
@@ -440,54 +448,92 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, variable
     }
 
 
-# Define the plotting function
-def show_irfs(irfs_list, variables, labels=[" "], ylabel=r"Percentage points (dev. from ss)", T_plot=50, figsize=(18, 6)):
-    if len(irfs_list) != len(labels):
-        labels = [" "] * len(irfs_list)
+def show_irfs(irfs_list, variables, labels=None, ylabel=r"Percentage points (dev. from ss)",
+              T_plot=50, figsize=(18, 6), save_path=None):
+    """
+    Plot impulse response functions (IRFs) for multiple variables and scenarios.
+
+    Parameters
+    ----------
+    irfs_list : list of dict
+        Each dict contains IRFs for variables.
+    variables : list of str
+        List of variable names to plot.
+    labels : list of str, optional
+        Labels for each IRF scenario.
+    ylabel : str
+        Y-axis label.
+    T_plot : int
+        Number of periods to plot.
+    figsize : tuple
+        Figure size.
+    save_path : str or None
+        If provided, save the figure to this path.
+    """
+
+    if labels is None or len(irfs_list) != len(labels):
+        labels = ["Scenario {}".format(i+1) for i in range(len(irfs_list))]
 
     n_var = len(variables)
-    fig, ax = plt.subplots(1, n_var, figsize=figsize, sharex=True)
-    if n_var == 1:
-        ax = [ax]  # Ensure ax is iterable
+    
+    # Dynamically choose rows and columns
+    n_cols = min(3, n_var)
+    n_rows = math.ceil(n_var / n_cols)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex=True)
+    axes = np.array(axes).reshape(-1)  # Flatten axes array
 
-    for i in range(n_var):
-        var = variables[i]
-
+    for i, var in enumerate(variables):
         for j, irf in enumerate(irfs_list):
             if var in irf:
                 data = 100 * np.array(irf[var][:T_plot])
             else:
                 data = np.zeros(T_plot)
-            ax[i].plot(data, label=labels[j])
+            axes[i].plot(data, label=labels[j])
 
-        ax[i].set_title(var)
-        ax[i].set_xlabel(r"$t$")
-        if i == 0:
-            ax[i].set_ylabel(ylabel)
-        ax[i].legend()
+        axes[i].set_title(var)
+        axes[i].set_xlabel(r"$t$")
+        axes[i].set_ylabel(ylabel)
+        axes[i].grid(True)
+        axes[i].legend()
+
+    # Remove empty subplots
+    for k in range(n_var, len(axes)):
+        fig.delaxes(axes[k])
 
     plt.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+
     plt.show()
 
+
 def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs, T_plot=50,
-              rho=None, e=None, T=300, figsize=(18, 3), ylabel=r"Percentage points (dev. from ss)", labels=None):
+                     rho=None, e=None, T=300, figsize=(18, 6), ylabel=r"Percentage points (dev. from ss)",
+                     labels=None, save_path=None):
+    """
+    Compute linear IRFs and plot them.
+    """
+
     # Default values if not provided
     if rho is None:
         rho = {shock: 0.8 for shock in shocks_list}
     if e is None:
         e = {shock: 0.01 for shock in shocks_list}
+
     # Build shocks dictionary with time series
-    shocks = {
-        shock: e[shock] * rho[shock] ** np.arange(T)
-        for shock in shocks_list
-    }
+    shocks = {shock: e[shock] * rho[shock]**np.arange(T) for shock in shocks_list}
+
     # Solve the system
     irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+
     # Default label
     if labels is None:
         labels = [" + ".join(shocks_list)]
+
     # Plot
-    show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T_plot, figsize=figsize)
+    show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T_plot, figsize=figsize, save_path=save_path)
+
 
 def evaluate_param_changes(param_name, values_list, ha, cali,
                            ss_vars=['goods_mkt', 'asset_mkt', 'Tax', 'r', 'beta', 'G', 'B', 'N', 'Y', 'Z']):
@@ -591,13 +637,16 @@ def display_calibrated_from_unknowns(ss_dict, unknowns_dict):
             value = 'N/A'
         print(f"{param:<10} | {value:>15}")
 
-
+import numpy as np
+import matplotlib.pyplot as plt
 
 def plot_distribution(
     SS_object,
     lines_dim=None,       # dimension to split lines (0,1,2), or None
-    truncate_at=None,     # float, asset level at which to truncate
-    labels=None           # list of labels
+    truncate_at=None,     # float, ratio of assets to average wealth at which to truncate
+    labels=None,          # list of labels
+    normalize=False,      # normalize each line to sum to 1
+    save_path=None        # str or None, file path to save the figure
 ):
     """
     Plot 4D distribution D along assets (x-axis).
@@ -610,13 +659,18 @@ def plot_distribution(
     lines_dim : int or None
         Dimension to separate lines (0,1,2) or None for total marginal
     truncate_at : float or None
-        If specified, all asset levels >= truncate_at are combined in last bin
+        If specified, all asset levels >= truncate_at * average wealth are combined in last bin
     labels : list or None
         List of labels for the lines_dim
+    normalize : bool
+        If True, normalize each line to sum to 1
+    save_path : str or None
+        If provided, save the figure to this path (e.g., "distribution.png")
     """
 
     D = np.asarray(SS_object.internals['hh']['consav']['D'])
     a_grid = np.asarray(SS_object.internals['hh']['a_grid'])
+    A = SS_object['A']
     assert D.ndim == 4, "D must be 4D (choice, durable state, productivity, assets)"
 
     # Determine lines
@@ -625,15 +679,13 @@ def plot_distribution(
         line_labels = ["Total"]
     else:
         axes_to_sum = tuple(ax for ax in range(4) if ax not in (3, lines_dim))
-        lines = D.sum(axis=axes_to_sum)  # KEEP your working line
+        lines = D.sum(axis=axes_to_sum)
 
-        # Ensure lines is iterable along the lines_dim
-        if lines_dim != 3:  # assets is 3rd dim
+        if lines_dim != 3:
             lines = [lines[i, :] for i in range(lines.shape[0])]
         else:
             lines = [lines[i] for i in range(lines.shape[0])]
 
-        # Set labels
         if labels is None:
             line_labels = [f"{lines_dim}={i}" for i in range(len(lines))]
         else:
@@ -642,8 +694,8 @@ def plot_distribution(
 
     # Truncate assets if requested
     if truncate_at is not None:
-        # Find the index corresponding to the truncation asset level
-        truncate_idx = np.searchsorted(a_grid, truncate_at, side='right') - 1
+        truncate_val = truncate_at * A
+        truncate_idx = np.searchsorted(a_grid, truncate_val, side='right') - 1
         truncated_lines = []
         for line in lines:
             if truncate_idx < len(line):
@@ -654,24 +706,30 @@ def plot_distribution(
             else:
                 truncated_lines.append(line)
         lines = truncated_lines
-        x_axis = a_grid[:truncate_idx+1]
+        x_axis = a_grid[:truncate_idx+1]/A
     else:
-        x_axis = a_grid
+        x_axis = a_grid/A
 
     # Normalize each line
-    lines = [line / line.sum() for line in lines]
+    if normalize:
+        lines = [line / line.sum() for line in lines]
 
     # Plot
     plt.figure(figsize=(8,5))
     for line, lbl in zip(lines, line_labels):
-        plt.plot(x_axis, line, marker='o', label=lbl)
+        plt.plot(x_axis, line, label=lbl)
 
-    plt.xlabel("Assets")
-    plt.ylabel("Probability (conditional)")
+    plt.xlabel("Ratio of ind. wealth to avg. wealth")
+    plt.ylabel("%" if normalize else "% (sum = 100)")
     if lines_dim is not None:
         plt.legend()
-    plt.title("Distribution along assets")
+    plt.title("Stationary Distributions")
     plt.grid(True)
+
+    # Save figure if path is provided
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+
     plt.show()
 
 def check_resource_constraint(ss):

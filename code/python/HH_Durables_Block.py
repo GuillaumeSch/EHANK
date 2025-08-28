@@ -236,14 +236,23 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
     non_zero_mask = ~mask
     c_E[non_zero_mask] = (1-xi) * (p_e[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]/
                           p_bundle[non_zero_mask,np.newaxis,np.newaxis,np.newaxis])**(-nu)*c[non_zero_mask]
-    c_p = c*p_bundle[...,np.newaxis,np.newaxis, np.newaxis]
-    c_core_p_core = c_core*p_core 
-    c_E_p_e = c_E*p_e[...,np.newaxis,np.newaxis,np.newaxis]
-    return c_core, c_E, c_p, c_core_p_core, c_E_p_e
+    return c_core, c_E
+
+def make_energy_taxes(c_E, n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
+    tau_b_vec = np.ones(n_b) * tau_b * p_e_b
+    tau_g_vec = np.ones(n_g) * tau_g * p_e_g
+    tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
+    t_E = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis]
+    return t_E
+
+# def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
+
+#     return c_core, c_E
+
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf, decomposition_consu_bundle])
+                            name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf, make_energy_taxes, decomposition_consu_bundle])
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
@@ -316,18 +325,6 @@ def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g):
     shifters = np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))
     return shifters
 
-# def make_prices_durables(p_b, dep_frac_b, n_b, p_g, dep_frac_g, n_g):
-#     dep_rate_b = 1 - (dep_frac_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
-#     vintages_b = np.arange(n_b)
-#     p_b_vector = p_b * (1 - dep_rate_b) ** vintages_b
-#     dep_rate_g = 1 - (dep_frac_g) ** (1 / (n_g - 1))        # Depreciation rate for good g
-#     vintages_g = np.arange(n_g)
-#     p_g_vector = p_g * (1 - dep_rate_g) ** vintages_g
-#     # Combine
-#     p_d = np.array([0.0] + list(p_b_vector) + list(p_g_vector))
-#     return p_d
-
-
 
 #Price of the household consumption bundle + Decomposition of core and energy consumption
 def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu):
@@ -343,6 +340,8 @@ def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu
 # def make_price_durable_vector(p_d0, p_d1, p_d2, p_d3, p_d4):
 #     p_d = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
 #     return p_d
+
+
     
 
 

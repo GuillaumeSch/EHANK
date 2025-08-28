@@ -28,11 +28,9 @@ cali["baseline"] = {
     "max_a": 100,              # Maximum asset level
     "n_a": 20,                 # Number of asset grid points
     # Labor market
-    #"w": 1.0,                  # Wage level
     "N_core": 0.6,             # Labor demand for core goods
     #"N_d1": 0.1, "N_d2": 0.1, "N_d3": 0.1, "N_d4": 0.1,                # Labor demand for durable goods
     "N_d": np.array([ 0.1, 0.1, 0.1, 0.1]),                # Labor demand for durable goods
-    #"mu_Z_d": 0.05,            # Fraction that is applied to all labor demand for durables.
     "tau":0,                   # Labor income tax
     # Durable goods
     #"p_b": 0.80,               # Initial price of brown durable
@@ -45,7 +43,7 @@ cali["baseline"] = {
     "chi": 0.5,                # Resale loss (fraction)
     "gamma_b": 1.0,            # Utility from brown durable
     "dep_util_frac_b": 1,      # Depreciation utility brown (Fraction of oldest vintage relative to newest)
-    "gamma_g": 1.5,            # Utility from green durable
+    "gamma_g": 1.2,            # Utility from green durable
     "dep_util_frac_g": 1,      # Depreciation utility green (Fraction of oldest vintage relative to newest)
     "lifetime_b": 60,          # Average lifetime of brown durables (quarters)
     "lifetime_g": 60,          # Average lifetime of green durables (quarters)
@@ -53,9 +51,8 @@ cali["baseline"] = {
     "alpha": 1,                # Share of labor in prod. function
     #"p_core": 1,               # Price of core, non-durable goods
     "Div": 0,                  # Dividends from firms
-    #"Tax": 0.5,                # Total tax
     "Z_core": 1,               # Core productivity
-    "Z_d1": 15, "Z_d2": 60, "Z_d3": 2, "Z_d4": 1, # Durables productivities
+    "Z_d1": 15, "Z_d2": 60, "Z_d3": 3, "Z_d4": 1, # Durables productivities
     #"Z_d": np.array([15.52920823, 62.11683292,  1.11111111,  4.44444444]),                # 
     #Government
     #"Y" : 1,                  # Output
@@ -64,7 +61,7 @@ cali["baseline"] = {
     #Energy
     "p_e_b" : 0.08,             # Price of brown energy (gas/petrol)
     "p_e_g" : 0.04,             # Price of green energy (electricity)
-    "tau_b" : 0,               # Carbon tax
+    "tau_b" : 0.50,               # Carbon tax
     "tau_g" : 0,               # Green energy subsidy
     #Prices
     "xi" : 0.98,                # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
@@ -101,7 +98,6 @@ print('It has outputs: ' + str(ha.outputs))
 unknowns_ss = {'beta':0.946, 'N':1}
 targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0}
 
-#ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
 ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
 
 display_ss_durables(ss_DD)
@@ -112,11 +108,11 @@ check_resource_constraint(ss_DD)
 
 #%% One shot deviation of SS
 
-param_grid = {'Z_d4': np.linspace(1, 4.5, 5)}
+param_grid = {'tau_b': np.linspace(0.00, 1, 5)}
 
 
 # Track output, wage, and interest rate
-outputs = ['C', 'D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN','D_GO']
+outputs = ['C', 'D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN','D_GO','T_E', 'Tax', 'B', 'C_E']
 
 results = comparative_statics_plot(
     ha=ha,
@@ -138,18 +134,21 @@ evaluate_param_changes('mu_Z_d', [0.05, 0.04, 0.06], ha, ss_DD,
 ss = dict()
 ss['baseline'] = ss_DD
 
-policy_functions(ss, ie_list=[2], d_tilde_list=[0, 1, 2, 3, 4], amax=50, figsize=0.8)
+policy_functions(ss, ie_list=[3], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions.png')
 
 #%%
 plot_distribution(ss_DD, lines_dim = 0, 
                  labels = ['$\\tilde{D}$ = None','$\\tilde{D}$ = New Brown','$\\tilde{D}$ = Old Brown','$\\tilde{D}$ = New Green','$\\tilde{D}$ = Old Green'],
-                 truncate_at = 50)
+                 truncate_at = 5, save_path='../../output/figures/Distribution_Durables_D_tilde.png')
 plot_distribution(ss_DD, lines_dim = 1, 
                  labels = ['$D$ = None','$D$ = New Brown','$D$ = Old Brown','$D$ = New Green','$D$ = Old Green'],
-                 truncate_at = 50)
+                 truncate_at = 5, save_path='../../output/figures/Distribution_Durables_D.png')
 plot_distribution(ss_DD, lines_dim = 2, 
                  labels = ['Prod = Very Low','Prod = Low','Prod = Middle','Prod = High','Prod = Very High'],
-                 truncate_at = 50)
+                 truncate_at = 5, save_path='../../output/figures/Distribution_Prod.png')
+plot_distribution(ss_DD,
+                 labels = ['Total'],
+                 truncate_at = 5, save_path='../../output/figures/Distribution_Total.png')
 #%% Check that the resource constraint holds
 
 
@@ -161,11 +160,14 @@ plot_distribution(ss_DD, lines_dim = 2,
 #%% === Solve the model transition dynmamics and get IRFs === §
 plot_linear_irfs(
     shocks_list=['tau_b'],
+    e = {"tau_b": 0.01},
     unknowns_td=['G','N'],
     targets_td=['asset_mkt',"labor_mkt"],
     ha=ha,
     ss=ss_DD,
-    outputs=["tau_b","N", "G", "Tax","D_BO", "D_BN", "D_GO", "D_GN", "goods_mkt", "asset_mkt"]
+    outputs=["tau_b","A", "G", "Tax","D_BO", "D_BN", "D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt"],
+    figsize=(18, 12),
+    save_path='../../output/figures/IRFs_tau_b.png',
 )
 # %%
 
