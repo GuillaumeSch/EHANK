@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block import hh_durables
-from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, carbon_tax
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -83,7 +83,7 @@ for k, v in cali["baseline"].items():
     globals()[k] = v
 
 #%% === Create the model ===
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, carbon_tax], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
