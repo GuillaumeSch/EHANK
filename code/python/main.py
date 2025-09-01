@@ -5,6 +5,7 @@ import sequence_jacobian as sj
 import json
 from copy import deepcopy
 from Fun.my_funs import *
+from sequence_jacobian import drawdag
 #%matplotlib qt
 
 
@@ -88,6 +89,13 @@ print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
+#%%
+
+unknowns = ['beta', 'N']
+targets = ['asset_mkt','labor_mkt']
+inputs = ['G']
+
+drawdag(ha, unknowns, targets, inputs)
 
 #%% Not SS
 #evaluate_param_changes('p_g', [0.1], ha, cali['baseline'],
