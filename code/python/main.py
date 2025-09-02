@@ -60,12 +60,13 @@ cali["baseline"] = {
     "B" : 4,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
     #Energy
-    "p_e_b" : 0.08,             # Price of brown energy (gas/petrol)
-    "p_e_g" : 0.04,             # Price of green energy (electricity)
-    "tau_b" : 0.50,               # Carbon tax
+    "p_e_b" : 0.08,            # Price of brown energy (gas/petrol)
+    "p_e_g" : 0.04,            # Price of green energy (electricity)
+    "tau_b" : 0.50,            # Carbon tax
     "tau_g" : 0,               # Green energy subsidy
+    "T_E" : 0.001,           # Energy tax revenues 
     #Prices
-    "xi" : 0.98,                # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
+    "xi" : 0.98,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
 }
 
@@ -103,8 +104,8 @@ drawdag(ha, unknowns, targets, inputs)
 
 
 #%% === Solve the model Steady State ===
-unknowns_ss = {'beta':0.946, 'N':1}
-targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0}
+unknowns_ss = {'beta':0.946, 'N':1, 'tau_b':0.50}
+targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'T_E_diff': 0.0}
 
 ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
 
@@ -173,7 +174,7 @@ plot_linear_irfs(
     targets_td=['asset_mkt',"labor_mkt"],
     ha=ha,
     ss=ss_DD,
-    outputs=["tau_b","A", "G", "Tax","D_BO", "D_BN", "D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt"],
+    outputs=["tau_b","A", "G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
     figsize=(18, 12),
     save_path='../../output/figures/IRFs_tau_b.png',
 )

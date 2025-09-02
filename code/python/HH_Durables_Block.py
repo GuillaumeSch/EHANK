@@ -242,12 +242,12 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
     
     return c_core, c_E, c_E1, c_E2, c_E3, c_E4
 
-# def make_energy_taxes(c_E, n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
-#     tau_b_vec = np.ones(n_b) * tau_b * p_e_b
-#     tau_g_vec = np.ones(n_g) * tau_g * p_e_g
-#     tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
-#     t_E = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis]
-#     return t_E
+def make_energy_taxes(c_E, n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
+    tau_b_vec = np.ones(n_b) * tau_b * p_e_b
+    tau_g_vec = np.ones(n_g) * tau_g * p_e_g
+    tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
+    t_E_endo = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis]
+    return t_E_endo
 
 # def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
 
@@ -256,7 +256,7 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf, decomposition_consu_bundle])
+                            name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf, decomposition_consu_bundle, make_energy_taxes])
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
