@@ -60,13 +60,13 @@ cali["baseline"] = {
     "B" : 4,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
     #Energy
-    "p_e_b" : 0.08,            # Price of brown energy (gas/petrol)
+    "p_e_b" : 0.333,            # Price of brown energy (gas/petrol)
     "p_e_g" : 0.04,            # Price of green energy (electricity)
-    "tau_b" : 0.50,            # Carbon tax
+    "tau_b" : 0.50,            # Carbon tax (no free. Dependend of T_E)
     "tau_g" : 0,               # Green energy subsidy
     "T_E" : 0.001,           # Energy tax revenues 
     #Prices
-    "xi" : 0.98,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
+    "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
 }
 
@@ -92,11 +92,11 @@ print('It has outputs: ' + str(ha.outputs))
 
 #%%
 
-unknowns = ['beta', 'N']
-targets = ['asset_mkt','labor_mkt']
-inputs = ['G']
+# unknowns = ['beta', 'N']
+# targets = ['asset_mkt','labor_mkt']
+# inputs = ['G']
 
-drawdag(ha, unknowns, targets, inputs)
+# drawdag(ha, unknowns, targets, inputs)
 
 #%% Not SS
 #evaluate_param_changes('p_g', [0.1], ha, cali['baseline'],
@@ -117,11 +117,14 @@ check_resource_constraint(ss_DD)
 
 #%% One shot deviation of SS
 
-param_grid = {'tau_b': np.linspace(0.00, 1, 5)}
+param_grid = {'T_E': np.linspace(0.00, 0.01, 5)}
+param_grid = {'p_e_b': np.linspace(0.0, 0.50, 10)}
+
+
 
 
 # Track output, wage, and interest rate
-outputs = ['C', 'D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN','D_GO','T_E', 'Tax', 'B', 'C_E']
+outputs = ['C', 'D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN','D_GO','T_E_ENDO', 'Tax', 'B', 'C_E', 'tau_b']
 
 results = comparative_statics_plot(
     ha=ha,
@@ -143,21 +146,74 @@ evaluate_param_changes('mu_Z_d', [0.05, 0.04, 0.06], ha, ss_DD,
 ss = dict()
 ss['baseline'] = ss_DD
 
-policy_functions(ss, ie_list=[3], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions.png')
+#Make the Durable state vary
+policy_functions(ss, ie_list=[2], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dN.png')
+policy_functions(ss, ie_list=[2], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dBN.png')
+policy_functions(ss, ie_list=[2], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dBO.png')
+policy_functions(ss, ie_list=[2], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dGN.png')
+policy_functions(ss, ie_list=[2], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dGO.png')
+
+#Make the productivity state vary (with none durable state)
+policy_functions(ss, ie_list=[0], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dN.png')
+policy_functions(ss, ie_list=[1], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dN.png')
+policy_functions(ss, ie_list=[2], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dN.png')
+policy_functions(ss, ie_list=[3], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dN.png')
+policy_functions(ss, ie_list=[4], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dN.png')
+
+#Make the productivity state vary (with Brown new durable state)
+policy_functions(ss, ie_list=[0], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dBN.png')
+policy_functions(ss, ie_list=[1], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dBN.png')
+policy_functions(ss, ie_list=[2], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dBN.png')
+policy_functions(ss, ie_list=[3], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dBN.png')
+policy_functions(ss, ie_list=[4], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dBN.png')
+
+#Make the productivity state vary (with Brown old durable state)
+policy_functions(ss, ie_list=[0], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dBO.png')
+policy_functions(ss, ie_list=[1], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dBO.png')
+policy_functions(ss, ie_list=[2], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dBO.png')
+policy_functions(ss, ie_list=[3], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dBO.png')
+policy_functions(ss, ie_list=[4], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dBO.png')
+
+#Make the productivity state vary (with green new durable state)
+policy_functions(ss, ie_list=[0], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dGN.png')
+policy_functions(ss, ie_list=[1], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dGN.png')
+policy_functions(ss, ie_list=[2], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dGN.png')
+policy_functions(ss, ie_list=[3], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dGN.png')
+policy_functions(ss, ie_list=[4], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dGN.png')
+
+#Make the productivity state vary (with green old durable state)
+policy_functions(ss, ie_list=[0], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dGO.png')
+policy_functions(ss, ie_list=[1], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dGO.png')
+policy_functions(ss, ie_list=[2], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dGO.png')
+policy_functions(ss, ie_list=[3], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dGO.png')
+policy_functions(ss, ie_list=[4], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dGO.png')
+
+#Make the productivity state vary (with none))
+policy_functions(ss, ie_list=[0, 1, 2, 3, 4], d_list=[0], d_tilde_list=[0], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e.png')
+
+
+policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[0], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeN.png')
+policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[1], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeBN.png')
+policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[2], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeBO.png')
+policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[3], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeGN.png')
+policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeGO.png')
+
+
+
 
 #%%
 plot_distribution(ss_DD, lines_dim = 0, 
                  labels = ['$\\tilde{D}$ = None','$\\tilde{D}$ = New Brown','$\\tilde{D}$ = Old Brown','$\\tilde{D}$ = New Green','$\\tilde{D}$ = Old Green'],
-                 truncate_at = 5, save_path='../../output/figures/Distribution_Durables_D_tilde.png')
+                 truncate_at = 6, save_path='../../output/figures/Distribution_Durables_D_tilde.png')
 plot_distribution(ss_DD, lines_dim = 1, 
                  labels = ['$D$ = None','$D$ = New Brown','$D$ = Old Brown','$D$ = New Green','$D$ = Old Green'],
-                 truncate_at = 5, save_path='../../output/figures/Distribution_Durables_D.png')
+                 truncate_at = 6, save_path='../../output/figures/Distribution_Durables_D.png')
 plot_distribution(ss_DD, lines_dim = 2, 
                  labels = ['Prod = Very Low','Prod = Low','Prod = Middle','Prod = High','Prod = Very High'],
-                 truncate_at = 5, save_path='../../output/figures/Distribution_Prod.png')
+                 truncate_at = 6, save_path='../../output/figures/Distribution_Prod.png')
 plot_distribution(ss_DD,
                  labels = ['Total'],
-                 truncate_at = 5, save_path='../../output/figures/Distribution_Total.png')
+                 truncate_at = 6, save_path='../../output/figures/Distribution_Total.png')
 #%% Check that the resource constraint holds
 
 

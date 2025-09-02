@@ -70,7 +70,8 @@ def policy_functions(
                     linestyle = linestyle_map[iz]
                     color = color_map[d_tilde]
                     alpha = alpha_map[d]
-                    label = f"{model} ($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
+                    #label = f"{model} ($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
+                    label = f"($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
 
                     # Asset policy function
                     ax[0].plot(
@@ -83,7 +84,8 @@ def policy_functions(
                     ax[1].plot(
                         a_grid[amin_idx:amax_idx]/A,
                         da[model][d_tilde, d, iz, amin_idx:amax_idx],
-                        label=label, linewidth=2, color=color,
+                        #label=label, 
+                        linewidth=2, color=color,
                         linestyle=linestyle, alpha=alpha
                     )
                     
@@ -91,7 +93,8 @@ def policy_functions(
                     ax[2].plot(
                         a_grid[amin_idx:amax_idx]/A,
                         c[model][d_tilde, d, iz, amin_idx:amax_idx],
-                        label=label, linewidth=2, color=color,
+                        #label=label, 
+                        linewidth=2, color=color,
                         linestyle=linestyle, alpha=alpha
                     )
 
@@ -99,7 +102,8 @@ def policy_functions(
                     ax[3].plot(
                         a_grid[amin_idx:amax_idx]/A,
                         P[model][d_tilde, d, iz, amin_idx:amax_idx],
-                        label=label, linewidth=2, color=color,
+                        #label=label, 
+                        linewidth=2, color=color,
                         linestyle=linestyle, alpha=alpha
                     )
 
@@ -877,30 +881,7 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
     """
     Run comparative statics over a grid of parameter values and plot 
     how outputs vary relative to the baseline, one subplot per output.
-
-    Parameters
-    ----------
-    ha : object
-        Model object with a method solve_steady_state(calib, unknowns, targets, solver).
-    ss_base : dict
-        Baseline steady state.
-    param_grid : dict
-        Dictionary of parameters and the grid of values to loop over.
-        Example: {'B': np.linspace(2.0, 4.0, 5)}
-        Only supports one parameter at a time.
-    unknowns_ss, targets_ss : dict
-        Inputs to ha.solve_steady_state.
-    outputs : list of str
-        Outputs to track and plot.
-    solver : str
-        Solver for steady state.
-    plot_deviation : bool
-        If True, plots deviation from baseline. If False, plots absolute levels.
-
-    Returns
-    -------
-    results : dict
-        Dictionary with arrays of output values across the grid.
+    Handles solver failures by interpolating/extrapolating and marking them.
     """
 
     # --- Check param_grid ---
@@ -913,6 +894,7 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
 
     # --- Storage ---
     results = {key: [] for key in outputs}
+    success_flags = []  # Track which points succeeded
 
     # --- Runtime estimate ---
     n_points = len(grid)
@@ -921,8 +903,13 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
     calib_test = deepcopy(ss_base)
     calib_test[param] = grid[0]
     t0 = time.time()
-    ha.solve_steady_state(calib_test, unknowns_ss, targets_ss, solver=solver)
-    t1 = time.time()
+    try:
+        ha.solve_steady_state(calib_test, unknowns_ss, targets_ss, solver=solver)
+    except Exception:
+        print("⚠️ Warning: first trial solve failed, runtime estimate may be unreliable.")
+        t1 = t0 + 0.01
+    else:
+        t1 = time.time()
     est_total = (t1 - t0) * n_points
     print(f"Estimated runtime: ~{est_total:.1f} seconds ({est_total/60:.1f} minutes)")
 
@@ -930,16 +917,33 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
     for i, val in enumerate(grid, start=1):
         calib_dev = deepcopy(ss_base)
         calib_dev[param] = val
-        ss_dev = ha.solve_steady_state(calib_dev, unknowns_ss, targets_ss, solver=solver)
-
-        for key in outputs:
-            results[key].append(ss_dev[key])
-
-        print(f"Solved {i}/{n_points} steady states for {param} = {val:.3f}")
+        try:
+            ss_dev = ha.solve_steady_state(calib_dev, unknowns_ss, targets_ss, solver=solver)
+            for key in outputs:
+                results[key].append(ss_dev[key])
+            success_flags.append(True)
+            print(f"Solved {i}/{n_points} steady states for {param} = {val:.3f}")
+        except Exception as e:
+            for key in outputs:
+                results[key].append(np.nan)  # placeholder for failed solve
+            success_flags.append(False)
+            print(f"❌ Failed to solve {i}/{n_points} steady states for {param} = {val:.3f} ({e})")
 
     # Convert to arrays
     for key in results:
         results[key] = np.array(results[key])
+
+    # --- Interpolate missing values ---
+    results_interp = {}
+    x = np.array(grid)
+    for key in outputs:
+        y = results[key]
+        mask = ~np.isnan(y)
+        if mask.sum() >= 2:  # need at least 2 points for interpolation
+            y_interp = np.interp(x, x[mask], y[mask])
+        else:
+            y_interp = y  # leave as is if too few valid points
+        results_interp[key] = y_interp
 
     # --- Plot: subplots, one per output ---
     n_outputs = len(outputs)
@@ -953,18 +957,29 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
         ax = axes[r, c]
 
         if plot_deviation:
-            y_values = results[key] - baseline_values[key]
+            y_values = results_interp[key] - baseline_values[key]
             ylabel = f"{key} deviation"
         else:
-            y_values = results[key]
+            y_values = results_interp[key]
             ylabel = f"{key} level"
 
-        ax.plot(grid, y_values, marker='o')
+        # Plot interpolated curve
+        ax.plot(grid, y_values, marker='o', label='Interpolated')
+
+        # Mark failures with red crosses
+        failed_idx = np.where(~np.array(success_flags))[0]
+        if failed_idx.size > 0:
+            ax.scatter(np.array(grid)[failed_idx],
+                       y_values[failed_idx],
+                       color='red', marker='x', s=80, label='Failed solve')
+
         if plot_deviation:
             ax.axhline(0, color='gray', linestyle='--', linewidth=0.8)
+
         ax.set_xlabel(param)
         ax.set_ylabel(ylabel)
         ax.set_title(f"{key} vs {param}")
+        ax.legend()
 
     # Remove any empty subplots
     for idx in range(len(outputs), nrows*ncols):
@@ -975,4 +990,4 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
     fig.tight_layout()
     plt.show()
 
-    return results
+    return results, results_interp, success_flags
