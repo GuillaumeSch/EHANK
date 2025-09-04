@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block import hh_durables
-from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, carbon_tax
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, carbon_tax, monetary, nkpc_ss
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -18,7 +18,7 @@ cali["baseline"] = {
     "vphi": 0.0,               # Value function penalty parameter
     "beta": 0.97,              # Discount factor
     "eis": 0.5,                # Elasticity of intertemporal substitution
-    "r": 0.02 / 4,             # Interest rate (quarterly)
+    #"r": 0.02 / 4,             # Interest rate (quarterly)
     "N": 1,                    # Total labor supply
     # Productivity process
     "rho_e": 0.95,             # Persistence of productivity shocks
@@ -30,7 +30,6 @@ cali["baseline"] = {
     "n_a": 20,                 # Number of asset grid points
     # Labor market
     "N_core": 0.6,             # Labor demand for core goods
-    #"N_d1": 0.1, "N_d2": 0.1, "N_d3": 0.1, "N_d4": 0.1,                # Labor demand for durable goods
     "N_d": np.array([ 0.1, 0.1, 0.1, 0.1]),                # Labor demand for durable goods
     "tau":0,                   # Labor income tax
     # Durable goods
@@ -54,9 +53,7 @@ cali["baseline"] = {
     "Div": 0,                  # Dividends from firms
     "Z_core": 1,               # Core productivity
     "Z_d1": 15, "Z_d2": 60, "Z_d3": 3, "Z_d4": 1, # Durables productivities
-    #"Z_d": np.array([15.52920823, 62.11683292,  1.11111111,  4.44444444]),                # 
     #Government
-    #"Y" : 1,                  # Output
     "B" : 4,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
     #Energy
@@ -68,6 +65,12 @@ cali["baseline"] = {
     #Prices
     "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
+    #NK Part
+    "pi" : 0,                  # SS Inflation
+    "mu" : 1.2,                # SS Markup
+    "kappa" : 0.1,             # ?Slope of NKPC?
+    "rstar" : 0.02 / 4,        # Natural Real Interest Rate
+    "phi" : 1.5,               # Response of MP to inflation
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
@@ -90,6 +93,13 @@ print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
+#%% Create HANK model
+hank = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, carbon_tax, monetary, nkpc_ss], name="HANK SS Model")
+print(hank)
+print('It has inputs: ' + str(hank.inputs))
+print('It has outputs: ' + str(hank.outputs))
+
+
 #%%
 
 # unknowns = ['beta', 'N']
@@ -97,6 +107,8 @@ print('It has outputs: ' + str(ha.outputs))
 # inputs = ['G']
 
 # drawdag(ha, unknowns, targets, inputs)
+# drawdag(hank, unknowns, targets, inputs)
+
 
 #%% Not SS
 #evaluate_param_changes('p_g', [0.1], ha, cali['baseline'],
@@ -106,13 +118,20 @@ print('It has outputs: ' + str(ha.outputs))
 #%% === Solve the model Steady State ===
 unknowns_ss = {'beta':0.946, 'N':1, 'tau_b':0.50}
 targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'T_E_diff': 0.0}
-
 ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
 
 display_ss_durables(ss_DD)
 display_calibrated_from_unknowns(ss_DD, unknowns_ss)
-
 check_resource_constraint(ss_DD)
+
+#%% === Solve the NK model Steady State ===
+unknowns_ss = {'beta':0.946, 'N':1, 'tau_b':0.50}
+targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'T_E_diff': 0.0}
+ss_hank = hank.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
+
+display_ss_durables(ss_hank)
+display_calibrated_from_unknowns(ss_hank, unknowns_hank)
+check_resource_constraint(ss_hank)
 
 
 #%% One shot deviation of SS
