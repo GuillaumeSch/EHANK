@@ -17,8 +17,34 @@ def policy_functions(
     ie_list=[3],
     figsize=0.6,
     models=['baseline'],
+    plots=['assets','da','cons','disc'],  # choose which plots to show
     save_path=None         # str or None, path to save figure
 ):
+    """
+    Plot household policy functions (assets, Δassets, consumption, discrete choice).
+
+    Parameters
+    ----------
+    ss : dict
+        Steady-state object(s).
+    xmax, xmin : float
+        Range for x-axis in multiples of average wealth.
+    d_tilde_list, d_list, ie_list : lists
+        Indices for plotting dimensions.
+    figsize : float
+        Scale factor for figure size.
+    models : list of str
+        Model keys to plot.
+    plots : list of str
+        Which plots to show. Options:
+            'assets' -> asset policy
+            'da'     -> change in assets
+            'cons'   -> consumption
+            'disc'   -> discrete choice probability
+    save_path : str or None
+        If provided, save figure to this path.
+    """
+
     a_grid = ss['baseline'].internals['hh']['a_grid']
     A = ss['baseline']['A']
 
@@ -37,15 +63,23 @@ def policy_functions(
         P[model] = ss[model].internals['hh']['durables']['law_of_motion'].P
         V[model] = ss[model].internals['hh']['durables']['V']
 
-    fig, axes = plt.subplots(2, 2, figsize=(12 * figsize, 8 * figsize))
-    ax = axes.flatten()
-
-    # Define line styles for each iz (cycle if fewer styles than ie_list)
-    linestyles = ['-', '--', '-.', ':']
-    linestyle_map = {
-        iz: linestyles[i % len(linestyles)]
-        for i, iz in enumerate(ie_list)
+    # Map plot names to indices
+    plot_map = {
+        'assets': 0,
+        'da': 1,
+        'cons': 2,
+        'disc': 3
     }
+    selected_indices = [plot_map[p] for p in plots if p in plot_map]
+
+    # Create only needed subplots
+    fig, axes = plt.subplots(1, len(selected_indices), figsize=(6 * figsize * len(selected_indices), 5 * figsize))
+    if len(selected_indices) == 1:
+        axes = [axes]  # ensure list
+
+    # Define line styles for each iz
+    linestyles = ['-', '--', '-.', ':']
+    linestyle_map = {iz: linestyles[i % len(linestyles)] for i, iz in enumerate(ie_list)}
 
     # Colors for d_tilde
     n = len(d_tilde_list)
@@ -62,7 +96,24 @@ def policy_functions(
         alphas = [1.0]
     alpha_map = {d_val: alpha for d_val, alpha in zip(d_list, alphas)}
 
+    # Titles mapping
+    titles = {
+        0: r'Assets ($a^*(\tilde{d},\, d,\, z,\, a^{-})$)',
+        1: r'$\Delta$ Assets ($da^*(\tilde{d},\, d,\, z,\, a^{-})$)',
+        2: r'Consumption ($c^*(\tilde{d},\, d,\, z,\, a^{-})$)',
+        #3: r'Discrete choice ($Pr(\tilde{d}^*(d,\, z,\, a^{-})=1)$)'
+        3: r'Durable Adoption Probability'
+    }
+    # Y labels mapping
+    ylabels = {
+    0: "Assets",
+    1: "Δ Assets",
+    2: "Consumption",
+    3: "Probability"
+    }
+
     # Plot
+    labels = ['None','New Brown','Old Brown','New Green','Old Green']
     for model in models:
         for d_tilde in d_tilde_list:
             for d in d_list:
@@ -70,65 +121,60 @@ def policy_functions(
                     linestyle = linestyle_map[iz]
                     color = color_map[d_tilde]
                     alpha = alpha_map[d]
-                    #label = f"{model} ($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
-                    label = f"($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
+                    #label = f"($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
+                    label = labels[d_tilde]
 
-                    # Asset policy function
-                    ax[0].plot(
-                        a_grid[amin_idx:amax_idx]/A,
-                        a[model][d_tilde, d, iz, amin_idx:amax_idx],
-                        label=label, linewidth=2, color=color,
-                        linestyle=linestyle, alpha=alpha
-                    )
-                    
-                    ax[1].plot(
-                        a_grid[amin_idx:amax_idx]/A,
-                        da[model][d_tilde, d, iz, amin_idx:amax_idx],
-                        #label=label, 
-                        linewidth=2, color=color,
-                        linestyle=linestyle, alpha=alpha
-                    )
-                    
-                    # Consumption policy function
-                    ax[2].plot(
-                        a_grid[amin_idx:amax_idx]/A,
-                        c[model][d_tilde, d, iz, amin_idx:amax_idx],
-                        #label=label, 
-                        linewidth=2, color=color,
-                        linestyle=linestyle, alpha=alpha
-                    )
+                    if 0 in selected_indices:
+                        axes[selected_indices.index(0)].plot(
+                            a_grid[amin_idx:amax_idx]/A,
+                            a[model][d_tilde, d, iz, amin_idx:amax_idx],
+                            label=label, linewidth=2, color=color,
+                            linestyle=linestyle, alpha=alpha
+                        )
 
-                    # Discrete choice probability
-                    ax[3].plot(
-                        a_grid[amin_idx:amax_idx]/A,
-                        P[model][d_tilde, d, iz, amin_idx:amax_idx],
-                        #label=label, 
-                        linewidth=2, color=color,
-                        linestyle=linestyle, alpha=alpha
-                    )
+                    if 1 in selected_indices:
+                        axes[selected_indices.index(1)].plot(
+                            a_grid[amin_idx:amax_idx]/A,
+                            da[model][d_tilde, d, iz, amin_idx:amax_idx],
+                            label=label, linewidth=2, color=color,
+                            linestyle=linestyle, alpha=alpha,
+                        )
 
-    # Reference lines
-    ax[0].plot(a_grid[amin_idx:amax_idx]/A, a_grid[amin_idx:amax_idx], color='gray', linestyle=':')
-    ax[1].axhline(y=0, color='gray', linestyle=':')
+                    if 2 in selected_indices:
+                        axes[selected_indices.index(2)].plot(
+                            a_grid[amin_idx:amax_idx]/A,
+                            c[model][d_tilde, d, iz, amin_idx:amax_idx],
+                            label=label, linewidth=2, color=color,
+                            linestyle=linestyle, alpha=alpha
+                        )
 
-    # Titles
-    ax[0].set_title(r'Assets ($a^*(\tilde{d},\, d,\, z,\, a^{-})$)')
-    ax[1].set_title(r'$\Delta$ Assets ($da^*(\tilde{d},\, d,\, z,\, a^{-})$)')
-    ax[2].set_title(r'Consumption ($c^*(\tilde{d},\, d,\, z,\, a^{-})$)')
-    ax[3].set_title(r'Discrete choice ($Pr(\tilde{d}^*(d,\, z,\, a^{-})=1)$)')
+                    if 3 in selected_indices:
+                        axes[selected_indices.index(3)].plot(
+                            a_grid[amin_idx:amax_idx]/A,
+                            P[model][d_tilde, d, iz, amin_idx:amax_idx],
+                            label=label, linewidth=2, color=color,
+                            linestyle=linestyle, alpha=alpha
+                        )
 
-    for axis in ax:
-        axis.set_xlabel('Ratio of ind. wealth to avg. wealth')
-        axis.set_xlim([xmin, xmax])
-        axis.legend(frameon=False)
+    # Reference lines and titles
+    for idx, ax in zip(selected_indices, axes):
+        if idx == 0:
+            ax.plot(a_grid[amin_idx:amax_idx]/A, a_grid[amin_idx:amax_idx], color='gray', linestyle=':')
+        if idx == 1:
+            ax.axhline(y=0, color='gray', linestyle=':')
+        ax.set_title(titles[idx])
+        ax.set_ylabel(ylabels[idx])
+        ax.set_xlabel('Ratio of ind. wealth to avg. wealth')
+        ax.set_xlim([xmin, xmax])
+        ax.legend(frameon=False)
 
     plt.tight_layout()
 
-    # Save figure if save_path is provided
     if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight', dpi=300)
 
     plt.show()
+
 
 def plot_heatmap(Pi, title="Matrix Heatmap", fmt=".2f"):
     """
@@ -452,8 +498,8 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, variable
     }
 
 
-def show_irfs(irfs_list, variables, labels=None, ylabel=r"Percentage points (dev. from ss)",
-              T_plot=50, figsize=(18, 6), save_path=None):
+def show_irfs(irfs_list, variables, labels=None, ylabel=r"PP (dev. from ss)",
+              T_plot=50, figsize=(18, 6), save_path=None, titles=None):
     """
     Plot impulse response functions (IRFs) for multiple variables and scenarios.
 
@@ -473,6 +519,10 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"Percentage points (dev
         Figure size.
     save_path : str or None
         If provided, save the figure to this path.
+    titles : list or dict, optional
+        Custom LaTeX titles for each variable subplot.
+        If list, must have same length as `variables`.
+        If dict, keys are variable names.
     """
 
     if labels is None or len(irfs_list) != len(labels):
@@ -492,13 +542,24 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"Percentage points (dev
                 data = 100 * np.array(irf[var][:T_plot])
             else:
                 data = np.zeros(T_plot)
-            axes[i].plot(data, label=labels[j])
+            #axes[i].plot(data, label=labels[j])
+            axes[i].plot(data)
 
-        axes[i].set_title(var)
-        axes[i].set_xlabel(r"$t$")
+        # Use custom title if provided
+        if titles is not None:
+            if isinstance(titles, dict) and var in titles:
+                axes[i].set_title(titles[var], usetex=True, fontsize=16)
+            elif isinstance(titles, list) and i < len(titles):
+                axes[i].set_title(titles[i], usetex=True, fontsize=16)
+            else:
+                axes[i].set_title(var, fontsize=16)
+        else:
+            axes[i].set_title(var, fontsize=16)
+
+        axes[i].set_xlabel(r"quarter")
         axes[i].set_ylabel(ylabel)
         axes[i].grid(True)
-        axes[i].legend()
+        #axes[i].legend()
 
     # Remove empty subplots
     for k in range(n_var, len(axes)):
@@ -513,8 +574,8 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"Percentage points (dev
 
 
 def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs, T_plot=50,
-                     rho=None, e=None, T=300, figsize=(18, 6), ylabel=r"Percentage points (dev. from ss)",
-                     labels=None, save_path=None):
+                     rho=None, e=None, T=300, figsize=(18, 6), ylabel=r"PP (dev. from ss)",
+                     labels=None, save_path=None, titles=None):
     """
     Compute linear IRFs and plot them.
     """
@@ -535,8 +596,9 @@ def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs, T_pl
     if labels is None:
         labels = [" + ".join(shocks_list)]
 
-    # Plot
-    show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T_plot, figsize=figsize, save_path=save_path)
+    # Plot with custom titles
+    show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T_plot,
+              figsize=figsize, save_path=save_path, titles=titles)
 
 
 def evaluate_param_changes(param_name, values_list, ha, cali,
@@ -727,7 +789,7 @@ def plot_distribution(
     plt.ylabel("%" if normalize else "% (sum = 100)")
     if lines_dim is not None:
         plt.legend()
-    plt.title("Stationary Distributions")
+    plt.title("Stationary Distribution")
     plt.grid(True)
 
     # Save figure if path is provided
@@ -877,7 +939,7 @@ def check_resource_constraint_debug(ss):
 
 
 def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, outputs, 
-                             solver='hybr', plot_deviation=True):
+                             solver='hybr', plot_deviation=True, save_path=None):
     """
     Run comparative statics over a grid of parameter values and plot 
     how outputs vary relative to the baseline, one subplot per output.
@@ -987,7 +1049,113 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
         fig.delaxes(axes[r, c])
 
     fig.suptitle(f"Comparative Statics: varying {param}", fontsize=14, y=1.02)
+    
+    # Save if requested
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+    
     fig.tight_layout()
     plt.show()
 
     return results, results_interp, success_flags
+
+
+def comparative_statics_plot_shares(
+    ha, ss_base, param_grid, unknowns_ss, targets_ss, outputs,
+    solver='hybr', save_path=None,
+    line_labels=None,        # custom labels for outputs
+    x_label=None,            # custom x-axis label
+    title=None,              # custom plot title
+    x_values=None            # custom x-axis values instead of param values
+):
+    """
+    Run comparative statics over a grid of parameter values and plot
+    the outputs as shares (summing to 1). Produces a single stacked area plot.
+    """
+
+    if len(param_grid) != 1:
+        raise NotImplementedError("Plotting supports only one varied parameter at a time.")
+    param, grid = list(param_grid.items())[0]
+
+    # --- Storage ---
+    results = {key: [] for key in outputs}
+    success_flags = []
+
+    # --- Runtime estimate ---
+    n_points = len(grid)
+    print(f"Running comparative statics for parameter '{param}' with {n_points} points...")
+    print("Estimating runtime with one trial solve...")
+    calib_test = deepcopy(ss_base)
+    calib_test[param] = grid[0]
+    t0 = time.time()
+    try:
+        ha.solve_steady_state(calib_test, unknowns_ss, targets_ss, solver=solver)
+    except Exception:
+        print("⚠️ Warning: first trial solve failed, runtime estimate may be unreliable.")
+        t1 = t0 + 0.01
+    else:
+        t1 = time.time()
+    est_total = (t1 - t0) * n_points
+    print(f"Estimated runtime: ~{est_total:.1f} seconds ({est_total/60:.1f} minutes)")
+
+    # --- Loop over grid ---
+    for i, val in enumerate(grid, start=1):
+        calib_dev = deepcopy(ss_base)
+        calib_dev[param] = val
+        try:
+            ss_dev = ha.solve_steady_state(calib_dev, unknowns_ss, targets_ss, solver=solver)
+            for key in outputs:
+                results[key].append(ss_dev[key])
+            success_flags.append(True)
+            print(f"Solved {i}/{n_points} steady states for {param} = {val:.3f}")
+        except Exception as e:
+            for key in outputs:
+                results[key].append(np.nan)
+            success_flags.append(False)
+            print(f"❌ Failed {i}/{n_points} for {param} = {val:.3f} ({e})")
+
+    # Convert to arrays
+    for key in results:
+        results[key] = np.array(results[key])
+
+    # --- Interpolate missing values ---
+    results_interp = {}
+    x = np.array(grid)
+    for key in outputs:
+        y = results[key]
+        mask = ~np.isnan(y)
+        if mask.sum() >= 2:
+            y_interp = np.interp(x, x[mask], y[mask])
+        else:
+            y_interp = y
+        results_interp[key] = y_interp
+
+    # --- Normalize to shares ---
+    stacked_values = np.vstack([results_interp[key] for key in outputs])
+    row_sums = stacked_values.sum(axis=0)
+    shares = stacked_values / row_sums  # ensures they sum to 1
+
+    # --- Plot as stacked area ---
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    # Custom labels if provided
+    labels = line_labels if line_labels is not None else outputs
+    ax.stackplot(x_values if x_values is not None else grid, shares, labels=labels, alpha=0.8)
+
+    # Labels and title
+    ax.set_xlabel(x_label if x_label is not None else param)
+    ax.set_ylabel("Share of Population")
+    ax.set_title(title if title is not None else f"Shares of outputs vs {param}")
+    ax.legend(loc="center left")
+    ax.set_ylim(0, 1)
+    
+    # Save if requested
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+
+    plt.tight_layout()
+    plt.show()
+
+    return results, results_interp, shares, success_flags
+
+

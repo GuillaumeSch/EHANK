@@ -64,7 +64,7 @@ cali["baseline"] = {
     "p_e_g" : 0.04,            # Price of green energy (electricity)
     "tau_b" : 0.50,            # Carbon tax (no free. Dependend of T_E)
     "tau_g" : 0,               # Green energy subsidy
-    "T_E" : 0.001,           # Energy tax revenues 
+    "T_E" : 0.002,           # Energy tax revenues 
     #Prices
     "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
@@ -117,86 +117,84 @@ check_resource_constraint(ss_DD)
 
 #%% One shot deviation of SS
 
-param_grid = {'T_E': np.linspace(0.00, 0.01, 5)}
-param_grid = {'p_e_b': np.linspace(0.0, 0.50, 10)}
+param_grid = {'T_E': np.linspace(0.0001, 0.01, 5)}
 
 
 
 
 # Track output, wage, and interest rate
-outputs = ['C', 'D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN','D_GO','T_E_ENDO', 'Tax', 'B', 'C_E', 'tau_b']
+outputs = ['tau_b','D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN']
 
-results = comparative_statics_plot(
+# results = comparative_statics_plot(
+#     ha=ha,
+#     ss_base=ss_DD,
+#     param_grid=param_grid,
+#     unknowns_ss=unknowns_ss,
+#     targets_ss=targets_ss,
+#     outputs=outputs,
+#     plot_deviation=False
+# )
+
+outputs_shares = ['D_N', 'D_B', 'D_G']
+#outputs_shares = ['D_N', 'D_BN',  'D_BO', 'D_GN', 'D_GO']
+
+
+results = comparative_statics_plot_shares(
     ha=ha,
     ss_base=ss_DD,
     param_grid=param_grid,
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
-    outputs=outputs,
-    plot_deviation=False
+    outputs=outputs_shares,
+    line_labels=["None", "Brown", "Green"],
+    title="Durable shares under different carbon tax rates",
+    x_label=r"Carbon Tax Rate $\tau_B$",
+    x_values=["Low", " ", "Medium", "  ", "High"],
+    save_path='../../output/figures/CS_T_E.png',
+)
+
+#%%Price of brown energy
+param_grid = {'p_e_b': np.linspace(0.2, 0.8, 5)}
+
+results = comparative_statics_plot_shares(
+    ha=ha,
+    ss_base=ss_DD,
+    param_grid=param_grid,
+    unknowns_ss=unknowns_ss,
+    targets_ss=targets_ss,
+    outputs=outputs_shares,
+    line_labels=["None", "Brown", "Green"],
+    title="Durable shares under different brown energy prices",
+    x_label=r"Brown Energy Price $P_B$",
+    x_values=["Low", " ", "Medium", "  ", "High"],
+    save_path='../../output/figures/CS_p_e_b.png',
+)
+
+#%% Price of durable good
+param_grid = {'Z_d3': np.linspace(2, 4, 5)}
+
+results = comparative_statics_plot_shares(
+    ha=ha,
+    ss_base=ss_DD,
+    param_grid=param_grid,
+    unknowns_ss=unknowns_ss,
+    targets_ss=targets_ss,
+    outputs=outputs_shares,
+    line_labels=["None", "Brown", "Green"],
+    title="Durable shares under different green subsidies",
+    x_label=r"Green Subsidies on Aquisition Cost",
+    x_values=["Low", " ", "Medium", "  ", "High"],
+    save_path='../../output/figures/CS_Z_d3.png',
 )
 
 
 
-#%% Not SS
-evaluate_param_changes('mu_Z_d', [0.05, 0.04, 0.06], ha, ss_DD,
-                       ss_vars = ['labor_mkt','B', 'D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN', 'D_GO', 'asset_mkt', 'C', 'A','Tax'])
 
 #%%
 ss = dict()
 ss['baseline'] = ss_DD
 
-#Make the Durable state vary
-policy_functions(ss, ie_list=[2], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dN.png')
-policy_functions(ss, ie_list=[2], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dBN.png')
-policy_functions(ss, ie_list=[2], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dBO.png')
-policy_functions(ss, ie_list=[2], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dGN.png')
-policy_functions(ss, ie_list=[2], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dGO.png')
-
-#Make the productivity state vary (with none durable state)
-policy_functions(ss, ie_list=[0], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dN.png')
-policy_functions(ss, ie_list=[1], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dN.png')
-policy_functions(ss, ie_list=[2], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dN.png')
-policy_functions(ss, ie_list=[3], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dN.png')
-policy_functions(ss, ie_list=[4], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dN.png')
-
-#Make the productivity state vary (with Brown new durable state)
-policy_functions(ss, ie_list=[0], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dBN.png')
-policy_functions(ss, ie_list=[1], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dBN.png')
-policy_functions(ss, ie_list=[2], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dBN.png')
-policy_functions(ss, ie_list=[3], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dBN.png')
-policy_functions(ss, ie_list=[4], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dBN.png')
-
-#Make the productivity state vary (with Brown old durable state)
-policy_functions(ss, ie_list=[0], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dBO.png')
-policy_functions(ss, ie_list=[1], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dBO.png')
-policy_functions(ss, ie_list=[2], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dBO.png')
-policy_functions(ss, ie_list=[3], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dBO.png')
-policy_functions(ss, ie_list=[4], d_list=[2], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dBO.png')
-
-#Make the productivity state vary (with green new durable state)
-policy_functions(ss, ie_list=[0], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dGN.png')
-policy_functions(ss, ie_list=[1], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dGN.png')
-policy_functions(ss, ie_list=[2], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dGN.png')
-policy_functions(ss, ie_list=[3], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dGN.png')
-policy_functions(ss, ie_list=[4], d_list=[3], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dGN.png')
-
-#Make the productivity state vary (with green old durable state)
-policy_functions(ss, ie_list=[0], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e0dGO.png')
-policy_functions(ss, ie_list=[1], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e1dGO.png')
-policy_functions(ss, ie_list=[2], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e2dGO.png')
-policy_functions(ss, ie_list=[3], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e3dGO.png')
-policy_functions(ss, ie_list=[4], d_list=[4], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e4dGO.png')
-
-#Make the productivity state vary (with none))
-policy_functions(ss, ie_list=[0, 1, 2, 3, 4], d_list=[0], d_tilde_list=[0], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_e.png')
-
-
-policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[0], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeN.png')
-policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[1], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeBN.png')
-policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[2], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeBO.png')
-policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[3], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeGN.png')
-policy_functions(ss, ie_list=[2], d_list=[0, 1, 2, 3, 4], d_tilde_list=[4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_D_tildeGO.png')
+policy_functions(ss, plots=['disc'], ie_list=[0], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
 
 
 
@@ -206,10 +204,10 @@ plot_distribution(ss_DD, lines_dim = 0,
                  labels = ['$\\tilde{D}$ = None','$\\tilde{D}$ = New Brown','$\\tilde{D}$ = Old Brown','$\\tilde{D}$ = New Green','$\\tilde{D}$ = Old Green'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Durables_D_tilde.png')
 plot_distribution(ss_DD, lines_dim = 1, 
-                 labels = ['$D$ = None','$D$ = New Brown','$D$ = Old Brown','$D$ = New Green','$D$ = Old Green'],
+                 labels = ['None','New Brown','Old Brown','New Green','Old Green'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Durables_D.png')
 plot_distribution(ss_DD, lines_dim = 2, 
-                 labels = ['Prod = Very Low','Prod = Low','Prod = Middle','Prod = High','Prod = Very High'],
+                 labels = ['Very Low','Low','Middle','High','Very High'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Prod.png')
 plot_distribution(ss_DD,
                  labels = ['Total'],
@@ -223,19 +221,74 @@ plot_distribution(ss_DD,
 
 
 #%% === Solve the model transition dynmamics and get IRFs === §
+titles = [
+        r"Carbon tax revenues: $T_B$",  
+        r"Carbon tax rate: $\tau_B$",     
+        r"Share of non-durable: $D_N$",  
+        r"Share of Brown: $D_B$",
+        r"Share of Green: $D_G$",     
+        r"Total Consumption: $C$",  
+        r"Consu. of Brown energy: $C^B$", 
+        r"Consu. of Green energy: $C^G$",]
 plot_linear_irfs(
-    shocks_list=['tau_b'],
-    e = {"tau_b": 0.01},
-    unknowns_td=['G','N'],
-    targets_td=['asset_mkt',"labor_mkt"],
+    shocks_list=['T_E'],
+    e = {"T_E": 0.01},
+    rho = {"T_E": 0.80},
+    unknowns_td=['r','N','tau_b'],
+    targets_td=['asset_mkt',"labor_mkt", "T_E_diff"],
     ha=ha,
     ss=ss_DD,
-    outputs=["tau_b","A", "G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
+    #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
+    outputs=["T_E","tau_b", "D_N", "D_B", "D_G", "C", "C_E_B", "C_E_G"],
+    titles = titles,
     figsize=(18, 12),
-    save_path='../../output/figures/IRFs_tau_b.png',
+    #save_path='../../output/figures/IRFs_tau_b.png',
 )
-# %%
+# %% Durable Variables
+titles = [
+        r"Carbon tax revenues: $T_B$",  
+        r"Share of Brown: $D_B$",
+        r"Share of Green: $D_G$",     
+        r"Consu. of Brown energy: $C^B$", 
+        r"Consu. of Green energy: $C^G$",
+        r"Core Consu.: $C^{Core}$",]
+plot_linear_irfs(
+    shocks_list=['T_E'],
+    e = {"T_E": 0.01},
+    rho = {"T_E": 0.80},
+    unknowns_td=['G','N','tau_b'],
+    targets_td=['asset_mkt',"labor_mkt", "T_E_diff"],
+    ha=ha,
+    ss=ss_DD,
+    #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
+    outputs=["T_E_ENDO","D_B", "D_G", "C_E_B", "C_E_G", "C_CORE"],
+    titles = titles,
+    figsize=(12, 6),
+    save_path='../../output/figures/IRFs_T_E.png',
+)
 
+# %%
+titles = [
+        r"Real Interest Rate: $r$",  
+        r"Government Debt: $B$",
+        r"Government Expenditures: $G$",     
+        r"Total Non-Durable Consu.: $C$", 
+        r"Lump-Sum Tax: $T$",
+        r"Primary Deficit: $G-(T_E + T)$",r"G"]
+plot_linear_irfs(
+    shocks_list=['T_E'],
+    e = {"T_E": 0.01},
+    rho = {"T_E": 0.80},
+    unknowns_td=['G','N','tau_b'],
+    targets_td=['asset_mkt',"labor_mkt", "T_E_diff"],
+    ha=ha,
+    ss=ss_DD,
+    #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
+    outputs=["r","B","G","C", "Tax", "deficit"],
+    titles = titles,
+    figsize=(12, 6),
+    save_path='../../output/figures/IRFs_T_E_macro.png',
+)
 
 
 

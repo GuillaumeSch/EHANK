@@ -229,7 +229,7 @@ def compute_Agg_Transf(T, c):
     Agg_Transf = np.zeros_like(c) + T[np.newaxis, np.newaxis, ..., np.newaxis]
     return Agg_Transf
 
-def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
+def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
     c_core = xi * (p_core/p_bundle[...,np.newaxis,np.newaxis, np.newaxis])**(-nu)*c
     mask = p_e == 0
     c_E = np.zeros_like(c)
@@ -240,14 +240,22 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
     c_E1, c_E2, c_E3, c_E4 = [np.zeros_like(c_E) for _ in range(4)]
     c_E1[1,...], c_E2[2,...], c_E3[3,...], c_E4[4,...] = c_E[1,...], c_E[2,...], c_E[3,...], c_E[4,...]
     
-    return c_core, c_E, c_E1, c_E2, c_E3, c_E4
-
-def make_energy_taxes(c_E, n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
+    c_E_B = c_E1 +  c_E2 #Consumption of brown energy
+    c_E_G = c_E3 +  c_E4 #Consumption of green energy
+    
     tau_b_vec = np.ones(n_b) * tau_b * p_e_b
     tau_g_vec = np.ones(n_g) * tau_g * p_e_g
     tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
     t_E_endo = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis]
-    return t_E_endo
+    
+    return c_core, c_E, c_E1, c_E2, c_E3, c_E4, c_E_B, c_E_G, t_E_endo
+
+# def make_energy_taxes(c_E, n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
+#     tau_b_vec = np.ones(n_b) * tau_b * p_e_b
+#     tau_g_vec = np.ones(n_g) * tau_g * p_e_g
+#     tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
+#     t_E_endo = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis]
+#     return t_E_endo
 
 # def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
 
@@ -256,7 +264,7 @@ def make_energy_taxes(c_E, n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf, decomposition_consu_bundle, make_energy_taxes])
+                            name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf, decomposition_consu_bundle])
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
