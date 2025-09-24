@@ -57,15 +57,21 @@ durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='du
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
-def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters, p_bundle):
+def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, omega, gamma, dbar, shifters, p_bundle):
     """DC-EGM algorithm"""
     n_d = adj_matrix.shape[0] #Number of discrete choices
     # use all FOCs on endogenous grid
     W = beta * V                                                  # end-of-stage vfun
     W = np.stack([W] * n_d, axis=0)                               # Add first dimension to match the dimensions
+    breakpoint()
+    uc_endo = (beta * Va)[np.newaxis, ...] * p_bundle[..., np.newaxis ,np.newaxis, np.newaxis]     # FOC    
     
-    uc_endo = (beta * Va)[np.newaxis, ...] * p_bundle[..., np.newaxis ,np.newaxis, np.newaxis]     # FOC
-    c_endo = uc_endo** (-eis)                                     # Euler equation
+    durable_scaling = omega * (dbar + shifters[..., np.newaxis])**((1-omega)*(1-gamma))
+    
+    c_endo = (uc_endo / durable_scaling )** (1/(omega*(1-gamma) - 1))                                     # Euler equation
+    
+    #c_endo = (uc_endo)** (-eis)                                     # Euler equation
+    
     a_endo = (c_endo * p_bundle[..., np.newaxis, np.newaxis, np.newaxis]
               + a_grid[np.newaxis, np.newaxis, np.newaxis, ...]
               + adj_matrix[..., np.newaxis,np.newaxis]
@@ -83,10 +89,11 @@ def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, shifters
         p_c_type[d, :, :, :] = p_bundle[d]
 
     # interpolate with upper envelope, enforce borrowing limit
-    V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, p_c_type, eis, shifters)
+    V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, p_c_type, omega, gamma, dbar, shifters)
 
     # update Va on exogenous grid
-    uc = c ** (-1 / eis)                                          # Euler equation
+    #uc = c ** (-1 / eis)                                          
+    uc = omega*c**(omega * (1-gamma) - 1) * (dbar + shifters[..., np.newaxis])**((1-omega)*(1-gamma)) # Marginal Utility of Consu
     uc = make_strictly_decreasing(uc)                             # Correct for the infinite values.
     Va = (1 + r) * uc                                             # envelope condition
 
@@ -166,25 +173,35 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args):
     return V, c, a
 
 # %% Utility function
+
+
 @njit
-def util(c, d, eis, shifters):
+def util(c, d, omega, gamma, dbar, shifters):
     """
-    General utility function for arbitrary discrete states.
+    CES-style utility over consumption and discrete durable vintages.
 
     Parameters:
     - c: consumption (scalar)
-    - d: discrete state index (integer)
-    - eis: elasticity of intertemporal substitution
-    - shifters: 1D array of utility shifters per d-state
+    - d: discrete vintage index (integer)
+    - omega: consumption weight (0 < omega < 1)
+    - gamma: CRRA parameter 
+    - dbar: baseline durable stock
+    - shifters: 1D array of vintage-specific utility shifters
     """
-    # Basic bounds check (without exception)
-    #if d < 0 or d >= shifters.shape[0]:
-    #    return -1e10  # or some other penalizing value instead of raising an error
+    # Effective durable stock
+    d_eff = dbar + shifters[d]
 
-    if eis == 1.0:
-        u = np.log(c) + shifters[d]
+    ## Prevent negative or zero consumption/durables
+    #if c <= 0.0 or d_eff <= 0.0:
+    #    return -1e10
+
+    X = (c ** omega) * (d_eff ** (1 - omega))
+
+    if gamma == 1.0:
+        # log utility limit
+        u = np.log(X)# + omega * (d_eff-dbar) #SECOND PART SHOULD BE ERASED. JUST TO SEE IF THIS MATCHES PREVIOUSLY
     else:
-        u = c ** (1 - 1 / eis) / (1 - 1 / eis) + shifters[d]
+        u = (X ** (1 - gamma)) / (1 - gamma)# + omega * (d_eff-dbar) #SECOND PART SHOULD BE ERASED. JUST TO SEE IF THIS MATCHES PREVIOUSLY
 
     return u
 
@@ -268,8 +285,8 @@ consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
-def hh_init(disp_inc, a_grid, eis, shifters):
-    V = util(disp_inc-np.min(disp_inc)+1, 0, eis, shifters)         #Avoid strange behaviour due to negative values. Not too important as only for first guess.
+def hh_init(disp_inc, a_grid, omega, gamma, dbar, shifters):
+    V = util(disp_inc-np.min(disp_inc)+1, 0, omega, gamma, dbar, shifters)         #Avoid strange behaviour due to negative values. Not too important as only for first guess.
     V = np.mean(V, axis=0)                                          #Get rid of first dimension
     Va = np.empty_like(V)
     Va[..., 1:-1] = (V[..., 2:] - V[..., :-2]) / (a_grid[2:] - a_grid[:-2])

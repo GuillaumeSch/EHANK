@@ -18,6 +18,9 @@ cali["baseline"] = {
     "vphi": 0.0,               # Value function penalty parameter
     "beta": 0.97,              # Discount factor
     "eis": 0.5,                # Elasticity of intertemporal substitution
+    "gamma": 1/0.5,            # Relative risk aversion (curvature)
+    "omega": 0.78,                # Relative weight of consumption c versus durable goods ˜d in the utility function
+    "dbar": 1,                 # Subsistence level of durable goods
     "r": 0.02 / 4,             # Interest rate (quarterly)
     "N": 1,                    # Total labor supply
     # Productivity process
@@ -99,12 +102,17 @@ print('It has outputs: ' + str(ha.outputs))
 # drawdag(ha, unknowns, targets, inputs)
 
 #%% Not SS
-#evaluate_param_changes('p_g', [0.1], ha, cali['baseline'],
-#                       ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax'])
+noss_DD = ha.steady_state(cali['baseline'])
+
+noss_DD.toplevel
+
+#%% Not SS
+evaluate_param_changes('omega', [0.50, 0.75], ha, cali['baseline'],
+                      ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax'])
 
 
 #%% === Solve the model Steady State ===
-unknowns_ss = {'beta':0.946, 'N':1, 'tau_b':0.50}
+unknowns_ss = {'beta':0.985, 'N':1, 'tau_b':0.50}
 targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'T_E_diff': 0.0}
 
 ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
@@ -117,41 +125,37 @@ check_resource_constraint(ss_DD)
 
 #%% One shot deviation of SS
 
-param_grid = {'T_E': np.linspace(0.0001, 0.01, 5)}
-
-
-
+param_grid = {'omega': np.linspace(0.50, 1, 5)}
 
 # Track output, wage, and interest rate
-outputs = ['tau_b','D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN']
-
-# results = comparative_statics_plot(
-#     ha=ha,
-#     ss_base=ss_DD,
-#     param_grid=param_grid,
-#     unknowns_ss=unknowns_ss,
-#     targets_ss=targets_ss,
-#     outputs=outputs,
-#     plot_deviation=False
-# )
-
-outputs_shares = ['D_N', 'D_B', 'D_G']
-#outputs_shares = ['D_N', 'D_BN',  'D_BO', 'D_GN', 'D_GO']
-
-
-results = comparative_statics_plot_shares(
+outputs = ['tau_b','D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN', 'B','beta']
+results = comparative_statics_plot(
     ha=ha,
     ss_base=ss_DD,
     param_grid=param_grid,
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
-    outputs=outputs_shares,
-    line_labels=["None", "Brown", "Green"],
-    title="Durable shares under different carbon tax rates",
-    x_label=r"Carbon Tax Rate $\tau_B$",
-    x_values=["Low", " ", "Medium", "  ", "High"],
-    save_path='../../output/figures/CS_T_E.png',
+    outputs=outputs,
+    plot_deviation=False
 )
+
+# outputs_shares = ['D_N', 'D_B', 'D_G']
+# #outputs_shares = ['D_N', 'D_BN',  'D_BO', 'D_GN', 'D_GO']
+
+
+# results = comparative_statics_plot_shares(
+#     ha=ha,
+#     ss_base=ss_DD,
+#     param_grid=param_grid,
+#     unknowns_ss=unknowns_ss,
+#     targets_ss=targets_ss,
+#     outputs=outputs_shares,
+#     line_labels=["None", "Brown", "Green"],
+#     title="Durable shares under different carbon tax rates",
+#     x_label=r"Carbon Tax Rate $\tau_B$",
+#     x_values=["Low", " ", "Medium", "  ", "High"],
+#     save_path='../../output/figures/CS_T_E.png',
+# )
 
 #%%Price of brown energy
 param_grid = {'p_e_b': np.linspace(0.2, 0.8, 5)}
