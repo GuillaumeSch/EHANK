@@ -9,36 +9,6 @@ from sequence_jacobian.blocks.support.stages import ExogenousMaker
 from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, Continuous1D_Durables, StageBlockDurables
 from Fun.my_funs import *
 
-def make_strictly_decreasing(uc):
-    uc_fixed = uc.copy()
-    shape = uc.shape
-    ndim = uc.ndim
-
-    # Iterate over all indices except the last one
-    it = np.nditer(uc[..., 0], flags=['multi_index'])
-    while not it.finished:
-        idx = it.multi_index  # Tuple of all dimensions except the last
-        row = uc[idx]  # This is a 1D array (the last axis)
-
-        # Fix infinite values at the start
-        if np.isinf(row[0]):
-            first_finite = np.argmax(~np.isinf(row))
-            if first_finite > 0:
-                decrement = 1.0
-                for k in range(first_finite - 1, -1, -1):
-                    row[k] = row[k + 1] + decrement
-
-        # Make strictly decreasing
-        for k in range(1, row.shape[0]):
-            if row[k] >= row[k - 1]:
-                row[k] = row[k - 1] - 1e-8
-
-        # Assign back to uc_fixed
-        uc_fixed[idx] = row
-
-        it.iternext()
-
-    return uc_fixed
 
 
 #%% Stage 1 - Productivity shock (Expected value function given initial state of individual prod. level e_)
@@ -57,21 +27,16 @@ durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='du
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
-def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, omega, gamma, dbar, shifters, p_bundle):
+def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, omega, gamma, dbar, shifters, p_bundle):
     """DC-EGM algorithm"""
     n_d = adj_matrix.shape[0] #Number of discrete choices
     # use all FOCs on endogenous grid
     W = beta * V                                                  # end-of-stage vfun
     W = np.stack([W] * n_d, axis=0)                               # Add first dimension to match the dimensions
-    breakpoint()
-    uc_endo = (beta * Va)[np.newaxis, ...] * p_bundle[..., np.newaxis ,np.newaxis, np.newaxis]     # FOC    
-    
+    uc_endo = (beta * Va)[np.newaxis, ...] * p_bundle[..., np.newaxis ,np.newaxis, np.newaxis]     # FOC        
     durable_scaling = omega * (dbar + shifters[..., np.newaxis])**((1-omega)*(1-gamma))
-    
-    c_endo = (uc_endo / durable_scaling )** (1/(omega*(1-gamma) - 1))                                     # Euler equation
-    
-    #c_endo = (uc_endo)** (-eis)                                     # Euler equation
-    
+    c_endo = (uc_endo / durable_scaling )** (1/(omega*(1-gamma) - 1))                                   
+        
     a_endo = (c_endo * p_bundle[..., np.newaxis, np.newaxis, np.newaxis]
               + a_grid[np.newaxis, np.newaxis, np.newaxis, ...]
               + adj_matrix[..., np.newaxis,np.newaxis]
@@ -79,20 +44,14 @@ def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, eis, omega, g
               - T[np.newaxis, np.newaxis, ..., np.newaxis]
               ) / (1 + r)     # budget constraint
 
-    # Mark the presence of each durable 
-    d_type = np.zeros_like(a_endo)
-    for d in range(0, n_d):
-        d_type[d, :, :, :] = d
-    # Mark the presence of price of consumption bundle
-    p_c_type = np.zeros_like(a_endo)
-    for d in range(0, n_d):
-        p_c_type[d, :, :, :] = p_bundle[d]
+    # Prepare indices for upper envelope
+    d_type = np.arange(n_d)[:, None, None, None] * np.ones_like(a_endo)
+    p_c_type = p_bundle[:, None, None, None] * np.ones_like(a_endo)
 
     # interpolate with upper envelope, enforce borrowing limit
     V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, p_c_type, omega, gamma, dbar, shifters)
 
     # update Va on exogenous grid
-    #uc = c ** (-1 / eis)                                          
     uc = omega*c**(omega * (1-gamma) - 1) * (dbar + shifters[..., np.newaxis])**((1-omega)*(1-gamma)) # Marginal Utility of Consu
     uc = make_strictly_decreasing(uc)                             # Correct for the infinite values.
     Va = (1 + r) * uc                                             # envelope condition
@@ -130,8 +89,7 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args):
 
     # loop over other states, collapsed into single axis
     for ib in range(n_b):
-        d = int(d_type[ib,0])
-        p_c = p_c_type[ib,0]
+        d, p_c = int(d_type[ib,0]), p_c_type[ib,0]
         # loop over segments of endogenous asset grid from EGM (not necessarily increasing)
         for ja in range(n_a - 1):
             a_low, a_high = a_endo[ib, ja], a_endo[ib, ja + 1]
@@ -166,7 +124,7 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args):
         ia = 0
         while ia < n_a and a_grid[ia] <= a_endo[ib, 0]:
             a[ib, ia] = a_grid[0]
-            c[ib, ia] = max(0.0001,disp_inc[ib, ia]/p_c) # Correct for negative values. Replace by small consumption (Unlikely to choose this consumption)
+            c[ib, ia] = max(1e-5,disp_inc[ib, ia]/p_c) # Correct for negative values. Replace by small consumption (Unlikely to choose this consumption)
             V[ib, ia] = util(c[ib, ia], d, *args) + W[ib, 0]
             ia += 1
 
@@ -179,7 +137,6 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args):
 def util(c, d, omega, gamma, dbar, shifters):
     """
     CES-style utility over consumption and discrete durable vintages.
-
     Parameters:
     - c: consumption (scalar)
     - d: discrete vintage index (integer)
@@ -190,19 +147,12 @@ def util(c, d, omega, gamma, dbar, shifters):
     """
     # Effective durable stock
     d_eff = dbar + shifters[d]
-
-    ## Prevent negative or zero consumption/durables
-    #if c <= 0.0 or d_eff <= 0.0:
-    #    return -1e10
-
     X = (c ** omega) * (d_eff ** (1 - omega))
-
     if gamma == 1.0:
         # log utility limit
         u = np.log(X)# + omega * (d_eff-dbar) #SECOND PART SHOULD BE ERASED. JUST TO SEE IF THIS MATCHES PREVIOUSLY
     else:
         u = (X ** (1 - gamma)) / (1 - gamma)# + omega * (d_eff-dbar) #SECOND PART SHOULD BE ERASED. JUST TO SEE IF THIS MATCHES PREVIOUSLY
-
     return u
 
 
@@ -274,11 +224,6 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, n_b, tau_b, p_e
 #     t_E_endo = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis]
 #     return t_E_endo
 
-# def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi):
-
-#     return c_core, c_E
-
-
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
                             name='consav', hetoutputs=[D_demand, compute_distr, compute_Agg_Transf, decomposition_consu_bundle])
@@ -325,7 +270,6 @@ def vector_Y_d(Y_d0, Y_d1, Y_d2, Y_d3, Y_d4):
 def adj_costs(p_d0, p_d1, p_d2, p_d3, p_d4, chi):
     p_d = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
     adj_matrix = p_d[:, None] - (1 - chi) * p_d
-    #adj_matrix[:,-1] = -10                            # Reflect impossibility to buy second market green.
     np.fill_diagonal(adj_matrix, 0)                     # set diagonal to 0 (no cost if no switching)
     return adj_matrix, p_d
 
@@ -342,7 +286,6 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable in
     return disp_inc
 
 #Construct the utility shifter for durables
-
 def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g):
     dep_rate_b = 1 - (dep_util_frac_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
     vintages_b = np.arange(n_b)
@@ -365,13 +308,6 @@ def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu
     else:
         p_bundle = p_core**xi * p_e**(1-xi)
     return p_bundle, p_e
-
-# def make_price_durable_vector(p_d0, p_d1, p_d2, p_d3, p_d4):
-#     p_d = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
-#     return p_d
-
-
-    
 
 
 #%% Assemble the HH block (staged block)

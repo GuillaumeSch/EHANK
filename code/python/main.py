@@ -11,8 +11,7 @@ from sequence_jacobian import drawdag
 
 # %%
 # === Calibration dictionary ===
-cali = {}
-cali["baseline"] = {
+baseline_calibration = {
     # Preferences and taste shocks
     "taste_shock": 1e-1,       # Idiosyncratic taste shock
     "vphi": 0.0,               # Value function penalty parameter
@@ -33,14 +32,11 @@ cali["baseline"] = {
     "n_a": 20,                 # Number of asset grid points
     # Labor market
     "N_core": 0.6,             # Labor demand for core goods
-    #"N_d1": 0.1, "N_d2": 0.1, "N_d3": 0.1, "N_d4": 0.1,                # Labor demand for durable goods
     "N_d": np.array([ 0.1, 0.1, 0.1, 0.1]),                # Labor demand for durable goods
     "tau":0,                   # Labor income tax
     # Durable goods
-    #"p_b": 0.80,               # Initial price of brown durable
     #"dep_frac_b": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
     "n_b": 2,                  # Number of brown vintages
-    #"p_g": 0.90,               # Initial price of green durable
     #"dep_frac_g": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
     "n_g": 2,                  # Number of green vintages
     #"n_d": 1 + n_b + n_g,      # Total durable states
@@ -57,9 +53,7 @@ cali["baseline"] = {
     "Div": 0,                  # Dividends from firms
     "Z_core": 1,               # Core productivity
     "Z_d1": 15, "Z_d2": 60, "Z_d3": 3, "Z_d4": 1, # Durables productivities
-    #"Z_d": np.array([15.52920823, 62.11683292,  1.11111111,  4.44444444]),                # 
     #Government
-    #"Y" : 1,                  # Output
     "B" : 4,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
     #Energy
@@ -74,17 +68,7 @@ cali["baseline"] = {
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
-
-#Import the DD calibration (Some parameters are not present in the DD calibration.)
-# with open('calibration_ss_DD.json', 'r') as f:
-#     cali_DD = json.load(f)
-
-# cali['baseline_DD'] = deepcopy(cali['baseline'])
-# for key in cali_DD.keys():
-#     if key in cali['baseline_DD']:
-#         cali['baseline_DD'][key] = cali_DD[key]
-
-for k, v in cali["baseline"].items():
+for k, v in baseline_calibration.items():
     globals()[k] = v
 
 #%% === Create the model ===
@@ -93,34 +77,32 @@ print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
-#%%
+#%% DAG
 
 # unknowns = ['beta', 'N']
 # targets = ['asset_mkt','labor_mkt']
 # inputs = ['G']
-
 # drawdag(ha, unknowns, targets, inputs)
 
-#%% Not SS
-noss_DD = ha.steady_state(cali['baseline'])
+#%% Evaluate the model at the calibration
+ss_baseline = ha.steady_state(baseline_calibration)
+ss_baseline.toplevel
 
-noss_DD.toplevel
-
-#%% Not SS
-evaluate_param_changes('omega', [0.50, 0.75], ha, cali['baseline'],
-                      ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax'])
+# #%% Evaluate the model at the calibration with differences in a parameter.
+# evaluate_param_changes('omega', [0.50, 0.75], ha, cali['baseline'],
+#                       ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax'])
 
 
 #%% === Solve the model Steady State ===
 unknowns_ss = {'beta':0.985, 'N':1, 'tau_b':0.50}
 targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'T_E_diff': 0.0}
 
-ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
+ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
 
-display_ss_durables(ss_DD)
-display_calibrated_from_unknowns(ss_DD, unknowns_ss)
+display_ss_durables(ss)
+display_calibrated_from_unknowns(ss, unknowns_ss)
 
-check_resource_constraint(ss_DD)
+check_resource_constraint(ss)
 
 
 #%% One shot deviation of SS
@@ -131,7 +113,7 @@ param_grid = {'omega': np.linspace(0.50, 1, 5)}
 outputs = ['tau_b','D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN', 'B','beta']
 results = comparative_statics_plot(
     ha=ha,
-    ss_base=ss_DD,
+    ss_base=ss,
     param_grid=param_grid,
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
@@ -145,7 +127,7 @@ results = comparative_statics_plot(
 
 # results = comparative_statics_plot_shares(
 #     ha=ha,
-#     ss_base=ss_DD,
+#     ss_base=ss,
 #     param_grid=param_grid,
 #     unknowns_ss=unknowns_ss,
 #     targets_ss=targets_ss,
@@ -162,7 +144,7 @@ param_grid = {'p_e_b': np.linspace(0.2, 0.8, 5)}
 
 results = comparative_statics_plot_shares(
     ha=ha,
-    ss_base=ss_DD,
+    ss_base=ss,
     param_grid=param_grid,
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
@@ -179,7 +161,7 @@ param_grid = {'Z_d3': np.linspace(2, 4, 5)}
 
 results = comparative_statics_plot_shares(
     ha=ha,
-    ss_base=ss_DD,
+    ss_base=ss,
     param_grid=param_grid,
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
@@ -195,25 +177,24 @@ results = comparative_statics_plot_shares(
 
 
 #%%
-ss = dict()
-ss['baseline'] = ss_DD
+ss_dict = dict()
+ss_dict['baseline'] = ss
 
-policy_functions(ss, plots=['disc'], ie_list=[0], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
-
+policy_functions(ss_dict, plots=['disc'], ie_list=[0], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5.2, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
 
 
 
 #%%
-plot_distribution(ss_DD, lines_dim = 0, 
+plot_distribution(ss, lines_dim = 0, 
                  labels = ['$\\tilde{D}$ = None','$\\tilde{D}$ = New Brown','$\\tilde{D}$ = Old Brown','$\\tilde{D}$ = New Green','$\\tilde{D}$ = Old Green'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Durables_D_tilde.png')
-plot_distribution(ss_DD, lines_dim = 1, 
+plot_distribution(ss, lines_dim = 1, 
                  labels = ['None','New Brown','Old Brown','New Green','Old Green'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Durables_D.png')
-plot_distribution(ss_DD, lines_dim = 2, 
+plot_distribution(ss, lines_dim = 2, 
                  labels = ['Very Low','Low','Middle','High','Very High'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Prod.png')
-plot_distribution(ss_DD,
+plot_distribution(ss,
                  labels = ['Total'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Total.png')
 #%% Check that the resource constraint holds
@@ -241,7 +222,7 @@ plot_linear_irfs(
     unknowns_td=['r','N','tau_b'],
     targets_td=['asset_mkt',"labor_mkt", "T_E_diff"],
     ha=ha,
-    ss=ss_DD,
+    ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
     outputs=["T_E","tau_b", "D_N", "D_B", "D_G", "C", "C_E_B", "C_E_G"],
     titles = titles,
@@ -263,7 +244,7 @@ plot_linear_irfs(
     unknowns_td=['G','N','tau_b'],
     targets_td=['asset_mkt',"labor_mkt", "T_E_diff"],
     ha=ha,
-    ss=ss_DD,
+    ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
     outputs=["T_E_ENDO","D_B", "D_G", "C_E_B", "C_E_G", "C_CORE"],
     titles = titles,
@@ -286,7 +267,7 @@ plot_linear_irfs(
     unknowns_td=['G','N','tau_b'],
     targets_td=['asset_mkt',"labor_mkt", "T_E_diff"],
     ha=ha,
-    ss=ss_DD,
+    ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
     outputs=["r","B","G","C", "Tax", "deficit"],
     titles = titles,
@@ -303,27 +284,27 @@ plot_linear_irfs(
 
 # === Analyze the steady state ===
 #%%
-evaluate_param_changes('gamma_g', [1, 2, 3, 4], ha, ss_DD,
+evaluate_param_changes('gamma_g', [1, 2, 3, 4], ha, ss,
                            ss_vars=['N_core', 'labor_mkt','asset_mkt', 'Tax',
                                     'A', 'B', 'N', 'C', 'C_CORE', 'C_E','D_N','D_G','D_B'])
 
 
-analyze_steady_state('gamma_g', [1, 2, 3, 4, 10], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
+analyze_steady_state('gamma_g', [1, 2, 3, 4, 10], ss, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
 
 #%%
 
-analyze_steady_state_3d('gamma_g', [1, 2],'gamma_b', [1, 2], ss_DD, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
+analyze_steady_state_3d('gamma_g', [1, 2],'gamma_b', [1, 2], ss, hh_durables, variables= ['A', 'D_N', 'D_G', 'D_B'])
 
 
 #%%
-unknowns_ss_2 = {'N':ss_DD['N'],'mu_N_d':ss_DD['mu_N_d'], 'p_b': 0.80, 'gamma_g':1.2}
+unknowns_ss_2 = {'N':ss['N'],'mu_N_d':ss['mu_N_d'], 'p_b': 0.80, 'gamma_g':1.2}
 targets_ss_2 = {'asset_mkt':0,'labor_mkt':0, 'D_B':0.050,'D_G':0.020, }
 
 
 unknowns_ss_2 = {
     #'N': (0, ss_DD['N'], 1),
-    'B': (0, ss_DD['B'], 4),
-    'N': (0, ss_DD['N'], 1),
+    'B': (0, ss['B'], 4),
+    'N': (0, ss['N'], 1),
     #'mu_N_d':(0, ss_DD['mu_N_d'], 1),
     'p_b': (0.01, 0.273, 10),
     #'p_g': (0.01, 0.9, 10),
@@ -340,13 +321,13 @@ targets_ss_2 = {
 }
 
 #ss_DD = ha.solve_steady_state(cali['baseline'] , unknowns_ss, targets_ss, solver='hybr')
-ss_DD_2 = ha.solve_steady_state(ss_DD , unknowns_ss_2, targets_ss_2, solver='broyden_custom')
+ss_2 = ha.solve_steady_state(ss , unknowns_ss_2, targets_ss_2, solver='broyden_custom')
 
-display_ss_durables(ss_DD_2)
-display_calibrated_from_unknowns(ss_DD_2, unknowns_ss_2)
+display_ss_durables(ss_2)
+display_calibrated_from_unknowns(ss_2, unknowns_ss_2)
 
 #%%
-cali_DD_alt = ss_DD.copy()
+cali_DD_alt = ss.copy()
 cali_DD_alt['Z_d1'] = 0.5
 
 unknowns_ss = {'B':(0.80,0.999)}
@@ -354,5 +335,5 @@ targets_ss = {'asset_mkt'}
 
 ss_DD_alt = ha.solve_steady_state(cali_DD_alt , unknowns_ss, targets_ss, solver='hybr')
 display_ss_durables(ss_DD_alt)
-display_calibrated_from_unknowns(ss_DD, ss_DD_alt)
+display_calibrated_from_unknowns(ss, ss_DD_alt)
 
