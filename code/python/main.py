@@ -35,16 +35,13 @@ baseline_calibration = {
     "N_d": np.array([ 0.1, 0.1, 0.1, 0.1]),                # Labor demand for durable goods
     "tau":0,                   # Labor income tax
     # Durable goods
-    #"dep_frac_b": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
     "n_b": 2,                  # Number of brown vintages
-    #"dep_frac_g": 0.25,        # Depreciation green (Fraction of oldest vintage relative to newest)
     "n_g": 2,                  # Number of green vintages
-    #"n_d": 1 + n_b + n_g,      # Total durable states
     "chi": 0.5,                # Resale loss (fraction)
     "gamma_b": 1.0,            # Utility from brown durable
-    "dep_util_frac_b": 1,      # Depreciation utility brown (Fraction of oldest vintage relative to newest)
+    "dep_util_frac_b": 0.7,      # Depreciation utility brown (Fraction of oldest vintage relative to newest)
     "gamma_g": 1.2,            # Utility from green durable
-    "dep_util_frac_g": 1,      # Depreciation utility green (Fraction of oldest vintage relative to newest)
+    "dep_util_frac_g": 0.7,      # Depreciation utility green (Fraction of oldest vintage relative to newest)
     "lifetime_b": 60,          # Average lifetime of brown durables (quarters)
     "lifetime_g": 60,          # Average lifetime of green durables (quarters)
     # Firms
