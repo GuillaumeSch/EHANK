@@ -34,7 +34,7 @@ def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, omega, gamma,
     W = beta * V                                                  # end-of-stage vfun
     W = np.stack([W] * n_d, axis=0)                               # Add first dimension to match the dimensions
     uc_endo = (beta * Va)[np.newaxis, ...] * p_bundle[..., np.newaxis ,np.newaxis, np.newaxis]     # FOC        
-    durable_scaling = omega * (dbar + shifters[..., np.newaxis])**((1-omega)*(1-gamma))
+    durable_scaling = omega * (dbar + shifters[..., np.newaxis, np.newaxis, np.newaxis])**((1-omega)*(1-gamma))
     c_endo = (uc_endo / durable_scaling )** (1/(omega*(1-gamma) - 1))                                   
         
     a_endo = (c_endo * p_bundle[..., np.newaxis, np.newaxis, np.newaxis]
@@ -196,12 +196,13 @@ def compute_Agg_Transf(T, c):
     Agg_Transf = np.zeros_like(c) + T[np.newaxis, np.newaxis, ..., np.newaxis]
     return Agg_Transf
 
-def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
+def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec, eps_vec):
     c_core = xi * (p_core/p_bundle[...,np.newaxis,np.newaxis, np.newaxis])**(-nu)*c
     mask = p_e == 0
     c_E = np.zeros_like(c)
     non_zero_mask = ~mask
-    c_E[non_zero_mask] = (1-xi) * (p_e[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]/
+    #GSCHW: CHANGE SOMETHING HERE
+    c_E[non_zero_mask] = (1-xi) * ((1 + eps_vec[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]) * (1 + tau_vec[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]) * p_e[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]/
                           p_bundle[non_zero_mask,np.newaxis,np.newaxis,np.newaxis])**(-nu)*c[non_zero_mask]
     
     c_E1, c_E2, c_E3, c_E4 = [np.zeros_like(c_E) for _ in range(4)]
@@ -210,19 +211,9 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, n_b, tau_b, p_e
     c_E_B = c_E1 +  c_E2 #Consumption of brown energy
     c_E_G = c_E3 +  c_E4 #Consumption of green energy
     
-    tau_b_vec = np.ones(n_b) * tau_b * p_e_b
-    tau_g_vec = np.ones(n_g) * tau_g * p_e_g
-    tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
-    t_E_endo = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis]
+    t_E_endo = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis] * (1+ eps_vec[...,np.newaxis, np.newaxis, np.newaxis]) * p_e[...,np.newaxis, np.newaxis, np.newaxis]
     
     return c_core, c_E, c_E1, c_E2, c_E3, c_E4, c_E_B, c_E_G, t_E_endo
-
-# def make_energy_taxes(c_E, n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
-#     tau_b_vec = np.ones(n_b) * tau_b * p_e_b
-#     tau_g_vec = np.ones(n_g) * tau_g * p_e_g
-#     tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
-#     t_E_endo = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis]
-#     return t_E_endo
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
@@ -296,17 +287,34 @@ def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g):
     # Combine
     shifters = np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))
     return shifters
+    
+# def make_tau_vector(n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
+#     tau_b_vec = np.ones(n_b) * tau_b * p_e_b
+#     tau_g_vec = np.ones(n_g) * tau_g * p_e_g
+#     tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
+#     return tau_vec
 
+def make_tau_vector(n_b, tau_b, n_g, tau_g):
+    tau_b_vec = np.ones(n_b) * tau_b
+    tau_g_vec = np.ones(n_g) * tau_g
+    tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
+    return tau_vec
+
+def make_inefficiency_vector(n_b, n_g, eps_b, eps_g):
+    eps_b_vec = eps_b * np.arange(n_b)   # [0, eps_b, 2*eps_b, ...]
+    eps_g_vec = eps_g * np.arange(n_g)
+    eps_vec = np.concatenate(([0.0], eps_b_vec.astype(float), eps_g_vec.astype(float)))
+    return eps_vec
 
 #Price of the household consumption bundle + Decomposition of core and energy consumption
-def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_b, tau_g, xi, nu):
-    p_e_total_b = np.ones(n_b) * (1 + tau_b) * p_e_b
-    p_e_total_g = np.ones(n_g) * (1 + tau_g) * p_e_g
-    p_e = np.concatenate([[0.0], p_e_total_b, p_e_total_g])
+def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_vec, xi, nu, eps_vec):
+    p_e_b_vec = np.ones(n_b) * p_e_b
+    p_e_g_vec = np.ones(n_g) * p_e_g
+    p_e = np.concatenate([[0.0], p_e_b_vec, p_e_g_vec]) 
     if nu != 1:
-        p_bundle = (xi * p_core**(1-nu) + (1-xi) * p_e**(1-nu))**(1/(1-nu))
+        p_bundle = (xi * p_core**(1-nu) + (1-xi) * ((1 + eps_vec) * (1 + tau_vec) * p_e)**(1-nu))**(1/(1-nu))
     else:
-        p_bundle = p_core**xi * p_e**(1-xi)
+        p_bundle = p_core**xi * ((1 + eps_vec) * (1 + tau_vec) * p_e)**(1-xi)
     return p_bundle, p_e
 
 
@@ -315,4 +323,4 @@ hh_durables = StageBlockDurables([depreciation_stage, prod_stage, durables_stage
                 backward_init=hh_init,
                 hetinputs=[make_grids, income_grid, transfers, adj_costs, 
                            disp_inc_f, make_shifters, vector_Y_d,#, make_price_durable_vector,#make_prices_durables, 
-                           make_consu_bundle_price])
+                           make_tau_vector, make_inefficiency_vector, make_consu_bundle_price])

@@ -18,7 +18,7 @@ baseline_calibration = {
     "beta": 0.97,              # Discount factor
     "eis": 0.5,                # Elasticity of intertemporal substitution
     "gamma": 1/0.5,            # Relative risk aversion (curvature)
-    "omega": 0.78,                # Relative weight of consumption c versus durable goods ˜d in the utility function
+    "omega": 0.78,             # Relative weight of consumption c versus durable goods ˜d in the utility function
     "dbar": 1,                 # Subsistence level of durable goods
     "r": 0.02 / 4,             # Interest rate (quarterly)
     "N": 1,                    # Total labor supply
@@ -39,9 +39,9 @@ baseline_calibration = {
     "n_g": 2,                  # Number of green vintages
     "chi": 0.5,                # Resale loss (fraction)
     "gamma_b": 1.0,            # Utility from brown durable
-    "dep_util_frac_b": 0.7,      # Depreciation utility brown (Fraction of oldest vintage relative to newest)
+    "dep_util_frac_b": 0.7,    # Depreciation utility brown (Fraction of oldest vintage relative to newest)
     "gamma_g": 1.2,            # Utility from green durable
-    "dep_util_frac_g": 0.7,      # Depreciation utility green (Fraction of oldest vintage relative to newest)
+    "dep_util_frac_g": 0.7,    # Depreciation utility green (Fraction of oldest vintage relative to newest)
     "lifetime_b": 60,          # Average lifetime of brown durables (quarters)
     "lifetime_g": 60,          # Average lifetime of green durables (quarters)
     # Firms
@@ -54,11 +54,13 @@ baseline_calibration = {
     "B" : 4,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
     #Energy
-    "p_e_b" : 0.333,            # Price of brown energy (gas/petrol)
+    "p_e_b" : 0.333,           # Price of brown energy (gas/petrol)
     "p_e_g" : 0.04,            # Price of green energy (electricity)
+    "eps_b" : 0.40,            # Linear inefficiency of brown car vintages
+    "eps_g" : 0.20,            # Linear inefficiency of green car vintages
     "tau_b" : 0.50,            # Carbon tax (no free. Dependend of T_E)
     "tau_g" : 0,               # Green energy subsidy
-    "T_E" : 0.002,           # Energy tax revenues 
+    "T_E" : 0.002,             # Energy tax revenues 
     #Prices
     "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
@@ -104,7 +106,7 @@ check_resource_constraint(ss)
 
 #%% One shot deviation of SS
 
-param_grid = {'omega': np.linspace(0.50, 1, 5)}
+param_grid = {'eps_b': np.linspace(0.0, 0.5, 5)}
 
 # Track output, wage, and interest rate
 outputs = ['tau_b','D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN', 'B','beta']
