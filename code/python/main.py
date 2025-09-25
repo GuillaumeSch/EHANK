@@ -15,12 +15,12 @@ baseline_calibration = {
     # Preferences and taste shocks
     "taste_shock": 1e-1,       # Idiosyncratic taste shock
     "vphi": 0.0,               # Value function penalty parameter
-    "beta": 0.97,              # Discount factor
+    "beta": 0.959,              # Discount factor
     "eis": 0.5,                # Elasticity of intertemporal substitution
     "gamma": 1/0.5,            # Relative risk aversion (curvature)
     "omega": 0.78,             # Relative weight of consumption c versus durable goods ˜d in the utility function
     "dbar": 1,                 # Subsistence level of durable goods
-    "r": 0.02 / 4,             # Interest rate (quarterly)
+    "r": 0.06 / 4,             # Interest rate (quarterly)
     "N": 1,                    # Total labor supply
     # Productivity process
     "rho_e": 0.95,             # Persistence of productivity shocks
@@ -49,7 +49,7 @@ baseline_calibration = {
     #"p_core": 1,               # Price of core, non-durable goods
     "Div": 0,                  # Dividends from firms
     "Z_core": 1,               # Core productivity
-    "Z_d1": 15, "Z_d2": 60, "Z_d3": 3, "Z_d4": 1, # Durables productivities
+    "Z_d1": 15, "Z_d2": 60, "Z_d3": 10, "Z_d4": 1, # Durables productivities
     #Government
     "B" : 4,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
@@ -88,25 +88,24 @@ ss_baseline = ha.steady_state(baseline_calibration)
 ss_baseline.toplevel
 
 # #%% Evaluate the model at the calibration with differences in a parameter.
-# evaluate_param_changes('omega', [0.50, 0.75], ha, cali['baseline'],
-#                       ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax'])
+evaluate_param_changes('xi', [0.963 , 0.965, 0.98 , 0.99], ha, baseline_calibration,
+                      ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax','tau_b','T_E_ENDO'])
 
 
 #%% === Solve the model Steady State ===
-unknowns_ss = {'beta':0.985, 'N':1, 'tau_b':0.50}
+unknowns_ss = {'beta':0.962, 'N':1, 'tau_b':0.202}
 targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'T_E_diff': 0.0}
 
 ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
 
 display_ss_durables(ss)
 display_calibrated_from_unknowns(ss, unknowns_ss)
-
 check_resource_constraint(ss)
 
 
 #%% One shot deviation of SS
 
-param_grid = {'eps_b': np.linspace(0.0, 0.5, 5)}
+param_grid = {'eps_b': np.linspace(0.0, 0.5, 3)}
 
 # Track output, wage, and interest rate
 outputs = ['tau_b','D_N', 'D_B', 'D_BN', 'D_BO', 'D_G', 'D_GN', 'B','beta']
