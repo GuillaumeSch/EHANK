@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block import hh_durables
-from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, carbon_tax
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -58,9 +58,9 @@ baseline_calibration = {
     "p_e_g" : 0.04,            # Price of green energy (electricity)
     "eps_b" : 0.40,            # Linear inefficiency of brown car vintages
     "eps_g" : 0.20,            # Linear inefficiency of green car vintages
-    "tau_b" : 0.50,            # Carbon tax (no free. Dependend of T_E)
+    "tau_b" : 0.202,            # Carbon tax (no free. Dependend of T_E)
     "tau_g" : 0,               # Green energy subsidy
-    "T_E" : 0.002,             # Energy tax revenues 
+    #"T_E" : 0.002,             # Energy tax revenues 
     #Prices
     "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
@@ -71,17 +71,18 @@ for k, v in baseline_calibration.items():
     globals()[k] = v
 
 #%% === Create the model ===
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, carbon_tax], name="Simple HA Model")
+#ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, carbon_tax], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
 #%% DAG
 
-# unknowns = ['beta', 'N']
-# targets = ['asset_mkt','labor_mkt']
-# inputs = ['G']
-# drawdag(ha, unknowns, targets, inputs)
+unknowns = ['r','N','Tax']
+targets = ['asset_mkt',"labor_mkt", "GBC"]
+inputs = ['G']
+drawdag(ha, unknowns, targets, inputs)
 
 #%% Evaluate the model at the calibration
 ss_baseline = ha.steady_state(baseline_calibration)
@@ -93,8 +94,8 @@ evaluate_param_changes('xi', [0.963 , 0.965, 0.98 , 0.99], ha, baseline_calibrat
 
 
 #%% === Solve the model Steady State ===
-unknowns_ss = {'beta':0.962, 'N':1, 'tau_b':0.202}
-targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'T_E_diff': 0.0}
+unknowns_ss = {'beta':0.962, 'N':1, 'Tax':0.358}
+targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'GBC': 0.0}
 
 ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
 
@@ -207,22 +208,23 @@ plot_distribution(ss,
 titles = [
         r"Carbon tax revenues: $T_B$",  
         r"Carbon tax rate: $\tau_B$",     
-        r"Share of non-durable: $D_N$",  
+        r"Lump Sum Tax : $T$",     
+        r"Share of no durable holding: $D_N$",  
         r"Share of Brown: $D_B$",
         r"Share of Green: $D_G$",     
         r"Total Consumption: $C$",  
         r"Consu. of Brown energy: $C^B$", 
         r"Consu. of Green energy: $C^G$",]
 plot_linear_irfs(
-    shocks_list=['T_E'],
-    e = {"T_E": 0.01},
-    rho = {"T_E": 0.80},
-    unknowns_td=['r','N','tau_b'],
-    targets_td=['asset_mkt',"labor_mkt", "T_E_diff"],
+    shocks_list=['tau_b'],
+    e = {"tau_b": 0.01},
+    rho = {"tau_b": 0.80},
+    unknowns_td=['r','N','Tax'],
+    targets_td=['asset_mkt',"labor_mkt", "GBC"],
     ha=ha,
     ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["T_E","tau_b", "D_N", "D_B", "D_G", "C", "C_E_B", "C_E_G"],
+    outputs=["T_E","tau_b", "Tax", "D_N", "D_B", "D_G", "C", "C_E_B", "C_E_G"],
     titles = titles,
     figsize=(18, 12),
     #save_path='../../output/figures/IRFs_tau_b.png',

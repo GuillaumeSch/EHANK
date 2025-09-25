@@ -2,20 +2,10 @@ import sequence_jacobian as sj
 import numpy as np
 
 @sj.simple
-def fiscal(B, r, G, T_E):
-    Tax = (1 + r) * B(-1) + G - B - T_E  # total tax burden
-    deficit = G - Tax
-    return Tax, deficit
-
-# @sj.simple
-# def carbon_tax(C_E1, C_E2, C_E3, C_E4, tau_b, tau_g, p_e_b, p_e_g):
-#     T_E = tau_b * p_e_b * (C_E1 + C_E2) + tau_g * p_e_g * (C_E3 + C_E4)
-#     return T_E
-
-@sj.simple
-def carbon_tax(T_E, T_E_ENDO):
-    T_E_diff = T_E_ENDO - T_E
-    return T_E_diff
+def fiscal(B, r, G, Tax, T_E):
+    #Tax = (1 + r) * B(-1) + G - B - T_E  # total tax burden
+    GBC = Tax - ((1 + r) * B(-1) + G - B - T_E)  # total tax burden
+    return GBC
 
 @sj.simple
 def mkt_clearing(A, B, N, N_core, N_d):

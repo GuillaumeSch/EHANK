@@ -211,9 +211,9 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec, eps_ve
     c_E_B = c_E1 +  c_E2 #Consumption of brown energy
     c_E_G = c_E3 +  c_E4 #Consumption of green energy
     
-    t_E_endo = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis] * (1+ eps_vec[...,np.newaxis, np.newaxis, np.newaxis]) * p_e[...,np.newaxis, np.newaxis, np.newaxis]
+    t_E = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis] * (1+ eps_vec[...,np.newaxis, np.newaxis, np.newaxis]) * p_e[...,np.newaxis, np.newaxis, np.newaxis]
     
-    return c_core, c_E, c_E1, c_E2, c_E3, c_E4, c_E_B, c_E_G, t_E_endo
+    return c_core, c_E, c_E1, c_E2, c_E3, c_E4, c_E_B, c_E_G, t_E
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
