@@ -19,7 +19,7 @@ prod_stage = ExogenousMaker(markov_name='e_markov', index=1, name='prod')
 #Initialize Stage 1b
 depreciation_stage = ExogenousMaker(markov_name='d_markov', index=0, name='durable')
 
-#%% Stage 2 - Discrete choice (Labor participation)
+#%% Stage 2 - Discrete choice (Durable choice)
 
 #Initialize Stage 2
 durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='durables',
@@ -150,9 +150,9 @@ def util(c, d, omega, gamma, dbar, shifters):
     X = (c ** omega) * (d_eff ** (1 - omega))
     if gamma == 1.0:
         # log utility limit
-        u = np.log(X)# + omega * (d_eff-dbar) #SECOND PART SHOULD BE ERASED. JUST TO SEE IF THIS MATCHES PREVIOUSLY
+        u = np.log(X)
     else:
-        u = (X ** (1 - gamma)) / (1 - gamma)# + omega * (d_eff-dbar) #SECOND PART SHOULD BE ERASED. JUST TO SEE IF THIS MATCHES PREVIOUSLY
+        u = (X ** (1 - gamma)) / (1 - gamma)
     return u
 
 
@@ -201,7 +201,6 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec, eps_ve
     mask = p_e == 0
     c_E = np.zeros_like(c)
     non_zero_mask = ~mask
-    #GSCHW: CHANGE SOMETHING HERE
     c_E[non_zero_mask] = (1-xi) * ((1 + eps_vec[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]) * (1 + tau_vec[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]) * p_e[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]/
                           p_bundle[non_zero_mask,np.newaxis,np.newaxis,np.newaxis])**(-nu)*c[non_zero_mask]
     

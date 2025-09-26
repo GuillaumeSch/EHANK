@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block import hh_durables
-from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, nkpc
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -14,7 +14,6 @@ from sequence_jacobian import drawdag
 baseline_calibration = {
     # Preferences and taste shocks
     "taste_shock": 1e-1,       # Idiosyncratic taste shock
-    "vphi": 0.0,               # Value function penalty parameter
     "beta": 0.959,              # Discount factor
     "eis": 0.5,                # Elasticity of intertemporal substitution
     "gamma": 1/0.5,            # Relative risk aversion (curvature)
@@ -22,6 +21,8 @@ baseline_calibration = {
     "dbar": 1,                 # Subsistence level of durable goods
     "r": 0.06 / 4,             # Interest rate (quarterly)
     "N": 1,                    # Total labor supply
+    "frisch": 1,               # Frisch elasticity
+    "vphi": 1,                 # Disutility of work
     # Productivity process
     "rho_e": 0.95,             # Persistence of productivity shocks
     "sd_e": 0.5,               # Std. deviation of productivity shocks
@@ -53,6 +54,7 @@ baseline_calibration = {
     #Government
     "B" : 4,                   # Stock of debt
     "G" : 0.3,                 # Government spendings
+    "Tax": 0.358,              # Lump-sum tax
     #Energy
     "p_e_b" : 0.333,           # Price of brown energy (gas/petrol)
     "p_e_g" : 0.04,            # Price of green energy (electricity)
@@ -64,6 +66,9 @@ baseline_calibration = {
     #Prices
     "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
+    #NKPC
+    "piw": 0,
+    "markup_ss": 1,
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
@@ -72,7 +77,7 @@ for k, v in baseline_calibration.items():
 
 #%% === Create the model ===
 #ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, carbon_tax], name="Simple HA Model")
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, nkpc], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
@@ -94,8 +99,11 @@ evaluate_param_changes('xi', [0.963 , 0.965, 0.98 , 0.99], ha, baseline_calibrat
 
 
 #%% === Solve the model Steady State ===
-unknowns_ss = {'beta':0.962, 'N':1, 'Tax':0.358}
-targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'GBC': 0.0}
+#unknowns_ss = {'beta':0.962, 'N':1, 'Tax':0.358}
+#targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'GBC': 0.0}
+
+unknowns_ss = {'beta':baseline_calibration['beta'], 'vphi':1, 'N':1, 'Tax':0.358}
+targets_ss = {'asset_mkt':0.0, 'piwres':0.0, 'labor_mkt':0.0, 'GBC': 0.0}
 
 ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
 
@@ -209,22 +217,24 @@ titles = [
         r"Carbon tax revenues: $T_B$",  
         r"Carbon tax rate: $\tau_B$",     
         r"Lump Sum Tax : $T$",     
-        r"Share of no durable holding: $D_N$",  
+        r"Share of no durable holding : $D_N$",  
         r"Share of Brown: $D_B$",
         r"Share of Green: $D_G$",     
         r"Total Consumption: $C$",  
         r"Consu. of Brown energy: $C^B$", 
-        r"Consu. of Green energy: $C^G$",]
+        r"Consu. of Green energy: $C^G$",
+        r"Wage inflation: $\Pi^w$",
+        ]
 plot_linear_irfs(
     shocks_list=['tau_b'],
     e = {"tau_b": 0.01},
     rho = {"tau_b": 0.80},
-    unknowns_td=['r','N','Tax'],
-    targets_td=['asset_mkt',"labor_mkt", "GBC"],
+    unknowns_td=['G','N','Tax', 'piw'],
+    targets_td=['asset_mkt',"labor_mkt", "GBC", "piwres"],
     ha=ha,
     ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["T_E","tau_b", "Tax", "D_N", "D_B", "D_G", "C", "C_E_B", "C_E_G"],
+    outputs=["T_E","tau_b", "Tax", "D_N", "D_B", "D_G", "C", "C_E_B", "C_E_G", "piw"],
     titles = titles,
     figsize=(18, 12),
     #save_path='../../output/figures/IRFs_tau_b.png',
