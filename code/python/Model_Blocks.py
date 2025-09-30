@@ -40,11 +40,6 @@ def prod_durables(Z_d1, Z_d2, Z_d3, Z_d4, N_d, alpha, w):
 
 
 # @sj.simple
-# def monetary(pi, rstar, phi):
-#     r = (1 + rstar(-1) + phi * pi(-1))/(1+pi) - 1
-#     return r 
-
-# @sj.simple
 # def nkpc_ss(Z_core, mu):
 #     w = Z_core / mu 
 #     return w 
@@ -54,3 +49,21 @@ def nkpc(piw, N, C, vphi, frisch, markup_ss, gamma, beta):
     kappa_w = 0.01 #(1 - theta_w) * (1 - beta * theta_w)/theta_w #to adjust better
     piwres = kappa_w * (vphi * (N)**(1/frisch) - 1/markup_ss * C**(-gamma)) + beta * piw(1) - piw
     return piwres
+
+@sj.simple
+def inflation(piw):
+    pi = piw
+    return pi
+
+@sj.simple
+def monetary_taylor(pi, ishock, rss, phi_pi):
+    i = rss + phi_pi * pi + ishock
+    r_ante = i - pi(1)
+    return r_ante, i
+
+@sj.simple
+def ex_post_rate(r_ante):
+    r = r_ante(-1)
+    return r
+
+taylor_rule = sj.combine([monetary_taylor,ex_post_rate], name="Taylor_rule")

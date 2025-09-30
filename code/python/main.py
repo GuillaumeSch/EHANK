@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block import hh_durables
-from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, nkpc
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, nkpc, inflation, taylor_rule
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -66,9 +66,13 @@ baseline_calibration = {
     #Prices
     "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
-    #NKPC
+    #NK part
     "piw": 0,
     "markup_ss": 1,
+    "phi_pi": 1.5,
+    "ishock": 0,
+    "rss": 0.06 / 4
+    
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
@@ -77,30 +81,31 @@ for k, v in baseline_calibration.items():
 
 #%% === Create the model ===
 #ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, carbon_tax], name="Simple HA Model")
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, nkpc], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, nkpc, inflation, taylor_rule], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
 #%% DAG
 
-unknowns = ['r','N','Tax']
-targets = ['asset_mkt',"labor_mkt", "GBC"]
+unknowns = ['G','N','Tax', 'piw']
+targets = ['asset_mkt',"labor_mkt", "GBC", "piwres"]
 inputs = ['G']
 drawdag(ha, unknowns, targets, inputs)
 
 #%% Evaluate the model at the calibration
-ss_baseline = ha.steady_state(baseline_calibration)
-ss_baseline.toplevel
+# ss_baseline = ha.steady_state(baseline_calibration)
+# ss_baseline.toplevel
 
-# #%% Evaluate the model at the calibration with differences in a parameter.
-evaluate_param_changes('xi', [0.963 , 0.965, 0.98 , 0.99], ha, baseline_calibration,
-                      ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax','tau_b','T_E_ENDO'])
+# # #%% Evaluate the model at the calibration with differences in a parameter.
+# evaluate_param_changes('xi', [0.963 , 0.965, 0.98 , 0.99], ha, baseline_calibration,
+#                       ss_vars = ['B', 'D_N', 'D_B', 'D_G', 'asset_mkt', 'C', 'A','Tax','tau_b','T_E_ENDO'])
 
 
 #%% === Solve the model Steady State ===
 #unknowns_ss = {'beta':0.962, 'N':1, 'Tax':0.358}
 #targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'GBC': 0.0}
+t_start = time.perf_counter()
 
 unknowns_ss = {'beta':baseline_calibration['beta'], 'vphi':1, 'N':1, 'Tax':0.358}
 targets_ss = {'asset_mkt':0.0, 'piwres':0.0, 'labor_mkt':0.0, 'GBC': 0.0}
@@ -110,6 +115,9 @@ ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solve
 display_ss_durables(ss)
 display_calibrated_from_unknowns(ss, unknowns_ss)
 check_resource_constraint(ss)
+
+t_end = time.perf_counter()
+print(f"total block runtime (solve + displays): {t_end - t_start:.3f} s")
 
 
 #%% One shot deviation of SS
@@ -204,10 +212,6 @@ plot_distribution(ss, lines_dim = 2,
 plot_distribution(ss,
                  labels = ['Total'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Total.png')
-#%% Check that the resource constraint holds
-
-
-
 
 
 
@@ -234,7 +238,7 @@ plot_linear_irfs(
     ha=ha,
     ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["T_E","tau_b", "Tax", "D_N", "D_B", "D_G", "C", "C_E_B", "C_E_G", "piw"],
+    outputs=["T_E","tau_b", "Tax", "D_N", "D_B", "D_G", "C", "C_E_B", "C_E_G", "piw", "i", "r"],
     titles = titles,
     figsize=(18, 12),
     #save_path='../../output/figures/IRFs_tau_b.png',
