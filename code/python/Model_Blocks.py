@@ -14,27 +14,27 @@ def mkt_clearing(A, B, N, N_core, N_d):
     return asset_mkt, labor_mkt
 
 @sj.simple
-def prod(Z_core, N_core, alpha):
-    Y_core = Z_core * N_core**alpha
-    w = N_core**(alpha-1)
-    p_core = w / (Z_core * N_core**(alpha-1))
+def prod(Z_core, N_core, markup_ss):
+    Y_core = Z_core * N_core
+    w = Z_core / markup_ss
+    p_core = w / Z_core
     # Div = Y_core - w * N_core - mu/(mu-1)/(2*kappa) * (1+pi).apply(np.log)**2*Y_core
     return Y_core, p_core, w
 
 
 @sj.simple
-def prod_durables(Z_d1, Z_d2, Z_d3, Z_d4, N_d, alpha, w):
+def prod_durables(Z_d1, Z_d2, Z_d3, Z_d4, N_d, w):
     Y_d0 = 0.0
-    Y_d1 = Z_d1 * (N_d[0] ** alpha)
-    Y_d2 = Z_d2 * (N_d[1] ** alpha)
-    Y_d3 = Z_d3 * (N_d[2] ** alpha)
-    Y_d4 = Z_d4 * (N_d[3] ** alpha)
+    Y_d1 = Z_d1 * N_d[0]
+    Y_d2 = Z_d2 * N_d[1]
+    Y_d3 = Z_d3 * N_d[2]
+    Y_d4 = Z_d4 * N_d[3]
 
     p_d0 = 0.0
-    p_d1 = w / (Z_d1 * N_d[0]**(alpha - 1))
-    p_d2 = w / (Z_d2 * N_d[1]**(alpha - 1))
-    p_d3 = w / (Z_d3 * N_d[2]**(alpha - 1))
-    p_d4 = w / (Z_d4 * N_d[3]**(alpha - 1))
+    p_d1 = w / Z_d1
+    p_d2 = w / Z_d2
+    p_d3 = w / Z_d3
+    p_d4 = w / Z_d4
 
     return Y_d0, Y_d1, Y_d2, Y_d3, Y_d4, p_d0, p_d1, p_d2, p_d3, p_d4
 
