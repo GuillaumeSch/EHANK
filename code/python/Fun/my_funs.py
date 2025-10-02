@@ -269,6 +269,38 @@ def ppplot(array, discrete_choice=1, prod_type=0, a_min=0, a_max=199):
     plt.grid(True)
     plt.tight_layout()
     plt.show()
+    
+    
+def make_strictly_decreasing(uc):
+    uc_fixed = uc.copy()
+    shape = uc.shape
+    ndim = uc.ndim
+
+    # Iterate over all indices except the last one
+    it = np.nditer(uc[..., 0], flags=['multi_index'])
+    while not it.finished:
+        idx = it.multi_index  # Tuple of all dimensions except the last
+        row = uc[idx]  # This is a 1D array (the last axis)
+
+        # Fix infinite values at the start
+        if np.isinf(row[0]):
+            first_finite = np.argmax(~np.isinf(row))
+            if first_finite > 0:
+                decrement = 1.0
+                for k in range(first_finite - 1, -1, -1):
+                    row[k] = row[k + 1] + decrement
+
+        # Make strictly decreasing
+        for k in range(1, row.shape[0]):
+            if row[k] >= row[k - 1]:
+                row[k] = row[k - 1] - 1e-8
+
+        # Assign back to uc_fixed
+        uc_fixed[idx] = row
+
+        it.iternext()
+
+    return uc_fixed
 
 def make_strictly_decreasing(uc):
     uc_fixed = uc.copy()
@@ -1066,7 +1098,8 @@ def comparative_statics_plot_shares(
     line_labels=None,        # custom labels for outputs
     x_label=None,            # custom x-axis label
     title=None,              # custom plot title
-    x_values=None            # custom x-axis values instead of param values
+    x_values=None,           # custom x-axis values instead of param values
+    line_colors=None         # custom colors for each stacked area
 ):
     """
     Run comparative statics over a grid of parameter values and plot
@@ -1098,7 +1131,7 @@ def comparative_statics_plot_shares(
     est_total = (t1 - t0) * n_points
     print(f"Estimated runtime: ~{est_total:.1f} seconds ({est_total/60:.1f} minutes)")
 
-    # --- Loop over grid ---
+    # --- Loop over the parameter grid ---
     for i, val in enumerate(grid, start=1):
         calib_dev = deepcopy(ss_base)
         calib_dev[param] = val
@@ -1140,7 +1173,14 @@ def comparative_statics_plot_shares(
 
     # Custom labels if provided
     labels = line_labels if line_labels is not None else outputs
-    ax.stackplot(x_values if x_values is not None else grid, shares, labels=labels, alpha=0.8)
+
+    ax.stackplot(
+        x_values if x_values is not None else grid,
+        shares,
+        labels=labels,
+        colors=line_colors,   # <-- new argument used here
+        alpha=0.8
+    )
 
     # Labels and title
     ax.set_xlabel(x_label if x_label is not None else param)
@@ -1148,7 +1188,7 @@ def comparative_statics_plot_shares(
     ax.set_title(title if title is not None else f"Shares of outputs vs {param}")
     ax.legend(loc="center left")
     ax.set_ylim(0, 1)
-    
+
     # Save if requested
     if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight', dpi=300)
@@ -1157,5 +1197,3 @@ def comparative_statics_plot_shares(
     plt.show()
 
     return results, results_interp, shares, success_flags
-
-
