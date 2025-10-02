@@ -140,7 +140,7 @@ print(f"total block runtime (solve + displays): {t_end - t_start:.3f} s")
 
 param_grid = {'eps_b': np.linspace(0.0, 0.5, 3)}
 
-outputs_shares = ['D_N', 'D_B','D_BN',  'D_BO', 'D_G','D_GN', 'D_GO']
+outputs_shares = ['D_N', 'D_BN',  'D_BO', 'D_GN', 'D_GO']
 
 
 results = comparative_statics_plot_shares(
@@ -150,17 +150,18 @@ results = comparative_statics_plot_shares(
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
     outputs=outputs_shares,
-    line_labels=["None", "Brown Total", "Brown New","Brown Old", "Green Total", "Green New", "Green Old"],
+    line_labels=["None","Brown New","Brown Old", "Green New", "Green Old"],
     title="SS Durable shares under different brown inefficiency",
     x_label=r"Brown Inefficiency eps_B",
     #x_values=["Low", " ", "Medium", "  ", "High"],
     save_path='../../output/figures/CS_eps_b.png',
+    line_colors = ["#808080","#8B4513","#C4A484","#228B22","#90EE90"]
 )
 
 #%%
-param_grid = {'omega': np.linspace(0.50, 0.95, 3)}
+param_grid = {'omega': np.linspace(0.75, 0.85, 3)}
 
-outputs_shares = ['D_N', 'D_B','D_BN',  'D_BO', 'D_G','D_GN', 'D_GO']
+outputs_shares = ['D_N', 'D_BN',  'D_BO', 'D_GN', 'D_GO']
 
 
 results = comparative_statics_plot_shares(
@@ -170,17 +171,18 @@ results = comparative_statics_plot_shares(
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
     outputs=outputs_shares,
-    line_labels=["None", "Brown Total", "Brown New","Brown Old", "Green Total", "Green New", "Green Old"],
+    line_labels=["None","Brown New","Brown Old", "Green New", "Green Old"],
     title="SS Durable shares under different omega",
     x_label=r"Non-durable consumption share parameter omega",
     #x_values=["Low", " ", "Medium", "  ", "High"],
     save_path='../../output/figures/CS_omega.png',
+    line_colors = ["#808080","#8B4513","#C4A484","#228B22","#90EE90"]
 )
 
 #%% Price of durable good
-param_grid = {'gamma': np.linspace(1, 3, 3)}
+param_grid = {'gamma': np.linspace(1.95, 2.05, 3)}
 
-outputs_shares = ['D_N', 'D_B','D_BN',  'D_BO', 'D_G','D_GN', 'D_GO']
+outputs_shares = ['D_N', 'D_BN',  'D_BO', 'D_GN', 'D_GO']
 
 
 results = comparative_statics_plot_shares(
@@ -190,11 +192,12 @@ results = comparative_statics_plot_shares(
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
     outputs=outputs_shares,
-    line_labels=["None", "Brown Total", "Brown New","Brown Old", "Green Total", "Green New", "Green Old"],
+    line_labels=["None","Brown New","Brown Old", "Green New", "Green Old"],
     title="SS Durable shares under different gamma",
     x_label=r"Relative risk aversion gamma",
     #x_values=["Low", " ", "Medium", "  ", "High"],
     save_path='../../output/figures/CS_gamma.png',
+    line_colors = ["#808080","#8B4513","#C4A484","#228B22","#90EE90"]
 )
 
 
