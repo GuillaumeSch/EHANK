@@ -230,12 +230,16 @@ plot_distribution(ss,
 
 #%% === Solve the model transition dynmamics and get IRFs === §
 titles = [
-        r"Carbon tax revenues: $T_B$",  
         r"Carbon tax rate: $\tau_B$",     
+        r"Carbon tax revenues: $T_B$",  
         r"Lump Sum Tax : $T$",     
         r"Share of no durable holding : $D_N$",  
         r"Share of Brown: $D_B$",
-        r"Share of Green: $D_G$",     
+        r"Share of New Brown: $D_BN$",
+        r"Share of Old Brown: $D_BO$",
+        r"Share of Green: $D_G$",
+        r"Share of New Green: $D_GN$",
+        r"Share of Old Green: $D_GO$",     
         r"Total Consumption: $C$",  
         r"Consu. of Brown energy: $C^B$", 
         r"Consu. of Green energy: $C^G$",
@@ -250,10 +254,10 @@ plot_linear_irfs(
     ha=ha,
     ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["T_E","tau_b", "Tax", "D_N", "D_B", "D_G", "C", "C_E_B", "C_E_G", "piw", "i", "r"],
+    outputs=["tau_b", "T_E","Tax", "D_N", "D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "piw", "i", "r"],
     titles = titles,
     figsize=(18, 12),
-    #save_path='../../output/figures/IRFs_tau_b.png',
+    save_path='../../output/figures/IRFs_tau_b.png',
 )
 # %% Durable Variables
 titles = [
