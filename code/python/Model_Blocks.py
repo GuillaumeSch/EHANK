@@ -14,12 +14,11 @@ def mkt_clearing(A, B, N, N_core, N_d):
     return asset_mkt, labor_mkt
 
 @sj.simple
-def prod(Z_core, N_core, markup_ss):
+def prod(Z_core, N_core, markup_ss, w):
     Y_core = Z_core * N_core
-    w = Z_core / markup_ss
+    #w = Z_core / markup_ss
     p_core = w / Z_core
-    # Div = Y_core - w * N_core - mu/(mu-1)/(2*kappa) * (1+pi).apply(np.log)**2*Y_core
-    return Y_core, p_core, w
+    return Y_core, p_core
 
 
 @sj.simple

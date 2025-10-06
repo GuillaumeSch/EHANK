@@ -830,9 +830,10 @@ def plot_distribution(
 
     plt.show()
 
+
 def check_resource_constraint(ss):
     """
-    Production version: check key equilibrium conditions.
+    Check key equilibrium conditions.
     Checks:
       - Aggregate resource constraint
       - Labor market clearing
@@ -840,65 +841,6 @@ def check_resource_constraint(ss):
     Returns a dictionary with differences.
     """
     results = {}
-
-    # Household objects
-    D = ss.internals['hh']['consav']['D']
-    c_core = ss.internals['hh']['consav']['c_core']
-    C_core = np.sum(c_core * D)
-    c_E = ss.internals['hh']['consav']['c_E']
-    C_E = np.sum(c_E * D, axis=(1,2,3))
-
-    # Prices
-    p_core = ss['p_core']
-    p_E = ss.internals['hh']['p_e']
-    p_d = ss.internals['hh']['p_d']
-
-    # Adjustment matrix: aggregate inflows/outflows
-    S = np.sum(D, axis=(2, 3)) 
-    X_plus = np.sum(S * (1 - np.eye(S.shape[0])), axis=1)
-    X_minus = np.sum(S * (1 - np.eye(S.shape[0])), axis=0)
-
-    # Other aggregates
-    Y_core = ss['Y_core']
-    #Y_d = ss['Y_d']
-    Y_d = ss.internals['hh']['Y_d']
-    G = ss['G']
-    chi = ss['chi']
-    tau_b = ss['tau_b']
-
-    # --- (1) Aggregate resource constraint ---
-    LHS = p_core * C_core \
-        + np.sum((1+tau_b)**(-1) * p_E * C_E) \
-        + np.sum(X_plus * p_d) \
-        + G
-    RHS = p_core * Y_core \
-        + np.sum(p_d * (Y_d + (1-chi) * X_minus))
-    results["resource_constraint"] = LHS - RHS
-
-    # --- (2) Labor clearing ---
-    N = ss['N']
-    N_core = ss['N_core']
-    N_d = np.sum(ss['N_d'])
-    results["labor_clearing"] = N - (N_core + N_d)
-
-    # --- (3) Asset clearing ---
-    A = ss['A']
-    B = ss['B']
-    results["asset_clearing"] = A - B
-
-    # Print summary
-    print("Resource constraint difference (LHS - RHS):", results["resource_constraint"])
-    print("Labor clearing difference (N - (N_core + sum(N_d))):", results["labor_clearing"])
-    print("Asset clearing difference (A - B):", results["asset_clearing"])
-
-    #return results
-
-
-def check_resource_constraint_debug(ss):
-    """
-    Debug version: compute and print intermediate steps as well as the final RC.
-    Useful for diagnosing inconsistencies.
-    """
     # Household objects
     D = ss.internals['hh']['consav']['D']
     p_bundle = ss.internals['hh']['p_bundle']
@@ -913,6 +855,7 @@ def check_resource_constraint_debug(ss):
     T = ss.internals['hh']['T']
     A = ss['A']
     Tax = ss['Tax']
+    T_E = ss['T_E']
 
     p_core = ss['p_core']
     c_core = ss.internals['hh']['consav']['c_core']
@@ -922,35 +865,42 @@ def check_resource_constraint_debug(ss):
     p_E = ss.internals['hh']['p_e']
     p_d = ss.internals['hh']['p_d']
     Y_core = ss['Y_core']
-    Y_d = ss['Y_d']
+    #Y_d = ss['Y_d']
+    Y_d = np.array([ss['Y_d0'], ss['Y_d1'], ss['Y_d2'], ss['Y_d3'], ss['Y_d4']])
     G = ss['G']
     chi = ss['chi']
-    tau_b = ss['tau_b']
-    mu_Z_d = ss['mu_Z_d']
+    tau_vec = ss.internals['hh']['tau_vec']
+    eps_vec = ss.internals['hh']['eps_vec']
 
-    # Individual BC
+    # Individual BC (0)
     lhs = p_bundle[...,np.newaxis,np.newaxis,np.newaxis] * c \
         + a_choice \
         + adj_matrix[..., np.newaxis,np.newaxis]
     rhs = ((1 + r) * a_grid)[np.newaxis,np.newaxis,np.newaxis,...] \
         + w * N * e_grid[np.newaxis, np.newaxis, :, np.newaxis] \
         + T[np.newaxis, np.newaxis, :, np.newaxis]
-    print("Max individual BC deviation:", np.max(np.abs(lhs - rhs)))
-
-    # Aggregated BC
+    #print("Max individual BC deviation:", np.max(np.abs(lhs - rhs)))
+        
+    # Aggregated BC (0 agg)
     LHS_0 = np.sum(lhs * D)
     RHS_0 = np.sum(rhs * D)
-    print("Aggregating the individual BC:", LHS_0 - RHS_0)
-
+    print("Aggregating the individual BC (0 agg):", LHS_0 - RHS_0)
+    
+    # Agg (1)
     # Get X flows
     S = np.sum(D, axis=(2, 3)) 
     X_plus = np.sum(S * (1 - np.eye(S.shape[0])), axis=1)
     X_minus = np.sum(S * (1 - np.eye(S.shape[0])), axis=0)
+    
+    LHS_1 = p_core*C_core + np.sum((1+tau_vec) * (1+eps_vec) * p_E * C_E) + A + np.sum(X_plus * p_d - X_minus * chi * p_d) 
+    RHS_1 = np.mean((1+r)*A + w*N + T)
+    print("Aggregated BC (with flows of durables) (1 agg)", LHS_1 - RHS_1)
 
+    # Include GBC (2)
     # Government BC
-    LHS_1 = p_core*C_core + np.sum(p_E * C_E) + np.sum(X_plus * p_d - X_minus * chi * p_d) + G
-    RHS_1 = w*N
-    print("Aggregated BC (with flows of durables and government BC)", LHS_1 - RHS_1)
+    LHS_2 = p_core*C_core + np.sum((1+eps_vec) * p_E * C_E) + np.sum(X_plus * p_d - X_minus * chi * p_d) + G
+    RHS_2 = w*N
+    print("Aggregated BC (including the government BC) (2 with GBC)", LHS_2 - RHS_2)
 
     # Labor clearing checks
     #print("Labor clearing (market):", w*N)
@@ -958,16 +908,43 @@ def check_resource_constraint_debug(ss):
     #print("Labor clearing (prod fn):", w * (Y_core / ss['Z_core'] + np.sum(Y_d / (mu_Z_d * np.mean(ss['Z_d'])))))
     #print("Labor clearing (pricing eq):", w*(p_core * Y_core / w + np.sum(p_d * Y_d / w)))
 
-    # Final aggregate resource constraint
-    LHS_2 = p_core*C_core \
-        + np.sum((1+tau_b)**(-1) * p_E * C_E) \
+    # Final aggregate resource constraint (3)
+    LHS_3 = p_core*C_core \
+        + np.sum((1+eps_vec) * p_E * C_E) \
         + np.sum(X_plus * p_d) \
         + G
-    RHS_2 = p_core * Y_core \
+    RHS_3 = p_core * Y_core \
         + np.sum(p_d * (Y_d + (1-chi)*X_minus))
 
-    print("Final resource constraint difference (LHS - RHS):", LHS_2 - RHS_2)
-    return LHS_2 - RHS_2
+    print("Final resource constraint difference (LHS - RHS) (3 Final Resource Cstrt):", LHS_3 - RHS_3)
+    results["resource_constraint"] = LHS_3 - RHS_3
+    
+    #Other market clearing conditions
+    # --- (2) Labor clearing ---
+    N = ss['N']
+    N_core = ss['N_core']
+    N_d = np.sum(ss['N_d'])
+    results["labor_clearing"] = N - (N_core + N_d)
+
+    # --- (3) Asset clearing ---
+    A = ss['A']
+    B = ss['B']
+    results["asset_clearing"] = A - B
+
+    print("\n=== MARKET CLEARING SUMMARY ===")
+    print(f"{'Condition':<30} {'Value (LHS - RHS)':>20} {'Status':>12}")
+    print("-" * 65)
+
+    def status(x, tol=1e-4):
+        return "✅ OK" if abs(x) < tol else "⚠️  FAIL"
+
+    print(f"{'Resource Constraint':<30} {results['resource_constraint']:>20.4e} {status(results['resource_constraint']):>12}")
+    print(f"{'Labor Clearing':<30} {results['labor_clearing']:>20.4e} {status(results['labor_clearing']):>12}")
+    print(f"{'Asset Clearing':<30} {results['asset_clearing']:>20.4e} {status(results['asset_clearing']):>12}")
+
+    print("=" * 65)
+    
+    #return LHS_3 - RHS_3
 
 
 def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, outputs, 

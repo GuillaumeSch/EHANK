@@ -310,11 +310,12 @@ def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_vec, xi, nu, eps
     p_e_b_vec = np.ones(n_b) * p_e_b
     p_e_g_vec = np.ones(n_g) * p_e_g
     p_e = np.concatenate([[0.0], p_e_b_vec, p_e_g_vec]) 
+    p_tilde_e = (1 + eps_vec) * (1 + tau_vec) * p_e
     if nu != 1:
         p_bundle = (xi * p_core**(1-nu) + (1-xi) * ((1 + eps_vec) * (1 + tau_vec) * p_e)**(1-nu))**(1/(1-nu))
     else:
         p_bundle = p_core**xi * ((1 + eps_vec) * (1 + tau_vec) * p_e)**(1-xi)
-    return p_bundle, p_e
+    return p_bundle, p_e, p_tilde_e
 
 
 #%% Assemble the HH block (staged block)

@@ -67,7 +67,7 @@ baseline_calibration = {
     "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
     "markup_ss" : 1,
-    
+    "w": 1,
 }
 
 #TO DELETE IN FINAL VERSION. ONLY FOR DEBUGGING
@@ -81,12 +81,14 @@ print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
-#%% DAG
+#%% 
 
-unknowns = ['G','N','Tax']
-targets = ['asset_mkt',"labor_mkt", "GBC"]
-inputs = ['G']
-drawdag(ha, unknowns, targets, inputs)
+ss_baseline = ha.steady_state(baseline_calibration)
+ss_baseline.toplevel
+
+# #%% Evaluate the model at the calibration with differences in a parameter.
+evaluate_param_changes('N', [0.98, 1.02], ha, baseline_calibration,
+                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'C', 'A'])
 
 #%%
 t_start = time.perf_counter()
@@ -99,6 +101,7 @@ ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solve
 display_ss_durables(ss)
 display_calibrated_from_unknowns(ss, unknowns_ss)
 check_resource_constraint(ss)
+
 
 t_end = time.perf_counter()
 print(f"total block runtime (solve + displays): {t_end - t_start:.3f} s")
