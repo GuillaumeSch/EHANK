@@ -302,37 +302,6 @@ def make_strictly_decreasing(uc):
 
     return uc_fixed
 
-def make_strictly_decreasing(uc):
-    uc_fixed = uc.copy()
-    shape = uc.shape
-    ndim = uc.ndim
-
-    # Iterate over all indices except the last one
-    it = np.nditer(uc[..., 0], flags=['multi_index'])
-    while not it.finished:
-        idx = it.multi_index  # Tuple of all dimensions except the last
-        row = uc[idx]  # This is a 1D array (the last axis)
-
-        # Fix infinite values at the start
-        if np.isinf(row[0]):
-            first_finite = np.argmax(~np.isinf(row))
-            if first_finite > 0:
-                decrement = 1.0
-                for k in range(first_finite - 1, -1, -1):
-                    row[k] = row[k + 1] + decrement
-
-        # Make strictly decreasing
-        for k in range(1, row.shape[0]):
-            if row[k] >= row[k - 1]:
-                row[k] = row[k - 1] - 1e-8
-
-        # Assign back to uc_fixed
-        uc_fixed[idx] = row
-
-        it.iternext()
-
-    return uc_fixed
-
 def make_strictly_increasing(uc):
     uc_fixed = uc.copy()
     shape = uc.shape
@@ -635,9 +604,20 @@ def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs, T_pl
 
 def evaluate_param_changes(param_name, values_list, ha, cali,
                            ss_vars=['goods_mkt', 'asset_mkt', 'Tax', 'r', 'beta', 'G', 'B', 'N', 'Y', 'Z']):
-     # Get baseline calibration and steady state
+    # Get baseline calibration and steady state
     baseline_calib = deepcopy(cali)
-    baseline_ss = ha.steady_state(baseline_calib)
+    try:
+        baseline_ss = ha.steady_state(baseline_calib)
+    except Exception as e:
+        print(f"❌ Error computing baseline steady state: {e}")
+        return  # Abort entirely if baseline itself is invalid
+
+    # Helper: safe extraction from steady state dict-like object
+    def safe_ss_get(ss_obj, key):
+        try:
+            return ss_obj[key]
+        except Exception:
+            return 'N/A'
 
     # Store results
     calibration_results = []
@@ -645,48 +625,128 @@ def evaluate_param_changes(param_name, values_list, ha, cali,
 
     # Baseline row
     try:
-        baseline_value = (
-            baseline_calib[param_name]
-            if param_name in baseline_calib
-            else 'N/A'
-        )
-    except TypeError:
-        try:
-            baseline_value = baseline_calib[param_name]
-        except KeyError:
-            baseline_value = 'N/A'
+        baseline_value = baseline_calib[param_name]
+    except Exception:
+        baseline_value = 'N/A'
 
     calibration_results.append(('Baseline', baseline_value))
-    ss_results.append(('Baseline', [baseline_ss[v] if v in baseline_ss else 'N/A' for v in ss_vars]))
+    ss_results.append(('Baseline', [safe_ss_get(baseline_ss, v) for v in ss_vars]))
 
     # Loop over alternative values
     for val in values_list:
+        case_name = f"{param_name} = {val}"
         modified_calib = deepcopy(baseline_calib)
         modified_calib[param_name] = val
-        ss = ha.steady_state(modified_calib)
 
-        case_name = f"{param_name} = {val}"
+        try:
+            ss = ha.steady_state(modified_calib)
+            ss_values = [safe_ss_get(ss, v) for v in ss_vars]
+        except Exception as e:
+            ss_values = ['ERROR'] * len(ss_vars)
+            case_name += " (Error)"
+            print(f"⚠️  Error for {param_name}={val}: {e}")
+
         calibration_results.append((case_name, val))
-        ss_results.append((case_name, [ss[v] if v in ss else 'N/A' for v in ss_vars]))
+        ss_results.append((case_name, ss_values))
 
     # Print Calibration Table
     print(f"\n🔧 Parameter sweep for '{param_name}'")
     print("\n📌 Calibration Values:")
-    print(f"{'Case':<20} | {param_name}")
-    print("-" * 35)
+    print(f"{'Case':<30} | {param_name}")
+    print("-" * 45)
     for case, val in calibration_results:
-        print(f"{case:<20} | {val:.5f}" if isinstance(val, (float, int)) else f"{case:<20} | {val}")
+        if isinstance(val, (float, int)):
+            print(f"{case:<30} | {val:.5f}")
+        else:
+            print(f"{case:<30} | {val}")
 
     # Print SS Table
     print("\n📈 Steady-State Outcomes:")
-    header = f"{'Case':<20} | " + " | ".join([f"{v:<10}" for v in ss_vars])
+    header = f"{'Case':<30} | " + " | ".join([f"{v:<10}" for v in ss_vars])
     print(header)
     print("-" * len(header))
     for case, row in ss_results:
-        row_str = " | ".join(
-            [f"{x:>10.5f}" if isinstance(x, (float, int)) else f"{x:>10}" for x in row]
-        )
-        print(f"{case:<20} | {row_str}")
+        formatted_row = []
+        for x in row:
+            if isinstance(x, (float, int)):
+                formatted_row.append(f"{x:>10.5f}")
+            else:
+                formatted_row.append(f"{str(x):>10}")
+        print(f"{case:<30} | " + " | ".join(formatted_row))
+        
+        
+        
+def evaluate_two_param_changes(param1, values1, param2, values2, ha, cali,
+                               ss_vars=['goods_mkt', 'asset_mkt', 'Tax', 'r', 'beta', 'G', 'B', 'N', 'Y', 'Z']):
+    # --- Baseline calibration ---
+    baseline_calib = deepcopy(cali)
+    try:
+        baseline_ss = ha.steady_state(baseline_calib)
+    except Exception as e:
+        print(f"❌ Error computing baseline steady state: {e}")
+        return  # stop early if even baseline fails
+
+    # --- Safe extraction helper ---
+    def safe_ss_get(ss_obj, key):
+        try:
+            return ss_obj[key]
+        except Exception:
+            return 'N/A'
+
+    # --- Store results ---
+    results = []
+
+    # Baseline
+    try:
+        base_val1 = baseline_calib[param1]
+    except Exception:
+        base_val1 = 'N/A'
+    try:
+        base_val2 = baseline_calib[param2]
+    except Exception:
+        base_val2 = 'N/A'
+
+    results.append(('Baseline', base_val1, base_val2,
+                    [safe_ss_get(baseline_ss, v) for v in ss_vars]))
+
+    # --- Loop over parameter pairs ---
+    for v1 in values1:
+        for v2 in values2:
+            case_name = f"{param1}={v1}, {param2}={v2}"
+            modified_calib = deepcopy(baseline_calib)
+            modified_calib[param1] = v1
+            modified_calib[param2] = v2
+
+            try:
+                ss = ha.steady_state(modified_calib)
+                ss_values = [safe_ss_get(ss, v) for v in ss_vars]
+            except Exception as e:
+                ss_values = ['N/A'] * len(ss_vars)
+                print(f"⚠️  Error for {case_name}: {e}")
+
+            results.append((case_name, v1, v2, ss_values))
+
+    # --- Print Calibration Table ---
+    print(f"\n🔧 2D Parameter sweep for '{param1}' and '{param2}'")
+    print("\n📌 Calibration Values:")
+    print(f"{'Case':<40} | {param1:<10} | {param2:<10}")
+    print("-" * 65)
+    for case_name, v1, v2, _ in results:
+        v1_str = f"{v1:.5f}" if isinstance(v1, (int, float)) else str(v1)
+        v2_str = f"{v2:.5f}" if isinstance(v2, (int, float)) else str(v2)
+        print(f"{case_name:<40} | {v1_str:<10} | {v2_str:<10}")
+
+    # --- Print Steady-State Table ---
+    print("\n📈 Steady-State Outcomes:")
+    header = f"{'Case':<40} | " + " | ".join([f"{v:<10}" for v in ss_vars])
+    print(header)
+    print("-" * len(header))
+    for case_name, _, _, ss_values in results:
+        formatted_row = [
+            f"{x:>10.5f}" if isinstance(x, (float, int)) else f"{str(x):>10}"
+            for x in ss_values
+        ]
+        print(f"{case_name:<40} | " + " | ".join(formatted_row))
 
 #Display the aggregates for durables given a SS.
 def display_ss_durables(ss):
@@ -1174,3 +1234,81 @@ def comparative_statics_plot_shares(
     plt.show()
 
     return results, results_interp, shares, success_flags
+
+def compute_gini(D, x, plot=False, return_lorenz=False):
+    """
+    Compute the weighted Gini coefficient from a 3D household distribution.
+    Works for variables defined on fewer dimensions (e.g. income[d,e,1]).
+    
+    Parameters
+    ----------
+    D : ndarray
+        3D array (n_d, n_e, n_a), the joint distribution of households.
+        Will be normalized if it does not sum to 1.
+    x : ndarray
+        Variable of interest (e.g. asset, income, consumption).
+        Can be:
+          - 1D array (len = n_a)
+          - 3D array (same shape as D)
+          - Lower-dimensional array broadcastable to D.shape
+            (e.g. shape (n_d, n_e, 1))
+    plot : bool, optional
+        If True, plot the Lorenz curve.
+    return_lorenz : bool, optional
+        If True, also return Lorenz curve data.
+        
+    Returns
+    -------
+    gini : float
+        Weighted Gini coefficient.
+    (cumw, cumxw) : tuple of arrays, optional
+        Only if return_lorenz=True.
+    """
+    # --- Check normalization ---
+    D_sum = np.sum(D)
+    if not np.isclose(D_sum, 1.0, atol=1e-6):
+        warnings.warn(f"Distribution does not sum to 1 (sum = {D_sum:.6f}). Normalizing automatically.")
+        D = D / D_sum
+
+    # --- Try to broadcast x to D's shape ---
+    try:
+        x = np.broadcast_to(x, D.shape)
+    except ValueError:
+        raise ValueError(f"x with shape {x.shape} cannot be broadcast to D's shape {D.shape}")
+
+    # --- Flatten and clean ---
+    values = x.ravel()
+    weights = D.ravel()
+    mask = np.isfinite(values) & np.isfinite(weights)
+    values, weights = values[mask], weights[mask]
+    weights /= np.sum(weights)
+
+    # --- Sort and compute Lorenz curve ---
+    sorted_idx = np.argsort(values)
+    x_sorted = values[sorted_idx]
+    w_sorted = weights[sorted_idx]
+    cumw = np.cumsum(w_sorted)
+    cumxw = np.cumsum(x_sorted * w_sorted)
+    cumw /= cumw[-1]
+    cumxw /= cumxw[-1]
+
+    # --- Gini ---
+    B = np.trapezoid(cumxw, cumw)
+    gini = 1 - 2 * B
+
+    # --- Plot ---
+    if plot:
+        plt.figure(figsize=(5,5))
+        plt.plot(cumw, cumxw, label='Lorenz Curve', lw=2)
+        plt.plot([0, 1], [0, 1], 'k--', label='Equality Line')
+        plt.fill_between(cumw, cumxw, cumw, color='gray', alpha=0.3)
+        plt.xlabel('Cumulative Population Share')
+        plt.ylabel('Cumulative Share of Variable')
+        plt.title(f'Lorenz Curve (Gini = {gini:.3f})')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.show()
+
+    if return_lorenz:
+        return gini, (cumw, cumxw)
+    return gini

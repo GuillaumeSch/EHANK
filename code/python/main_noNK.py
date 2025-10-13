@@ -14,7 +14,7 @@ from sequence_jacobian import drawdag
 baseline_calibration = {
     # Preferences and taste shocks
     "taste_shock": 1e-1,       # Idiosyncratic taste shock
-    "beta": 0.959,              # Discount factor
+    "beta": 0.959,             # Discount factor
     "eis": 0.5,                # Elasticity of intertemporal substitution
     "gamma": 1/0.5,            # Relative risk aversion (curvature)
     "omega": 0.78,             # Relative weight of consumption c versus durable goods ˜d in the utility function
@@ -52,7 +52,7 @@ baseline_calibration = {
     "Z_core": 1,               # Core productivity
     "Z_d1": 15, "Z_d2": 60, "Z_d3": 10, "Z_d4": 1, # Durables productivities
     #Government
-    "B" : 4,                   # Stock of debt
+    "B" : 4,                   # Stock of  debt
     "G" : 0.3,                 # Government spendings
     "Tax": 0.358,              # Lump-sum tax
     #Energy
@@ -62,7 +62,6 @@ baseline_calibration = {
     "eps_g" : 0.20,            # Linear inefficiency of green car vintages
     "tau_b" : 0.202,            # Carbon tax (no free. Dependend of T_E)
     "tau_g" : 0,               # Green energy subsidy
-    #"T_E" : 0.002,             # Energy tax revenues 
     #Prices
     "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
     "nu" : 0.4,                # Elasticity of substitution between core and energy consumption
@@ -86,14 +85,20 @@ print('It has outputs: ' + str(ha.outputs))
 ss_baseline = ha.steady_state(baseline_calibration)
 ss_baseline.toplevel
 
+#%%
+
 # #%% Evaluate the model at the calibration with differences in a parameter.
-evaluate_param_changes('N', [0.98, 1.02], ha, baseline_calibration,
-                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'C', 'A'])
+evaluate_param_changes('r', [0.10/4], ha, baseline_calibration,
+                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+
+#%%
+evaluate_two_param_changes('xi', [0.90, 0.95],'beta', [0.90, 0.95], ha, baseline_calibration,
+                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
 
 #%%
 t_start = time.perf_counter()
 
-unknowns_ss = {'beta':baseline_calibration['beta'], 'N':1, 'Tax':0.358}
+unknowns_ss = {'beta':0.959, 'N':1, 'Tax':0.358}
 targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'GBC': 0.0}
 
 ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
