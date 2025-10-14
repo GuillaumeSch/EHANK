@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block import hh_durables
-from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, nkpc, inflation, taylor_rule
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt, nkpc, inflation, taylor_rule
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -33,6 +33,7 @@ baseline_calibration = {
     "n_a": 20,                 # Number of asset grid points
     # Labor market
     "N_core": 0.6,             # Labor demand for core goods
+    "Y_core": 0.6,             # Labor demand for core goods
     "N_d": np.array([ 0.1, 0.1, 0.1, 0.1]),                # Labor demand for durable goods
     "tau":0,                   # Labor income tax
     # Durable goods
@@ -85,6 +86,9 @@ print('It has outputs: ' + str(ha.outputs))
 ss_baseline = ha.steady_state(baseline_calibration)
 ss_baseline.toplevel
 
+check_resource_constraint(ss_baseline)
+
+
 #%%
 
 # #%% Evaluate the model at the calibration with differences in a parameter.
@@ -110,4 +114,13 @@ check_resource_constraint(ss)
 
 t_end = time.perf_counter()
 print(f"total block runtime (solve + displays): {t_end - t_start:.3f} s")
+# %%
+evaluate_param_changes('N', [1.01], ha, ss,
+                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+# %%
+evaluate_param_changes('w', [0.99, 1.01], ha, ss,
+                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+# %%
+evaluate_param_changes('Y_core', [0.59, 0.61], ha, ss,
+                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
 # %%

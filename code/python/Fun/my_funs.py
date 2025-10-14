@@ -952,6 +952,7 @@ def check_resource_constraint(ss):
     X_plus = np.sum(S * (1 - np.eye(S.shape[0])), axis=1)
     X_minus = np.sum(S * (1 - np.eye(S.shape[0])), axis=0)
     
+    
     LHS_1 = p_core*C_core + np.sum((1+tau_vec) * (1+eps_vec) * p_E * C_E) + A + np.sum(X_plus * p_d - X_minus * chi * p_d) 
     RHS_1 = np.mean((1+r)*A + w*N + T)
     print("Aggregated BC (with flows of durables) (1 agg)", LHS_1 - RHS_1)

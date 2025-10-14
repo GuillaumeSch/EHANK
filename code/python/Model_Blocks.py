@@ -14,11 +14,20 @@ def mkt_clearing(A, B, N, N_core, N_d):
     return asset_mkt, labor_mkt
 
 @sj.simple
-def prod(Z_core, N_core, markup_ss, w):
-    Y_core = Z_core * N_core
+def rsrce_cstrt(p_core, C_CORE, eps_vec, p_E, C_E, p_d, G, Y_core, Y_d, chi, xplus_N, xplus_BN, xplus_BO, xplus_GN, xplus_GO, xminus_N, xminus_BN, xminus_BO, xminus_GN, xminus_GO):
+    X_plus = np.concatenate(xplus_N, xplus_BN, xplus_BO, xplus_GN, xplus_GO)
+    X_minus = np.concatenate(xminus_N, xminus_BN, xminus_BO, xminus_GN, xminus_GO)
+    LHS = p_core*C_CORE + np.sum((1+eps_vec) * p_E * C_E) + np.sum(X_plus * p_d) + G
+    RHS = p_core * Y_core + np.sum(p_d * (Y_d + (1-chi)*X_minus))
+    return LHS, RHS
+
+@sj.simple
+def prod(Z_core, Y_core, markup_ss, w):
+    #Y_core = Z_core * N_core
+    N_core = Z_core * Y_core
     #w = Z_core / markup_ss
     p_core = w / Z_core
-    return Y_core, p_core
+    return N_core, p_core
 
 
 @sj.simple
