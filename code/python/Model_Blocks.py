@@ -13,25 +13,20 @@ def mkt_clearing(A, B, N, N_core, N_d):
     labor_mkt = N - (N_core + np.sum(N_d))
     return asset_mkt, labor_mkt
 
+#Compute the resource constraint (equivalent of goods market clearing condition)
 @sj.simple
-def rsrce_cstrt_alt(p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E1, C_E2, C_E3, C_E4, G, Y_core, Y_d0, Y_d1, Y_d2, Y_d3, Y_d4, p_d0, p_d1, p_d2, p_d3, p_d4, chi, XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO, XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO):
-#def rsrce_cstrt_alt(p_core, C_CORE, eps_vec, p_E, C_E, p_d, G, Y_core, Y_d, chi, XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO, XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO):
-    #X_plus = np.concatenate(xplus_N, xplus_BN, xplus_BO, xplus_GN, xplus_GO)
-    #X_minus = np.concatenate(xminus_N, xminus_BN, xminus_BO, xminus_GN, xminus_GO)
+def rsrce_cstrt(p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E1, C_E2, C_E3, C_E4, G, Y_core, Y_d0, Y_d1, Y_d2, Y_d3, Y_d4, p_d0, p_d1, p_d2, p_d3, p_d4, chi, XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO, XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO):
+    #Need to construct vectors for durables prices, energy inefficiencies, energy prices and energy consumption. Should be the same as in HH Block
     p_d_vec = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
-
     eps_vec = np.concatenate(([0.0], eps_b * np.arange(n_b), eps_g * np.arange(n_g)))
-    
-    
     p_E_vec = np.concatenate([[0.0], np.ones(n_b) * p_e_b, np.ones(n_g) * p_e_g]) 
-    
     C_E_vec = np.array([0, C_E1, C_E2, C_E3, C_E4])
-    
     LHS = p_core*C_CORE + np.sum((1+eps_vec) * p_E_vec * C_E_vec) + np.sum([XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO] * p_d_vec) + G
     RHS = p_core * Y_core + np.sum(p_d_vec * ([Y_d0, Y_d1, Y_d2, Y_d3, Y_d4] + (1-chi)*np.array([XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO])))
     
     rsrce_cstrt = LHS - RHS
-    return LHS, RHS, rsrce_cstrt
+    #return LHS, RHS, rsrce_cstrt
+    return rsrce_cstrt
 
 @sj.simple
 def prod(Z_core, Y_core, markup_ss, w):
@@ -57,12 +52,6 @@ def prod_durables(Z_d1, Z_d2, Z_d3, Z_d4, N_d, w):
     p_d4 = w / Z_d4
 
     return Y_d0, Y_d1, Y_d2, Y_d3, Y_d4, p_d0, p_d1, p_d2, p_d3, p_d4
-
-
-# @sj.simple
-# def nkpc_ss(Z_core, mu):
-#     w = Z_core / mu 
-#     return w 
 
 @sj.simple
 def nkpc(piw, N, C, vphi, frisch, markup_ss, gamma, beta):

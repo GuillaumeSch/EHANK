@@ -187,10 +187,9 @@ def D_demand(c):
     return d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO, d_B, d_G
 #return dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4
 
-#Compute the flows of durables
+#Compute the flows of durables. Important for the resource constraint
 def compute_flows(c, d_t_N, d_t_BN, d_t_BO, d_t_GN, d_t_GO, d_N, d_BN, d_BO, d_GN, d_GO):
     distr = np.ones_like(c)
-    #Mask for diagonal d,dtilde
     mask = np.eye(distr.shape[0], dtype=bool)[:, :, None, None]
     mask = np.broadcast_to(mask, distr.shape)
     xplus_N, xplus_BN, xplus_BO, xplus_GN, xplus_GO, xminus_N, xminus_BN, xminus_BO, xminus_GN, xminus_GO = [
@@ -200,36 +199,6 @@ def compute_flows(c, d_t_N, d_t_BN, d_t_BO, d_t_GN, d_t_GO, d_N, d_BN, d_BO, d_G
         arr[mask] = 0
 
     return distr, xplus_N, xplus_BN, xplus_BO, xplus_GN, xplus_GO, xminus_N, xminus_BN, xminus_BO, xminus_GN, xminus_GO
-
-#Compute objects necesssary for the resource constraint.
-def compute_rsrce_cstrt_objects(c, p_core, c_core, eps_vec, p_e, c_E, p_d, Y_core, Y_d, chi,
-                                 xplus_N, xplus_BN, xplus_BO, xplus_GN, xplus_GO,
-                                 xminus_N, xminus_BN, xminus_BO, xminus_GN, xminus_GO):
-    
-    distr = np.ones_like(c)
-    
-    X_plus = np.concatenate((xplus_N, xplus_BN, xplus_BO, xplus_GN, xplus_GO))
-    X_minus = np.concatenate((xminus_N, xminus_BN, xminus_BO, xminus_GN, xminus_GO))
-    breakpoint()
-    
-    
-    l1 = p_core * c_core * np.ones_like(c)
-    
-    
-    l2 = (1 + eps_vec[...,np.newaxis, np.newaxis, np.newaxis]) * p_e[...,np.newaxis, np.newaxis, np.newaxis] * c_E
-    
-    l3 = X_plus[...,np.newaxis, np.newaxis, np.newaxis] * p_d[...,np.newaxis, np.newaxis, np.newaxis]
-    
-    r1 = p_core * Y_core * np.ones_like(c)
-    
-    r2 = p_d[...,np.newaxis, np.newaxis, np.newaxis] * ( Y_d[...,np.newaxis, np.newaxis, np.newaxis]  + (1-chi) * X_minus[...,np.newaxis, np.newaxis, np.newaxis] )
-
-    
-    
-    # LHS = p_core*C_CORE + np.sum((1+eps_vec) * p_E * C_E) + np.sum(X_plus * p_d) + G
-    # RHS = p_core * Y_core + np.sum(p_d * (Y_d + (1-chi)*X_minus))
-    return l1, l2, l3, r1, r2
-
 
 def compute_Agg_Transf(T, c):
     Agg_Transf = np.zeros_like(c) + T[np.newaxis, np.newaxis, ..., np.newaxis]
