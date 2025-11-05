@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block import hh_durables
-from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt, nkpc, inflation, taylor_rule
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt_alt, nkpc, inflation, taylor_rule
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -76,7 +76,7 @@ for k, v in baseline_calibration.items():
 
 #%% === Create the model ===
 #ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, carbon_tax], name="Simple HA Model")
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt_alt], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
