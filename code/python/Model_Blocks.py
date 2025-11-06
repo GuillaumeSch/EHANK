@@ -25,7 +25,6 @@ def rsrce_cstrt(p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E1, C_E2
     AS = p_core * Y_core + np.sum(p_d_vec * ([Y_d0, Y_d1, Y_d2, Y_d3, Y_d4] + (1-chi)*np.array([XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO])))
     
     rsrce_cstrt = AD - AS
-    #return LHS, RHS, rsrce_cstrt
     return rsrce_cstrt
 
 @sj.simple
@@ -39,17 +38,32 @@ def prod(Z_core, Y_core, markup_ss, w):
 
 @sj.simple
 def prod_durables(Z_d1, Z_d2, Z_d3, Z_d4, N_d, w):
-    Y_d0 = 0.0
-    Y_d1 = Z_d1 * N_d[0]
-    Y_d2 = Z_d2 * N_d[1]
-    Y_d3 = Z_d3 * N_d[2]
-    Y_d4 = Z_d4 * N_d[3]
-
-    p_d0 = 0.0
+    """
+    Firms produce only new vintages: BrownNew and GreenNew.
+    """
+    # New vintages (produced this period)
+    Y_d1 = Z_d1 * N_d[1]
+    Y_d3 = Z_d3 * N_d[3]
+    
+    # Prices under perfect competition
     p_d1 = w / Z_d1
-    p_d2 = w / Z_d2
     p_d3 = w / Z_d3
-    p_d4 = w / Z_d4
+
+    # Old vintages and 'None' are not produced
+    Y_d0, Y_d2, Y_d4 = 0.0, 0.0, 0.0
+    p_d0, p_d2, p_d4 = 0.0, w / Z_d2, w / Z_d4 #TO BE CHANGED. MAYBE ENDOGENEOUS OR EXOGENOUSLY AS PRICE DISCOUNT RULE (PRICE_OLD = (1-RESALE_LOSS)*PRICE_NEW)
+    
+    # Y_d0 = 0.0
+    # Y_d1 = Z_d1 * N_d[0]
+    # Y_d2 = Z_d2 * N_d[1]
+    # Y_d3 = Z_d3 * N_d[2]
+    # Y_d4 = Z_d4 * N_d[3]
+
+    # p_d0 = 0.0
+    # p_d1 = w / Z_d1
+    # p_d2 = w / Z_d2
+    # p_d3 = w / Z_d3
+    # p_d4 = w / Z_d4
 
     return Y_d0, Y_d1, Y_d2, Y_d3, Y_d4, p_d0, p_d1, p_d2, p_d3, p_d4
 

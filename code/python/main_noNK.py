@@ -34,7 +34,7 @@ baseline_calibration = {
     # Labor market
     "N_core": 0.6,             # Labor demand for core goods
     "Y_core": 0.6,             # Labor demand for core goods
-    "N_d": np.array([ 0.1, 0.1, 0.1, 0.1]),                # Labor demand for durable goods
+    "N_d": np.array([0, 0.2, 0.0, 0.2, 0.0]),                # Labor demand for durable goods
     "tau":0,                   # Labor income tax
     # Durable goods
     "n_b": 2,                  # Number of brown vintages
