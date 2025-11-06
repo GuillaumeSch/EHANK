@@ -978,7 +978,7 @@ def check_resource_constraint(ss):
         + np.sum(p_d * (Y_d + (1-chi)*X_minus))
 
     print("Final resource constraint difference (LHS - RHS) (3 Final Resource Cstrt):", LHS_3 - RHS_3)
-    print("Final resource constraint, LHS:", LHS_3)
+    #print("Final resource constraint, LHS:", LHS_3)
     
     #print("Final resource constraint, LHS_1:",  p_core*C_core )
     #print("Final resource constraint, LHS_2:",  np.sum((1+eps_vec) * p_E * C_E))
@@ -986,7 +986,7 @@ def check_resource_constraint(ss):
     #print("Final resource constraint, LHS_4:", G)
 
     
-    print("Final resource constraint, RHS:", RHS_3)
+    #print("Final resource constraint, RHS:", RHS_3)
     results["resource_constraint"] = LHS_3 - RHS_3
     
     #Other market clearing conditions

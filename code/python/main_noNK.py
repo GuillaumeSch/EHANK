@@ -114,13 +114,15 @@ check_resource_constraint(ss)
 
 t_end = time.perf_counter()
 print(f"total block runtime (solve + displays): {t_end - t_start:.3f} s")
+
 # %%
 evaluate_param_changes('N', [1.01], ha, ss,
-                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+                      #ss_vars = ['B', 'labor_mkt','asset_mkt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'rsrce_cstrt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
 # %%
 evaluate_param_changes('w', [0.99, 1.01], ha, ss,
-                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'rsrce_cstrt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
 # %%
 evaluate_param_changes('Y_core', [0.59, 0.61], ha, ss,
-                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'rsrce_cstrt','GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
 # %%

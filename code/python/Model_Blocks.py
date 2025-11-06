@@ -21,17 +21,17 @@ def rsrce_cstrt(p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E1, C_E2
     eps_vec = np.concatenate(([0.0], eps_b * np.arange(n_b), eps_g * np.arange(n_g)))
     p_E_vec = np.concatenate([[0.0], np.ones(n_b) * p_e_b, np.ones(n_g) * p_e_g]) 
     C_E_vec = np.array([0, C_E1, C_E2, C_E3, C_E4])
-    LHS = p_core*C_CORE + np.sum((1+eps_vec) * p_E_vec * C_E_vec) + np.sum([XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO] * p_d_vec) + G
-    RHS = p_core * Y_core + np.sum(p_d_vec * ([Y_d0, Y_d1, Y_d2, Y_d3, Y_d4] + (1-chi)*np.array([XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO])))
+    AD = p_core*C_CORE + np.sum((1+eps_vec) * p_E_vec * C_E_vec) + np.sum([XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO] * p_d_vec) + G
+    AS = p_core * Y_core + np.sum(p_d_vec * ([Y_d0, Y_d1, Y_d2, Y_d3, Y_d4] + (1-chi)*np.array([XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO])))
     
-    rsrce_cstrt = LHS - RHS
+    rsrce_cstrt = AD - AS
     #return LHS, RHS, rsrce_cstrt
     return rsrce_cstrt
 
 @sj.simple
 def prod(Z_core, Y_core, markup_ss, w):
     #Y_core = Z_core * N_core
-    N_core = Z_core * Y_core
+    N_core = Y_core / Z_core 
     #w = Z_core / markup_ss
     p_core = w / Z_core
     return N_core, p_core
