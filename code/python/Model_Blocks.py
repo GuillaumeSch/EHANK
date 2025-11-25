@@ -22,10 +22,14 @@ def rsrce_cstrt(p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E1, C_E2
     p_E_vec = np.concatenate([[0.0], np.ones(n_b) * p_e_b, np.ones(n_g) * p_e_g]) 
     C_E_vec = np.array([0, C_E1, C_E2, C_E3, C_E4])
     AD = p_core*C_CORE + np.sum((1+eps_vec) * p_E_vec * C_E_vec) + np.sum([XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO] * p_d_vec) + G
+    AD_CORE = p_core*C_CORE + np.sum((1+eps_vec) * p_E_vec * C_E_vec) + G
+    AD_DURABLES = np.sum([XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO] * p_d_vec) 
     AS = p_core * Y_core + np.sum(p_d_vec * ([Y_d0, Y_d1, Y_d2, Y_d3, Y_d4] + (1-chi)*np.array([XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO])))
+    AS_CORE = p_core * Y_core
+    AS_DURABLES = np.sum(p_d_vec * ([Y_d0, Y_d1, Y_d2, Y_d3, Y_d4] + (1-chi)*np.array([XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO])))
     
     rsrce_cstrt = AD - AS
-    return rsrce_cstrt
+    return rsrce_cstrt, AD, AD_CORE, AD_DURABLES, AS, AS_CORE, AS_DURABLES
 
 @sj.simple
 def prod(Z_core, Y_core, markup_ss, w):

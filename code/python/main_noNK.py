@@ -32,7 +32,7 @@ baseline_calibration = {
     "max_a": 100,              # Maximum asset level
     "n_a": 20,                 # Number of asset grid points
     # Labor market
-    "N_core": 0.6,             # Labor demand for core goods
+    #"N_core": 0.6,             # Labor demand for core goods
     "Y_core": 0.6,             # Labor demand for core goods
     "N_d": np.array([0, 0.2, 0.0, 0.2, 0.0]),                # Labor demand for durable goods
     "tau":0,                   # Labor income tax
@@ -61,7 +61,7 @@ baseline_calibration = {
     "p_e_g" : 0.04,            # Price of green energy (electricity)
     "eps_b" : 0.40,            # Linear inefficiency of brown car vintages
     "eps_g" : 0.20,            # Linear inefficiency of green car vintages
-    "tau_b" : 0.202,            # Carbon tax (no free. Dependend of T_E)
+    "tau_b" : 0.202,           # Carbon tax (no free. Dependend of T_E)
     "tau_g" : 0,               # Green energy subsidy
     #Prices
     "xi" : 0.97,               # Governs relative share of core good in non-durable consumption basket. To be improved... Goal, Share_core = 95%
@@ -121,8 +121,14 @@ evaluate_param_changes('N', [1.01], ha, ss,
                       ss_vars = ['B', 'labor_mkt','asset_mkt', 'rsrce_cstrt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
 # %%
 evaluate_param_changes('w', [0.99, 1.01], ha, ss,
-                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'rsrce_cstrt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+                      #ss_vars = ['B', 'labor_mkt','asset_mkt', 'rsrce_cstrt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+                      ss_vars = ['AD', 'AD_CORE','AD_DURABLES', 'AS', 'AS_CORE','AS_DURABLES', 'rsrce_cstrt'])
 # %%
-evaluate_param_changes('Y_core', [0.59, 0.61], ha, ss,
-                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'rsrce_cstrt','GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+evaluate_param_changes('Y_core', [0.59, 0.61, 0.7], ha, ss,
+#                      ss_vars = ['AD', 'AD_CORE','AD_DURABLES', 'AS', 'AS_CORE','AS_DURABLES', 'rsrce_cstrt'])
+                      ss_vars = ['AD', 'AS','rsrce_cstrt','labor_mkt','asset_mkt'])
+# %%
+evaluate_two_param_changes('Y_core', [0.59, 0.61, 0.7], 'w', [0.99, 1.01], ha, ss,
+#                      ss_vars = ['AD', 'AD_CORE','AD_DURABLES', 'AS', 'AS_CORE','AS_DURABLES', 'rsrce_cstrt'])
+                      ss_vars = ['AD', 'AS','rsrce_cstrt','labor_mkt','asset_mkt'])
 # %%
