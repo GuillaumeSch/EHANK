@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block import hh_durables
-from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt, nkpc, inflation, taylor_rule
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt, nkpc, inflation, taylor_rule, get_demand
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -34,7 +34,8 @@ baseline_calibration = {
     # Labor market
     #"N_core": 0.6,             # Labor demand for core goods
     "Y_core": 0.6,             # Labor demand for core goods
-    "N_d": np.array([0, 0.2, 0.0, 0.2, 0.0]),                # Labor demand for durable goods
+    #"N_d": np.array([0, 0.2, 0.0, 0.2, 0.0]),                # Labor demand for durable goods
+    "Y_d0": 0.0, "Y_d1": 0.2, "Y_d2": 0.0, "Y_d3": 0.2, "Y_d4": 0.0, #Production of durable goods
     "tau":0,                   # Labor income tax
     # Durable goods
     "n_b": 2,                  # Number of brown vintages
@@ -51,7 +52,7 @@ baseline_calibration = {
     #"p_core": 1,               # Price of core, non-durable goods
     "Div": 0,                  # Dividends from firms
     "Z_core": 1,               # Core productivity
-    "Z_d1": 15, "Z_d2": 60, "Z_d3": 10, "Z_d4": 1, # Durables productivities
+    "Z_d1": 15, "Z_d2": 60, "Z_d3": 10, "Z_d4": 40, # Durables productivities
     #Government
     "B" : 4,                   # Stock of  debt
     "G" : 0.3,                 # Government spendings
@@ -76,11 +77,87 @@ for k, v in baseline_calibration.items():
 
 #%% === Create the model ===
 #ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, carbon_tax], name="Simple HA Model")
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt, get_demand], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
+#%% Basic steady state solution
+unknowns_ss = {'N': 0.6,'beta':0.94, 'Tax':0.258}
+targets_ss = {'labor_mkt':0.0, 'asset_mkt':0.0, 'GBC': 0.0}
+
+ss_0 = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
+
+
+#%% C_CORE = Y_core
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt, get_demand], name="Simple HA Model")
+
+unknowns_ss = {'Y_core':0.6830348630484795, 'Y_d1':0.01, 'Y_d3':0.01}
+targets_ss = {'diff_core':0.0, 'diff_BN':0.0, 'diff_GN':0.0}
+
+ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
+
+#%%
+unknowns_ss = {'Z_d2':30, 'Z_d4':1}
+targets_ss = {'diff_BO':0.0, 'diff_GO':0.0}
+
+ss_2 = ha.solve_steady_state(ss , unknowns_ss, targets_ss, solver='hybr')
+
+#%%
+unknowns_ss = {'Y_core':0.6830348630484795, 'Y_d1':0.01, 'Y_d3':0.01}
+targets_ss = {'diff_core':0.0, 'diff_BN':0.0, 'diff_GN':0.0}
+
+ss_3 = ha.solve_steady_state(ss_2 , unknowns_ss, targets_ss, solver='hybr')
+
+#%%
+unknowns_ss = {'r':0.03594929476559624, 'Z_d2':21, 'Z_d4':13}
+targets_ss = {'asset_mkt':0.0, 'diff_BO':0.0, 'diff_GO':0.0}
+
+ss_4 = ha.solve_steady_state(ss_3 , unknowns_ss, targets_ss, solver='hybr')
+
+#%%
+unknowns_ss = {'r':ss_4['r'], 'Z_d2':ss_4['Z_d2'], 'Z_d4':ss_4['Z_d4'], 'Tax':0.358}
+targets_ss = {'asset_mkt':0.0, 'diff_BO':0.0, 'diff_GO':0.0, 'GBC': 0.0 }
+
+ss_5 = ha.solve_steady_state(ss_4 , unknowns_ss, targets_ss, solver='hybr')
+
+#%%
+evaluate_param_changes('N', [0.80], ha, ss_5,
+                      ss_vars = ['asset_mkt', 'diff_core','diff_BN', 'diff_GN', 'diff_BO', 'diff_GO', 'labor_mkt'])
+
+#%%
+unknowns_ss = {'N': 0.8}
+targets_ss = {'labor_mkt':0.0}
+
+ss_6 = ha.solve_steady_state(ss_5 , unknowns_ss, targets_ss, solver='hybr')
+
+#%%
+unknowns_ss = {'N': ss_6['N'],'beta':0.94}
+targets_ss = {'labor_mkt':0.0, 'asset_mkt':0.0}
+
+ss_7 = ha.solve_steady_state(ss_6 , unknowns_ss, targets_ss, solver='hybr')
+
+#%%
+ss_7_mod = ss_7.copy()
+ss_7_mod['Y_core'] = 0.65
+
+unknowns_ss = {'N': ss_7['N'],'beta':ss_7['beta']}
+targets_ss = {'labor_mkt':0.0, 'asset_mkt':0.0}
+
+ss_8 = ha.solve_steady_state(ss_7_mod , unknowns_ss, targets_ss, solver='hybr')
+
+
+#%%
+evaluate_param_changes('beta', [0.94, 0.959, 0.960], ha, ss_6,
+                      ss_vars = ['asset_mkt', 'diff_core','diff_BN', 'diff_GN', 'diff_BO', 'diff_GO', 'labor_mkt'])
+
+#%%
+# #%% Evaluate the model at the calibration with differences in a parameter.
+evaluate_param_changes('r', [0.016, 0.02, 0.0], ha, ss_3,
+                      ss_vars = ['asset_mkt', 'diff_core','diff_BN', 'diff_GN', 'diff_BO', 'diff_GO', 'labor_mkt'])
+
+#%%
+drawdag(ha)
 #%% 
 
 ss_baseline = ha.steady_state(baseline_calibration)
@@ -92,7 +169,7 @@ check_resource_constraint(ss_baseline)
 #%%
 
 # #%% Evaluate the model at the calibration with differences in a parameter.
-evaluate_param_changes('r', [0.10/4], ha, baseline_calibration,
+evaluate_param_changes('r', [0.016], ha, baseline_calibration,
                       ss_vars = ['B', 'labor_mkt','asset_mkt', 'C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
 
 #%%

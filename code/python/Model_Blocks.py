@@ -32,6 +32,15 @@ def rsrce_cstrt(p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E1, C_E2
     return rsrce_cstrt, AD, AD_CORE, AD_DURABLES, AS, AS_CORE, AS_DURABLES
 
 @sj.simple
+def get_demand(Y_core, C_CORE, Y_d1, D_T_BN, D_BN, Y_d3, D_T_GN, D_GN, XPLUS_BO, XMINUS_BO, XPLUS_GO, XMINUS_GO):
+    diff_core = Y_core - C_CORE
+    diff_BN = Y_d1 - (D_T_BN - D_BN)
+    diff_GN = Y_d3 - (D_T_GN - D_GN)
+    diff_BO = XPLUS_BO - XMINUS_BO
+    diff_GO = XPLUS_GO - XMINUS_GO
+    return diff_core, diff_BN, diff_GN, diff_BO, diff_GO
+
+@sj.simple
 def prod(Z_core, Y_core, markup_ss, w):
     #Y_core = Z_core * N_core
     N_core = Y_core / Z_core 
@@ -41,20 +50,24 @@ def prod(Z_core, Y_core, markup_ss, w):
 
 
 @sj.simple
-def prod_durables(Z_d1, Z_d2, Z_d3, Z_d4, N_d, w):
+def prod_durables(Z_d1, Z_d2, Z_d3, Z_d4, Y_d0, Y_d1, Y_d2, Y_d3, Y_d4, w):
     """
     Firms produce only new vintages: BrownNew and GreenNew.
     """
+    N_d0, N_d1, N_d2, N_d3, N_d4 = 0.0, Y_d1 / Z_d1, 0.0, Y_d3 / Z_d3, 0.0
+    N_d = np.array([N_d0, N_d1, N_d2, N_d3, N_d4])  
+
+    
     # New vintages (produced this period)
-    Y_d1 = Z_d1 * N_d[1]
-    Y_d3 = Z_d3 * N_d[3]
+    #Y_d1 = Z_d1 * N_d[1]
+    #Y_d3 = Z_d3 * N_d[3]
     
     # Prices under perfect competition
     p_d1 = w / Z_d1
     p_d3 = w / Z_d3
 
     # Old vintages and 'None' are not produced
-    Y_d0, Y_d2, Y_d4 = 0.0, 0.0, 0.0
+    #Y_d0, Y_d2, Y_d4 = 0.0, 0.0, 0.0
     p_d0, p_d2, p_d4 = 0.0, w / Z_d2, w / Z_d4 #TO BE CHANGED. MAYBE ENDOGENEOUS OR EXOGENOUSLY AS PRICE DISCOUNT RULE (PRICE_OLD = (1-RESALE_LOSS)*PRICE_NEW)
     
     # Y_d0 = 0.0
@@ -69,7 +82,7 @@ def prod_durables(Z_d1, Z_d2, Z_d3, Z_d4, N_d, w):
     # p_d3 = w / Z_d3
     # p_d4 = w / Z_d4
 
-    return Y_d0, Y_d1, Y_d2, Y_d3, Y_d4, p_d0, p_d1, p_d2, p_d3, p_d4
+    return N_d0, N_d1, N_d2, N_d3, N_d4, p_d0, p_d1, p_d2, p_d3, p_d4, N_d
 
 @sj.simple
 def nkpc(piw, N, C, vphi, frisch, markup_ss, gamma, beta):
