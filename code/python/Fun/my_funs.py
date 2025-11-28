@@ -924,9 +924,10 @@ def check_resource_constraint(ss):
     C_E = np.sum(c_E * D, axis=(1,2,3))
     p_E = ss.internals['hh']['p_e']
     p_d = ss.internals['hh']['p_d']
-    Y_core = ss['Y_core']
+    kappa_d = ss.internals['hh']['kappa_d']
+    Y = ss['Y']
     #Y_d = ss['Y_d']
-    Y_d = np.array([ss['Y_d0'], ss['Y_d1'], ss['Y_d2'], ss['Y_d3'], ss['Y_d4']])
+    #Y_d = np.array([ss['Y_d0'], ss['Y_d1'], ss['Y_d2'], ss['Y_d3'], ss['Y_d4']])
     G = ss['G']
     chi = ss['chi']
     tau_vec = ss.internals['hh']['tau_vec']
@@ -946,20 +947,21 @@ def check_resource_constraint(ss):
     RHS_0 = np.sum(rhs * D)
     print("Aggregating the individual BC (0 agg):", LHS_0 - RHS_0)
     
+    target = np.sum((adj_matrix[..., np.newaxis,np.newaxis]) * D)
+    
     # Agg (1)
-    # Get X flows
+    # Get X flows  
     S = np.sum(D, axis=(2, 3)) 
-    X_plus = np.sum(S * (1 - np.eye(S.shape[0])), axis=1)
-    X_minus = np.sum(S * (1 - np.eye(S.shape[0])), axis=0)
-    
-    
-    LHS_1 = p_core*C_core + np.sum((1+tau_vec) * (1+eps_vec) * p_E * C_E) + A + np.sum(X_plus * p_d - X_minus * chi * p_d) 
+    X_plus = np.sum(kappa_d.reshape(-1, 1)  * (S * (1 - np.eye(S.shape[0]))), axis=1)
+    X_minus = np.sum(kappa_d* (S * (1 - np.eye(S.shape[0]))), axis=0)
+
+    LHS_1 = p_core*C_core + np.sum((1+tau_vec) * (1+eps_vec) * p_E * C_E) + A + np.sum(X_plus - X_minus * (1-chi)) 
     RHS_1 = np.mean((1+r)*A + w*N + T)
     print("Aggregated BC (with flows of durables) (1 agg)", LHS_1 - RHS_1)
 
     # Include GBC (2)
     # Government BC
-    LHS_2 = p_core*C_core + np.sum((1+eps_vec) * p_E * C_E) + np.sum(X_plus * p_d - X_minus * chi * p_d) + G
+    LHS_2 = p_core*C_core + np.sum((1+eps_vec) * p_E * C_E) + np.sum(X_plus - X_minus * chi) + G
     RHS_2 = w*N
     print("Aggregated BC (including the government BC) (2 with GBC)", LHS_2 - RHS_2)
 
@@ -972,10 +974,9 @@ def check_resource_constraint(ss):
     # Final aggregate resource constraint (3)
     LHS_3 = p_core*C_core \
         + np.sum((1+eps_vec) * p_E * C_E) \
-        + np.sum(X_plus * p_d) \
+        + np.sum( X_plus * p_d - (1-chi)*X_minus*p_d) \
         + G
-    RHS_3 = p_core * Y_core \
-        + np.sum(p_d * (Y_d + (1-chi)*X_minus))
+    RHS_3 = p_core * Y
 
     print("Final resource constraint difference (LHS - RHS) (3 Final Resource Cstrt):", LHS_3 - RHS_3)
     #print("Final resource constraint, LHS:", LHS_3)
@@ -992,9 +993,8 @@ def check_resource_constraint(ss):
     #Other market clearing conditions
     # --- (2) Labor clearing ---
     N = ss['N']
-    N_core = ss['N_core']
-    N_d = np.sum(ss['N_d'])
-    results["labor_clearing"] = N - (N_core + N_d)
+    N_Y = ss['N_Y']
+    results["labor_clearing"] = N - N_Y
 
     # --- (3) Asset clearing ---
     A = ss['A']

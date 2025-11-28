@@ -1,3 +1,4 @@
+#%%
 # Standard libraries
 # Numerical computing
 import numpy as np
@@ -260,16 +261,13 @@ def transfers(e_dist, Div, Tax, e_grid):
     T = div - tax
     return T
 
-def vector_Y_d(Y_d0, Y_d1, Y_d2, Y_d3, Y_d4):
-    Y_d = np.array([Y_d0, Y_d1, Y_d2, Y_d3, Y_d4])
-    return Y_d
-
 #Construct the adjustment costs matrix between durables
-def adj_costs(p_d0, p_d1, p_d2, p_d3, p_d4, chi):
+def adj_costs(p_d0, p_d1, p_d2, p_d3, p_d4, chi, kappa_d0, kappa_d1, kappa_d2, kappa_d3, kappa_d4):
     p_d = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
-    adj_matrix = p_d[:, None] - (1 - chi) * p_d
+    kappa_d = np.array([kappa_d0, kappa_d1, kappa_d2, kappa_d3, kappa_d4])
+    adj_matrix = (p_d[None, :]*kappa_d.reshape(-1,1) - (1 - chi) * p_d * kappa_d)
     np.fill_diagonal(adj_matrix, 0)                     # set diagonal to 0 (no cost if no switching)
-    return adj_matrix, p_d
+    return adj_matrix, p_d, kappa_d
 
 #Define the disposable income
 def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable income for consumption and assets after buying the durable good
@@ -284,7 +282,7 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable in
     return disp_inc
 
 #Construct the utility shifter for durables
-def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g):
+def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g, kappa_d):
     dep_rate_b = 1 - (dep_util_frac_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
     vintages_b = np.arange(n_b)
     gammas_b_vector = gamma_b * (1 - dep_rate_b) ** vintages_b
@@ -292,7 +290,7 @@ def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g):
     vintages_g = np.arange(n_g)
     gammas_g_vector = gamma_g * (1 - dep_rate_g) ** vintages_g
     # Combine
-    shifters = np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))
+    shifters = ( np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))) * kappa_d
     return shifters
     
 # def make_tau_vector(n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
@@ -330,5 +328,6 @@ def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_vec, xi, nu, eps
 hh_durables = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
                 backward_init=hh_init,
                 hetinputs=[make_grids, income_grid, transfers, adj_costs, 
-                           disp_inc_f, make_shifters, vector_Y_d,#, make_price_durable_vector,#make_prices_durables, 
+                           disp_inc_f, make_shifters,#, make_price_durable_vector,#make_prices_durables, 
                            make_tau_vector, make_inefficiency_vector, make_consu_bundle_price])
+# %%
