@@ -114,8 +114,8 @@ for k, v in baseline_calibration.items():
     globals()[k] = v
 
 #%% === Create the model ===
-#ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, carbon_tax], name="Simple HA Model")
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, rsrce_cstrt], name="Simple HA Model")
+#ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, rsrce_cstrt], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
@@ -130,6 +130,7 @@ targets_ss = {'asset_mkt':0.0,'GBC': 0.0}
 
 ss_0 = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
 check_resource_constraint(ss_0)
+
 
 #%%
 plot_linear_irfs(

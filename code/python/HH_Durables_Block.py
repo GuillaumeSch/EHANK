@@ -225,7 +225,8 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec, eps_ve
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand, compute_flows, compute_Agg_Transf, decomposition_consu_bundle])
+                            name='consav', hetoutputs=[D_demand, compute_Agg_Transf, decomposition_consu_bundle])
+                            #name='consav', hetoutputs=[D_demand, compute_flows, compute_Agg_Transf, decomposition_consu_bundle])
 
 # %% Other basic necessary functions
 # hh_init: function that constructs the initial guess for backward variables
