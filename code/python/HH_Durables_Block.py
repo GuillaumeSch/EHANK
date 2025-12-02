@@ -1,30 +1,54 @@
 #%%
 # Standard libraries
+from dataclasses import dataclass
+from typing import Tuple, Callable
+
 # Numerical computing
 import numpy as np
 from numba import njit
+
 # Sequence-Jacobian framework
 from sequence_jacobian import grids, interpolate
 from sequence_jacobian.blocks.support.stages import ExogenousMaker
+
 # Custom utilities
 from SSJ_Fun.utils import make_d_grid, LogitChoiceDurables, Continuous1D_Durables, StageBlockDurables
 from Fun.my_funs import *
 
-
-
-#%% Stage 1 - Productivity shock (Expected value function given initial state of individual prod. level e_)
-
-#Initialize Stage 1a
+#%%--------------------------------------------------------------------------
+# Stage definitions
+# ---------------------------------------------------------------------------
+#1a. Productivity stage
 prod_stage = ExogenousMaker(markov_name='e_markov', index=1, name='prod')
-
-#Initialize Stage 1b
+#1b. Durable depreciation stage
 depreciation_stage = ExogenousMaker(markov_name='d_markov', index=0, name='durable')
+#2. Discrete choice over durables stage
+durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='durables', taste_shock_scale='taste_shock')
 
-#%% Stage 2 - Discrete choice (Durable choice)
-
-#Initialize Stage 2
-durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='durables',
-                           taste_shock_scale='taste_shock')
+#%%--------------------------------------------------------------------------
+# Utility function
+# ---------------------------------------------------------------------------
+@njit
+def util(c, d, omega, gamma, dbar, shifters):
+    """
+    CES-style utility over consumption and discrete durable vintages.
+    Parameters:
+    - c: consumption (scalar)
+    - d: discrete vintage index (integer)
+    - omega: consumption weight (0 < omega < 1)
+    - gamma: CRRA parameter 
+    - dbar: baseline durable stock
+    - shifters: 1D array of vintage-specific utility shifters
+    """
+    # Effective durable stock
+    d_eff = dbar + shifters[d]
+    X = (c ** omega) * (d_eff ** (1 - omega))
+    if gamma == 1.0:
+        # log utility limit
+        u = np.log(X)
+    else:
+        u = (X ** (1 - gamma)) / (1 - gamma)
+    return u
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
@@ -131,30 +155,13 @@ def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args):
 
     return V, c, a
 
-# %% Utility function
 
 
-@njit
-def util(c, d, omega, gamma, dbar, shifters):
-    """
-    CES-style utility over consumption and discrete durable vintages.
-    Parameters:
-    - c: consumption (scalar)
-    - d: discrete vintage index (integer)
-    - omega: consumption weight (0 < omega < 1)
-    - gamma: CRRA parameter 
-    - dbar: baseline durable stock
-    - shifters: 1D array of vintage-specific utility shifters
-    """
-    # Effective durable stock
-    d_eff = dbar + shifters[d]
-    X = (c ** omega) * (d_eff ** (1 - omega))
-    if gamma == 1.0:
-        # log utility limit
-        u = np.log(X)
-    else:
-        u = (X ** (1 - gamma)) / (1 - gamma)
-    return u
+#%%--------------------------------------------------------------------------
+# Hetoutputs for the Continous Choice stage. 
+# Can use vectors as input, but not as output.
+# Will aggregate all the outputs across the distribution.
+# ---------------------------------------------------------------------------
 
 
 #Report the aggregate demand for d
@@ -178,15 +185,10 @@ def D_demand(c):
         out_vars.append(dd_tilde_list[i])
     for i in range(D):
         out_vars.append(dd_list[i])
-
     d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO = (dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4)
-    #d_t_N, d_N, d_t_BN, d_BN, d_t_BM, d_BM, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GM, d_GM, d_t_GO, d_GO = (dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4, dd_tilde_5, dd_5, dd_tilde_6, dd_6)
-
     d_B = d_BN + d_BO
     d_G = d_GN + d_GO
-#return d_t_N, d_N, d_t_BN, d_BN, d_t_BM, d_BM, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GM, d_GM, d_t_GO, d_GO
     return d_t_N, d_N, d_t_BN, d_BN, d_t_BO, d_BO, d_t_GN, d_GN, d_t_GO, d_GO, d_B, d_G
-#return dd_tilde_0, dd_0, dd_tilde_1, dd_1, dd_tilde_2, dd_2, dd_tilde_3, dd_3, dd_tilde_4, dd_4
 
 #Compute the flows of durables. Important for the resource constraint
 def compute_flows(c, d_t_N, d_t_BN, d_t_BO, d_t_GN, d_t_GO, d_N, d_BN, d_BO, d_GN, d_GO):
@@ -198,7 +200,6 @@ def compute_flows(c, d_t_N, d_t_BN, d_t_BO, d_t_GN, d_t_GO, d_N, d_BN, d_BO, d_G
     ]
     for arr in (xplus_N, xplus_BN, xplus_BO, xplus_GN, xplus_GO, xminus_N, xminus_BN, xminus_BO, xminus_GN, xminus_GO):
         arr[mask] = 0
-
     return distr, xplus_N, xplus_BN, xplus_BO, xplus_GN, xplus_GO, xminus_N, xminus_BN, xminus_BO, xminus_GN, xminus_GO
 
 def compute_Agg_Transf(T, c):
@@ -228,8 +229,11 @@ consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
                             name='consav', hetoutputs=[D_demand, compute_Agg_Transf, decomposition_consu_bundle])
                             #name='consav', hetoutputs=[D_demand, compute_flows, compute_Agg_Transf, decomposition_consu_bundle])
 
-# %% Other basic necessary functions
-# hh_init: function that constructs the initial guess for backward variables
+
+
+#%%--------------------------------------------------------------------------
+# Hetinputs (grid construction, income, transfers, prices...)
+# ---------------------------------------------------------------------------
 def hh_init(disp_inc, a_grid, omega, gamma, dbar, shifters):
     V = util(disp_inc-np.min(disp_inc)+1, 0, omega, gamma, dbar, shifters)         #Avoid strange behaviour due to negative values. Not too important as only for first guess.
     V = np.mean(V, axis=0)                                          #Get rid of first dimension
@@ -253,6 +257,28 @@ def income_grid(e_grid, w, N):
     z_grid = w * N * e_grid
     return z_grid
 
+def create_vectors(n_b, n_g, 
+                   tau_b, tau_g, 
+                   p_e_b, p_e_g,
+                   eps_b, eps_g, 
+                   kappa_d0, kappa_d1, kappa_d2, kappa_d3, kappa_d4, 
+                   p_d0, p_d1, p_d2, p_d3, p_d4):
+    #Tau vector
+    tau_b_vec = np.ones(n_b) * tau_b
+    tau_g_vec = np.ones(n_g) * tau_g
+    tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
+    #Prices of energy vector
+    p_E_vec = np.concatenate([[0.0], np.ones(n_b) * p_e_b, np.ones(n_g) * p_e_g]) 
+    #Inefficiency vector
+    eps_b_vec = eps_b * np.arange(n_b)   # [0, eps_b, 2*eps_b, ...]
+    eps_g_vec = eps_g * np.arange(n_g)
+    eps_vec = np.concatenate(([0.0], eps_b_vec.astype(float), eps_g_vec.astype(float)))
+    #Quantities of durables vector
+    kappa_d = np.array([kappa_d0, kappa_d1, kappa_d2, kappa_d3, kappa_d4])
+    #Prices of durables vector (should be 1)
+    p_d = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
+    return tau_vec, p_E_vec, eps_vec, kappa_d, p_d
+
 def transfers(e_dist, Div, Tax, e_grid):
     # hardwired incidence rules are proportional to skill; scale does not matter
     #tax_rule, div_rule = e_grid, e_grid
@@ -263,12 +289,10 @@ def transfers(e_dist, Div, Tax, e_grid):
     return T
 
 #Construct the adjustment costs matrix between durables
-def adj_costs(p_d0, p_d1, p_d2, p_d3, p_d4, chi, kappa_d0, kappa_d1, kappa_d2, kappa_d3, kappa_d4):
-    p_d = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
-    kappa_d = np.array([kappa_d0, kappa_d1, kappa_d2, kappa_d3, kappa_d4])
+def adj_costs(p_d, chi, kappa_d):
     adj_matrix = (p_d[None, :]*kappa_d.reshape(-1,1) - (1 - chi) * p_d * kappa_d)
     np.fill_diagonal(adj_matrix, 0)                     # set diagonal to 0 (no cost if no switching)
-    return adj_matrix, p_d, kappa_d
+    return adj_matrix
 
 #Define the disposable income
 def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable income for consumption and assets after buying the durable good
@@ -293,24 +317,6 @@ def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g, 
     # Combine
     shifters = ( np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))) * kappa_d
     return shifters
-    
-# def make_tau_vector(n_b, tau_b, p_e_b, n_g, tau_g, p_e_g):
-#     tau_b_vec = np.ones(n_b) * tau_b * p_e_b
-#     tau_g_vec = np.ones(n_g) * tau_g * p_e_g
-#     tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
-#     return tau_vec
-
-def make_tau_vector(n_b, tau_b, n_g, tau_g):
-    tau_b_vec = np.ones(n_b) * tau_b
-    tau_g_vec = np.ones(n_g) * tau_g
-    tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
-    return tau_vec
-
-def make_inefficiency_vector(n_b, n_g, eps_b, eps_g):
-    eps_b_vec = eps_b * np.arange(n_b)   # [0, eps_b, 2*eps_b, ...]
-    eps_g_vec = eps_g * np.arange(n_g)
-    eps_vec = np.concatenate(([0.0], eps_b_vec.astype(float), eps_g_vec.astype(float)))
-    return eps_vec
 
 #Price of the household consumption bundle + Decomposition of core and energy consumption
 def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_vec, xi, nu, eps_vec):
@@ -330,5 +336,5 @@ hh_durables = StageBlockDurables([depreciation_stage, prod_stage, durables_stage
                 backward_init=hh_init,
                 hetinputs=[make_grids, income_grid, transfers, adj_costs, 
                            disp_inc_f, make_shifters,#, make_price_durable_vector,#make_prices_durables, 
-                           make_tau_vector, make_inefficiency_vector, make_consu_bundle_price])
+                           create_vectors, make_consu_bundle_price])
 # %%
