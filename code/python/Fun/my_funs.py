@@ -10,170 +10,188 @@ import math
 
 def policy_functions(
     ss,
-    xmax=10,               # max ratio on x-axis (e.g., 10 means show up to 10× average wealth)
-    xmin=0,                # min ratio on x-axis
+    xmax=10,
+    xmin=0,
     d_tilde_list=[0],
     d_list=[0],
     ie_list=[3],
     figsize=0.6,
     models=['baseline'],
-    plots=['assets','da','cons','disc'],  # choose which plots to show
-    save_path=None         # str or None, path to save figure
+    plots=['assets','da','cons','disc'],
+    save_path=None
 ):
     """
-    Plot household policy functions (assets, Δassets, consumption, discrete choice).
+    Plot household policy functions (assets, Δassets, consumption, discrete choice)
+    for one or multiple models, with visual encodings:
+
+        • model      → line width
+        • d_tilde    → color
+        • d          → transparency (alpha)
+        • z          → line style
 
     Parameters
     ----------
     ss : dict
-        Steady-state object(s).
+        Dictionary of steady-state objects indexed by model name.
     xmax, xmin : float
-        Range for x-axis in multiples of average wealth.
-    d_tilde_list, d_list, ie_list : lists
-        Indices for plotting dimensions.
+        Range for x-axis as multiples of average wealth.
+    d_tilde_list, d_list : lists
+        Durable choice states for next period (d_tilde) and current (d).
+    ie_list : list
+        Productivity states z to plot.
     figsize : float
-        Scale factor for figure size.
-    models : list of str
-        Model keys to plot.
-    plots : list of str
-        Which plots to show. Options:
-            'assets' -> asset policy
-            'da'     -> change in assets
-            'cons'   -> consumption
-            'disc'   -> discrete choice probability
+        Global figure size scaling.
+    models : list
+        Models to compare.
+    plots : list
+        Which figures to include: 'assets', 'da', 'cons', 'disc'.
     save_path : str or None
-        If provided, save figure to this path.
+        If provided, save figure.
+
     """
 
+    # ---- 0. Extract common grids/objects -------------------------------------
     a_grid = ss['baseline'].internals['hh']['a_grid']
     A = ss['baseline']['A']
 
-    # find index cutoffs corresponding to xmin/xmax ratios
     max_val = xmax * A
     min_val = xmin * A
-    amax_idx = np.searchsorted(a_grid, max_val)   # index for xmax
-    amin_idx = np.searchsorted(a_grid, min_val)   # index for xmin
+    amax_idx = np.searchsorted(a_grid, max_val)
+    amin_idx = np.searchsorted(a_grid, min_val)
 
-    a, da, c, P, V = dict(), dict(), dict(), dict(), dict()
+    # ---- 1. Extract policy objects for all models ----------------------------
+    a, da, c, P = {}, {}, {}, {}
 
     for model in models:
-        a[model] = ss[model].internals['hh']['consav']['a']
+        hh = ss[model].internals['hh']
+        a[model]  = hh['consav']['a']
         da[model] = a[model] - a_grid
-        c[model] = ss[model].internals['hh']['consav']['c']
-        P[model] = ss[model].internals['hh']['durables']['law_of_motion'].P
-        V[model] = ss[model].internals['hh']['durables']['V']
+        c[model]  = hh['consav']['c']
+        P[model]  = hh['durables']['law_of_motion'].P
 
-    # Map plot names to indices
-    plot_map = {
-        'assets': 0,
-        'da': 1,
-        'cons': 2,
-        'disc': 3
+    # ---- 2. Which plots to show ---------------------------------------------
+    plot_map = {'assets': 0, 'da': 1, 'cons': 2, 'disc': 3}
+    selected = [plot_map[p] for p in plots if p in plot_map]
+
+    titles = {
+        0: r'Assets ($a^*(\tilde{d},\,d,\,z,\,a^{-})$)',
+        1: r'$\Delta$ Assets ($da^*$)',
+        2: r'Consumption ($c^*$)',
+        3: r'Durable Adoption Probability'
     }
-    selected_indices = [plot_map[p] for p in plots if p in plot_map]
+    ylabels = {0: "Assets", 1: "Δ Assets", 2: "Consumption", 3: "Probability"}
 
-    # Create only needed subplots
-    fig, axes = plt.subplots(1, len(selected_indices), figsize=(6 * figsize * len(selected_indices), 5 * figsize))
-    if len(selected_indices) == 1:
-        axes = [axes]  # ensure list
+    # ---- 3. Prepare figure ---------------------------------------------------
+    fig, axes = plt.subplots(
+        1, len(selected),
+        figsize=(6 * figsize * len(selected), 5 * figsize)
+    )
+    if len(selected) == 1:
+        axes = [axes]
 
-    # Define line styles for each iz
+    # ---- 4. Style maps -------------------------------------------------------
+
+    # Model → line width (main difference between models)
+    base_lw = 2.0
+    lw_map = {m: base_lw + 0.8*i for i, m in enumerate(models)}
+
+    # z → line style
     linestyles = ['-', '--', '-.', ':']
-    linestyle_map = {iz: linestyles[i % len(linestyles)] for i, iz in enumerate(ie_list)}
-
-    # Colors for d_tilde
-    n = len(d_tilde_list)
+    linestyle_map = {iz: linestyles[i_ % len(linestyles)] for i_, iz in enumerate(ie_list)}
+    
+    # d_tilde → color (via HSV)
+    n_dt = len(d_tilde_list)
     color_map = {}
     for i, d_tilde in enumerate(d_tilde_list):
-        hue = i / n
-        r, g, b = colorsys.hsv_to_rgb(hue, 1, 1)
+        h = i / max(n_dt, 1)
+        r, g, b = colorsys.hsv_to_rgb(h, 1, 1)
         color_map[d_tilde] = (r, g, b)
 
-    # Transparency for d values
+    # d → transparency alpha
     if len(d_list) > 1:
         alphas = np.linspace(0.3, 1.0, len(d_list))
     else:
         alphas = [1.0]
     alpha_map = {d_val: alpha for d_val, alpha in zip(d_list, alphas)}
 
-    # Titles mapping
-    titles = {
-        0: r'Assets ($a^*(\tilde{d},\, d,\, z,\, a^{-})$)',
-        1: r'$\Delta$ Assets ($da^*(\tilde{d},\, d,\, z,\, a^{-})$)',
-        2: r'Consumption ($c^*(\tilde{d},\, d,\, z,\, a^{-})$)',
-        #3: r'Discrete choice ($Pr(\tilde{d}^*(d,\, z,\, a^{-})=1)$)'
-        3: r'Durable Adoption Probability'
-    }
-    # Y labels mapping
-    ylabels = {
-    0: "Assets",
-    1: "Δ Assets",
-    2: "Consumption",
-    3: "Probability"
-    }
+    # human-readable labels for d_tilde
+    labels_dt = ['None','New Brown','Old Brown','New Green','Old Green']
 
-    # Plot
-    labels = ['None','New Brown','Old Brown','New Green','Old Green']
+    # ---- 5. Plot loops -------------------------------------------------------
     for model in models:
         for d_tilde in d_tilde_list:
             for d in d_list:
                 for iz in ie_list:
-                    linestyle = linestyle_map[iz]
-                    color = color_map[d_tilde]
-                    alpha = alpha_map[d]
-                    #label = f"($\\tilde{{d}}$={d_tilde}, d={d}, z={iz})"
-                    label = labels[d_tilde]
 
-                    if 0 in selected_indices:
-                        axes[selected_indices.index(0)].plot(
+                    lw = lw_map[model]
+                    ls = linestyle_map[iz]
+                    col = color_map[d_tilde]
+                    alpha = alpha_map[d]
+
+                    label = f"{model} – {labels_dt[d_tilde]}"
+
+                    # Assets
+                    if 0 in selected:
+                        axes[selected.index(0)].plot(
                             a_grid[amin_idx:amax_idx]/A,
                             a[model][d_tilde, d, iz, amin_idx:amax_idx],
-                            label=label, linewidth=2, color=color,
-                            linestyle=linestyle, alpha=alpha
+                            label=label, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha
                         )
 
-                    if 1 in selected_indices:
-                        axes[selected_indices.index(1)].plot(
+                    # ΔAssets
+                    if 1 in selected:
+                        axes[selected.index(1)].plot(
                             a_grid[amin_idx:amax_idx]/A,
                             da[model][d_tilde, d, iz, amin_idx:amax_idx],
-                            label=label, linewidth=2, color=color,
-                            linestyle=linestyle, alpha=alpha,
+                            label=label, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha
                         )
 
-                    if 2 in selected_indices:
-                        axes[selected_indices.index(2)].plot(
+                    # Consumption
+                    if 2 in selected:
+                        axes[selected.index(2)].plot(
                             a_grid[amin_idx:amax_idx]/A,
                             c[model][d_tilde, d, iz, amin_idx:amax_idx],
-                            label=label, linewidth=2, color=color,
-                            linestyle=linestyle, alpha=alpha
+                            label=label, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha
                         )
 
-                    if 3 in selected_indices:
-                        axes[selected_indices.index(3)].plot(
+                    # Durable adoption probability
+                    if 3 in selected:
+                        axes[selected.index(3)].plot(
                             a_grid[amin_idx:amax_idx]/A,
                             P[model][d_tilde, d, iz, amin_idx:amax_idx],
-                            label=label, linewidth=2, color=color,
-                            linestyle=linestyle, alpha=alpha
+                            label=label, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha
                         )
 
-    # Reference lines and titles
-    for idx, ax in zip(selected_indices, axes):
-        if idx == 0:
-            ax.plot(a_grid[amin_idx:amax_idx]/A, a_grid[amin_idx:amax_idx], color='gray', linestyle=':')
-        if idx == 1:
-            ax.axhline(y=0, color='gray', linestyle=':')
+    # ---- 6. Per-panel formatting --------------------------------------------
+    for idx, ax in zip(selected, axes):
+
+        # reference lines
+        if idx == 0:   # assets
+            ax.plot(a_grid[amin_idx:amax_idx]/A,
+                    a_grid[amin_idx:amax_idx],
+                    color='gray', linestyle=':', linewidth=1.2)
+        if idx == 1:   # Δassets
+            ax.axhline(0, color='gray', linestyle=':', linewidth=1.2)
+
         ax.set_title(titles[idx])
         ax.set_ylabel(ylabels[idx])
         ax.set_xlabel('Ratio of ind. wealth to avg. wealth')
         ax.set_xlim([xmin, xmax])
+
         ax.legend(frameon=False)
 
     plt.tight_layout()
 
+    # ---- 7. Save figure ------------------------------------------------------
     if save_path is not None:
-        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
     plt.show()
+
 
 
 def plot_heatmap(Pi, title="Matrix Heatmap", fmt=".2f"):
@@ -600,6 +618,8 @@ def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs, T_pl
     # Plot with custom titles
     show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T_plot,
               figsize=figsize, save_path=save_path, titles=titles)
+    
+    return irfs
 
 
 def evaluate_param_changes(param_name, values_list, ha, cali,
@@ -923,8 +943,8 @@ def check_resource_constraint(ss):
     c_E = ss.internals['hh']['consav']['c_E']
     C_E = np.sum(c_E * D, axis=(1,2,3))
     p_E = ss.internals['hh']['p_e']
-    p_d = ss.internals['hh']['p_d']
-    kappa_d = ss.internals['hh']['kappa_d']
+    #p_d = ss.internals['hh']['p_d']
+    d = ss.internals['hh']['d']
     Y = ss['Y']
     #Y_d = ss['Y_d']
     #Y_d = np.array([ss['Y_d0'], ss['Y_d1'], ss['Y_d2'], ss['Y_d3'], ss['Y_d4']])
@@ -952,8 +972,8 @@ def check_resource_constraint(ss):
     # Agg (1)
     # Get X flows  
     S = np.sum(D, axis=(2, 3)) 
-    X_plus = np.sum(kappa_d.reshape(-1, 1)  * (S * (1 - np.eye(S.shape[0]))), axis=1)
-    X_minus = np.sum(kappa_d* (S * (1 - np.eye(S.shape[0]))), axis=0)
+    X_plus = np.sum(d.reshape(-1, 1)  * (S * (1 - np.eye(S.shape[0]))), axis=1)
+    X_minus = np.sum(d* (S * (1 - np.eye(S.shape[0]))), axis=0)
 
     LHS_1 = p_core*C_core + np.sum((1+tau_vec) * (1+eps_vec) * p_E * C_E) + A + np.sum(X_plus - X_minus * (1-chi)) 
     RHS_1 = np.mean((1+r)*A + w*N + T)
@@ -974,7 +994,7 @@ def check_resource_constraint(ss):
     # Final aggregate resource constraint (3)
     LHS_3 = p_core*C_core \
         + np.sum((1+eps_vec) * p_E * C_E) \
-        + np.sum( X_plus * p_d - (1-chi)*X_minus*p_d) \
+        + np.sum( X_plus  - (1-chi)*X_minus) \
         + G
     RHS_3 = p_core * Y
 

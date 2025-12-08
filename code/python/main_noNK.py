@@ -62,18 +62,18 @@ baseline_calibration = {
 
     # Utility from durables
     "gamma_b": 1.0,         # Utility weight of brown durable
-    "gamma_g": 1.2,         # Utility weight of green durable
-    "dep_util_frac_b": 0.7, # Depreciation (utility) for oldest brown vintage
-    "dep_util_frac_g": 0.7, # Same for green vintage
+    "gamma_g": 1.0,         # Utility weight of green durable
+    "dep_util_frac_b": 1,   # Depreciation (utility) for oldest brown vintage
+    "dep_util_frac_g": 1,   # Same for green vintage
+    "gamma_mult": 1.0,      # Scale parameter for utility shifter
 
     # Physical lifetime
     "lifetime_b": 60,       # Brown car durability (quarters)
     "lifetime_g": 60,       # Green car durability (quarters)
 
-    # Durable prices and quantities (per vintage)
-    "p_d0": 1.0, "p_d1": 1.0, "p_d2": 1.0, "p_d3": 1.0, "p_d4": 1.0,
     # Durable quantities
-    "kappa_d0": 0, "kappa_d1": 0.02, "kappa_d2": 0.02, "kappa_d3": 0.02, "kappa_d4": 0.02,
+    "d0": 0, "d1": 0.02, "d2": 0.018, "d3": 0.03, "d4": 0.025,
+    "d_mult": 1.0,          # Scale parameter for durable quantities
 
     # -------------------------
     # 6. Government
@@ -86,8 +86,8 @@ baseline_calibration = {
     # -------------------------
     # 7. Energy (brown vs green)
     # -------------------------
-    "p_e_b": 0.333,         # Brown energy price (gasoline)
-    "p_e_g": 0.04,          # Green energy price (electricity)
+    "p_e_b": 0.00,         # Brown energy price (gasoline)
+    "p_e_g": 0.00,          # Green energy price (electricity)
 
     "eps_b": 0.40,          # Inefficiency of brown vintage
     "eps_g": 0.20,          # Inefficiency of green vintage
@@ -121,8 +121,11 @@ print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
 
-#%%
+#%%Goal of the next section: Find some better calibration for higher kappa
+
+#%% NOT SS. BUT SOLUTION OF HH PROBLEM.
 ss_0 = ha.steady_state(baseline_calibration)
+
 
 #%%
 unknowns_ss = {'beta':baseline_calibration['beta'],'Tax':baseline_calibration['Tax']}
@@ -130,105 +133,97 @@ targets_ss = {'asset_mkt':0.0,'GBC': 0.0}
 
 ss_0 = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
 check_resource_constraint(ss_0)
+display_ss_durables(ss_0)
+
+#%%
+evaluate_param_changes('d_mult', [100, 0.100], ha, ss_0,
+                      ss_vars = ['asset_mkt', 'rsrce_cstrt', 'D_N', 'D_B', 'D_G'])
 
 
 #%%
-plot_linear_irfs(
+ss_dict = dict()
+ss_dict['baseline'] = deepcopy(ss_0)
+ss_dict['alt'] = deepcopy(ss_0)
+ss_dict['alt']['dbar'] = 0.1
+ss_dict['alt'] = ha.steady_state(ss_dict['alt'])
+
+
+ss_dict['alt2'] = deepcopy(ss_dict['alt'])
+ss_dict['alt2']['gamma_mult'] = 1.5
+ss_dict['alt2'] = ha.steady_state(ss_dict['alt2'])
+
+
+display_ss_durables(ss_dict['alt2'] )
+
+
+
+#policy_functions(ss_dict, xmax=5, d_tilde_list=[0], models=['baseline','alt'])
+
+#plot_distribution(ss_0)
+
+#%%
+comparative_statics_plot_shares(ha, ss_0, {"d_mult": np.linspace(0.1, 5, 3)}, unknowns_ss, targets_ss, ["D_N", "D_B", "D_G"])
+
+
+#%%
+evaluate_param_changes('d_mult', [0.5, 1.05, 1.50, 2, 5, 10, 20, 150], ha, ss_0,
+                      ss_vars = ['asset_mkt', 'rsrce_cstrt', 'D_N', 'D_B', 'D_G'])
+
+#%%
+evaluate_param_changes('d_mult', [1, 2, 3, 10, 20, 50], ha, ss_0,
+                      ss_vars = ['asset_mkt', 'rsrce_cstrt', 'D_N', 'D_B', 'D_G'])
+
+
+#%%
+evaluate_two_param_changes('d_mult', [1, 2],
+                           'dbar', [0.1, 0.5, 1.0],
+                           ha, ss_0, ss_vars = ['asset_mkt', 'rsrce_cstrt', 'D_N', 'D_B', 'D_G'])
+
+
+
+
+
+#%%
+IRFs = plot_linear_irfs(
     shocks_list=['tau_b'],
     e = {"tau_b": 0.01},
     rho = {"tau_b": 0.80},
-    unknowns_td=['G','Tax'],
+    unknowns_td=['r','Tax'],
     targets_td=['asset_mkt', "GBC"],
     ha=ha,
     ss=ss_0,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["tau_b", "T_E","Tax", "D_N", "D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "i", "r"],
+    outputs=["tau_b", "T_E","Tax", "D_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "i", "r"],
     #titles = titles,
     figsize=(18, 12),
     save_path='../../output/figures/IRFs_tau_b.png',
 )
 
+#%%
+IRFs = plot_linear_irfs(
+    shocks_list=['d1'],
+    e = {"d1": 0.01},
+    rho = {"d1": 0.80},
+    unknowns_td=['r','Tax'],
+    targets_td=['asset_mkt', "GBC"],
+    ha=ha, 
+    ss=ss_0,
+    #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
+    outputs=["d1", "T_E","Tax", "D_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "i", "r"],
+    #titles = titles,
+    figsize=(18, 12),
+    save_path='../../output/figures/IRFs_tau_b.png',
+)
 
 #%%
-unknowns_ss = {'kappa_d3':0.02}
-targets_ss = {'D_G':0.15}
 
-ss_1 = ha.solve_steady_state(ss_0 , unknowns_ss, targets_ss, solver='hybr')
-display_ss_durables(ss_1)
-display_calibrated_from_unknowns(ss_1, unknowns_ss)
+J = hh_durables.jacobian(ss_0, ['d1'], T=50)
 
+plt.plot(J['D_G']['d1'][:20, 0], label='test')
+plt.axhline(0, color='gray', linestyle=':')
+plt.legend()
+plt.show()
 
-#%% Basic steady state solution
-unknowns_ss = {'N': 0.6,'beta':0.94, 'Tax':0.258}
-targets_ss = {'labor_mkt':0.0, 'asset_mkt':0.0, 'GBC': 0.0}
-
-ss_0 = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
-
-#%%
-check_resource_constraint(ss_0)
-
-
-#%% C_CORE = Y_core
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, prod_durables, rsrce_cstrt, get_demand], name="Simple HA Model")
-
-unknowns_ss = {'Y_core':0.6830348630484795, 'Y_d1':0.01, 'Y_d3':0.01}
-targets_ss = {'diff_core':0.0, 'diff_BN':0.0, 'diff_GN':0.0}
-
-ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
-
-#%%
-unknowns_ss = {'Z_d2':30, 'Z_d4':1}
-targets_ss = {'diff_BO':0.0, 'diff_GO':0.0}
-
-ss_2 = ha.solve_steady_state(ss , unknowns_ss, targets_ss, solver='hybr')
-
-#%%
-unknowns_ss = {'Y_core':0.6830348630484795, 'Y_d1':0.01, 'Y_d3':0.01}
-targets_ss = {'diff_core':0.0, 'diff_BN':0.0, 'diff_GN':0.0}
-
-ss_3 = ha.solve_steady_state(ss_2 , unknowns_ss, targets_ss, solver='hybr')
-
-#%%
-unknowns_ss = {'r':0.03594929476559624, 'Z_d2':21, 'Z_d4':13}
-targets_ss = {'asset_mkt':0.0, 'diff_BO':0.0, 'diff_GO':0.0}
-
-ss_4 = ha.solve_steady_state(ss_3 , unknowns_ss, targets_ss, solver='hybr')
-
-#%%
-unknowns_ss = {'r':ss_4['r'], 'Z_d2':ss_4['Z_d2'], 'Z_d4':ss_4['Z_d4'], 'Tax':0.358}
-targets_ss = {'asset_mkt':0.0, 'diff_BO':0.0, 'diff_GO':0.0, 'GBC': 0.0 }
-
-ss_5 = ha.solve_steady_state(ss_4 , unknowns_ss, targets_ss, solver='hybr')
-
-#%%
-evaluate_param_changes('N', [0.80], ha, ss_5,
-                      ss_vars = ['asset_mkt', 'diff_core','diff_BN', 'diff_GN', 'diff_BO', 'diff_GO', 'labor_mkt'])
-
-#%%
-unknowns_ss = {'N': 0.8}
-targets_ss = {'labor_mkt':0.0}
-
-ss_6 = ha.solve_steady_state(ss_5 , unknowns_ss, targets_ss, solver='hybr')
-
-#%%
-unknowns_ss = {'N': ss_6['N'],'beta':0.94}
-targets_ss = {'labor_mkt':0.0, 'asset_mkt':0.0}
-
-ss_7 = ha.solve_steady_state(ss_6 , unknowns_ss, targets_ss, solver='hybr')
-
-#%%
-ss_7_mod = ss_7.copy()
-ss_7_mod['Y_core'] = 0.65
-
-unknowns_ss = {'N': ss_7['N'],'beta':ss_7['beta']}
-targets_ss = {'labor_mkt':0.0, 'asset_mkt':0.0}
-
-ss_8 = ha.solve_steady_state(ss_7_mod , unknowns_ss, targets_ss, solver='hybr')
-
-
-#%%
-evaluate_param_changes('beta', [0.94, 0.959, 0.960], ha, ss_6,
-                      ss_vars = ['asset_mkt', 'diff_core','diff_BN', 'diff_GN', 'diff_BO', 'diff_GO', 'labor_mkt'])
 
 #%%
 # #%% Evaluate the model at the calibration with differences in a parameter.
@@ -247,44 +242,77 @@ check_resource_constraint(ss_baseline)
 
 #%%
 
-# #%% Evaluate the model at the calibration with differences in a parameter.
-evaluate_param_changes('r', [0.016], ha, baseline_calibration,
-                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+
 
 #%%
-evaluate_two_param_changes('xi', [0.90, 0.95],'beta', [0.90, 0.95], ha, baseline_calibration,
-                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
-
-#%%
-t_start = time.perf_counter()
-
-unknowns_ss = {'beta':0.959, 'N':1, 'Tax':0.358}
-targets_ss = {'asset_mkt':0.0, 'labor_mkt':0.0, 'GBC': 0.0}
-
-ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
-
-display_ss_durables(ss)
-display_calibrated_from_unknowns(ss, unknowns_ss)
-check_resource_constraint(ss)
 
 
-t_end = time.perf_counter()
-print(f"total block runtime (solve + displays): {t_end - t_start:.3f} s")
+
+
+
+
+
+# Fonction D(dtilde) – tu peux la changer
+def D_fun(dtilde):
+    return dtilde
+
+# Fonction d'utilité
+def u_fun(c, dtilde):
+    term = c**omega * (dbar + D_fun(dtilde))**(1 - omega)
+    return term**(1 - gamma) / (1 - gamma)
+
+# Grille
+c_vals = np.linspace(0.1, 2, 100)
+dtilde_vals = np.linspace(0.1, 5, 100)
+C, DT = np.meshgrid(c_vals, dtilde_vals)
+
+# Calcul utilité
+U = u_fun(C, DT)
+
+# -------- Graphique 3D --------
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(C, DT, U, cmap='viridis', edgecolor='none')
+ax.set_xlabel("c")
+ax.set_ylabel("d̃")
+ax.set_zlabel("u(c, d̃)")
+plt.title("Surface de la fonction d'utilité")
+plt.tight_layout()
+plt.show()
+
+# -------- Contour plot --------
+plt.figure(figsize=(8, 6))
+cp = plt.contourf(C, DT, U, levels=50, cmap='viridis')
+plt.colorbar(cp)
+plt.xlabel("c")
+plt.ylabel("d̃")
+plt.title("Contours de u(c, d̃)")
+plt.tight_layout()
+plt.show()
 
 # %%
-evaluate_param_changes('N', [1.01], ha, ss,
-                      #ss_vars = ['B', 'labor_mkt','asset_mkt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
-                      ss_vars = ['B', 'labor_mkt','asset_mkt', 'rsrce_cstrt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
+
+
+shifters = ss_0.internals['hh']['shifters']
+c = ss_0['C']
+
+util(c, [0,1,2,3,4], omega, gamma, dbar, shifters)
 # %%
-evaluate_param_changes('w', [0.99, 1.01], ha, ss,
-                      #ss_vars = ['B', 'labor_mkt','asset_mkt', 'rsrce_cstrt', 'GBC','C', 'A', 'D_N', 'D_BN','D_BO','D_GN','D_GO','AGG_TRANSF', 'C_CORE', 'C_E', 'T_E'])
-                      ss_vars = ['AD', 'AD_CORE','AD_DURABLES', 'AS', 'AS_CORE','AS_DURABLES', 'rsrce_cstrt'])
-# %%
-evaluate_param_changes('Y_core', [0.59, 0.61, 0.7], ha, ss,
-#                      ss_vars = ['AD', 'AD_CORE','AD_DURABLES', 'AS', 'AS_CORE','AS_DURABLES', 'rsrce_cstrt'])
-                      ss_vars = ['AD', 'AS','rsrce_cstrt','labor_mkt','asset_mkt'])
-# %%
-evaluate_two_param_changes('Y_core', [0.59, 0.61, 0.7], 'w', [0.99, 1.01], ha, ss,
-#                      ss_vars = ['AD', 'AD_CORE','AD_DURABLES', 'AS', 'AS_CORE','AS_DURABLES', 'rsrce_cstrt'])
-                      ss_vars = ['AD', 'AS','rsrce_cstrt','labor_mkt','asset_mkt'])
+def util(ss):
+    shifters = ss.internals['hh']['shifters']
+    c = ss_0['C']
+    
+    def util(c, d, omega, gamma, dbar, shifters):
+        d_eff = dbar + shifters[d]
+        X = (c ** omega) * (d_eff ** (1 - omega))
+        if gamma == 1.0:
+            # log utility limit
+            u = np.log(X)
+        else:
+            u = (X ** (1 - gamma)) / (1 - gamma)
+        return u
+    
+    
+    utily = util(c, [0,1,2,3,4], omega, gamma, dbar, shifters)
+    return utily
 # %%

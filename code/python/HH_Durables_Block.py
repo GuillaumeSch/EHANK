@@ -261,8 +261,7 @@ def create_vectors(n_b, n_g,
                    tau_b, tau_g, 
                    p_e_b, p_e_g,
                    eps_b, eps_g, 
-                   kappa_d0, kappa_d1, kappa_d2, kappa_d3, kappa_d4, 
-                   p_d0, p_d1, p_d2, p_d3, p_d4):
+                   d0, d1, d2, d3, d4, d_mult):
     #Tau vector
     tau_b_vec = np.ones(n_b) * tau_b
     tau_g_vec = np.ones(n_g) * tau_g
@@ -274,10 +273,8 @@ def create_vectors(n_b, n_g,
     eps_g_vec = eps_g * np.arange(n_g)
     eps_vec = np.concatenate(([0.0], eps_b_vec.astype(float), eps_g_vec.astype(float)))
     #Quantities of durables vector
-    kappa_d = np.array([kappa_d0, kappa_d1, kappa_d2, kappa_d3, kappa_d4])
-    #Prices of durables vector (should be 1)
-    p_d = np.array([p_d0, p_d1, p_d2, p_d3, p_d4])
-    return tau_vec, p_E_vec, eps_vec, kappa_d, p_d
+    d = np.array([d0, d1, d2, d3, d4]) * d_mult
+    return tau_vec, p_E_vec, eps_vec, d
 
 def transfers(e_dist, Div, Tax, e_grid):
     # hardwired incidence rules are proportional to skill; scale does not matter
@@ -289,8 +286,8 @@ def transfers(e_dist, Div, Tax, e_grid):
     return T
 
 #Construct the adjustment costs matrix between durables
-def adj_costs(p_d, chi, kappa_d):
-    adj_matrix = (p_d[None, :]*kappa_d.reshape(-1,1) - (1 - chi) * p_d * kappa_d)
+def adj_costs(chi, d):
+    adj_matrix = d.reshape(-1, 1) * np.ones(d.size) - (1 - chi) * d
     np.fill_diagonal(adj_matrix, 0)                     # set diagonal to 0 (no cost if no switching)
     return adj_matrix
 
@@ -307,7 +304,7 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable in
     return disp_inc
 
 #Construct the utility shifter for durables
-def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g, kappa_d):
+def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g, d, gamma_mult):
     dep_rate_b = 1 - (dep_util_frac_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
     vintages_b = np.arange(n_b)
     gammas_b_vector = gamma_b * (1 - dep_rate_b) ** vintages_b
@@ -315,14 +312,14 @@ def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g, 
     vintages_g = np.arange(n_g)
     gammas_g_vector = gamma_g * (1 - dep_rate_g) ** vintages_g
     # Combine
-    shifters = ( np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))) * kappa_d
+    shifters = ( np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))) * d * gamma_mult
     return shifters
 
 #Price of the household consumption bundle + Decomposition of core and energy consumption
 def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_vec, xi, nu, eps_vec):
     p_e_b_vec = np.ones(n_b) * p_e_b
     p_e_g_vec = np.ones(n_g) * p_e_g
-    p_e = np.concatenate([[0.0], p_e_b_vec, p_e_g_vec]) 
+    p_e = np.concatenate([[0.0], p_e_b_vec, p_e_g_vec])
     p_tilde_e = (1 + eps_vec) * (1 + tau_vec) * p_e
     if nu != 1:
         p_bundle = (xi * p_core**(1-nu) + (1-xi) * ((1 + eps_vec) * (1 + tau_vec) * p_e)**(1-nu))**(1/(1-nu))
