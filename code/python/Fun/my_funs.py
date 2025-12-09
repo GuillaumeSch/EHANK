@@ -1237,6 +1237,14 @@ def comparative_statics_plot_shares(
 
     # --- Plot as stacked area ---
     fig, ax = plt.subplots(figsize=(8, 5))
+    
+    # --- Default labels & colors when there are 5 outputs ---
+    if len(outputs) == 5:
+        if line_colors is None:
+            line_colors = ["#808080", "#8B4513", "#C4A484", "#228B22", "#90EE90"]
+        if line_labels is None:
+            line_labels = ["None", "Brown New", "Brown Old", "Green New", "Green Old"]
+
 
     # Custom labels if provided
     labels = line_labels if line_labels is not None else outputs
@@ -1248,6 +1256,22 @@ def comparative_statics_plot_shares(
         colors=line_colors,   # <-- new argument used here
         alpha=0.8
     )
+    
+    # --- Visual marker for failed solves ---
+    x_plot = x_values if x_values is not None else grid
+    failed = np.array(success_flags) == False
+
+    if failed.any():
+        # Plot a thin red bar at y=0 for failed points
+        ax.scatter(
+            x_plot[failed],
+            np.zeros(sum(failed)),
+            color="red",
+            marker="X",
+            s=60,
+            label="Solve failed"
+        )
+
 
     # Labels and title
     ax.set_xlabel(x_label if x_label is not None else param)

@@ -259,22 +259,31 @@ def income_grid(e_grid, w, N):
 
 def create_vectors(n_b, n_g, 
                    tau_b, tau_g, 
-                   p_e_b, p_e_g,
-                   eps_b, eps_g, 
+                   p_e_n, p_e_b, p_e_g,
+                   eps_b, eps_g,
+                   nu, xi, p_core,
                    d0, d1, d2, d3, d4, d_mult):
+    #Quantities of durables vector
+    d = np.array([d0, d1, d2, d3, d4]) * d_mult
     #Tau vector
     tau_b_vec = np.ones(n_b) * tau_b
     tau_g_vec = np.ones(n_g) * tau_g
     tau_vec = np.concatenate([[0.0], tau_b_vec, tau_g_vec])
     #Prices of energy vector
-    p_E_vec = np.concatenate([[0.0], np.ones(n_b) * p_e_b, np.ones(n_g) * p_e_g]) 
+    p_e = np.concatenate([np.atleast_1d(p_e_n), np.ones(n_b) * p_e_b, np.ones(n_g) * p_e_g])
     #Inefficiency vector
     eps_b_vec = eps_b * np.arange(n_b)   # [0, eps_b, 2*eps_b, ...]
     eps_g_vec = eps_g * np.arange(n_g)
     eps_vec = np.concatenate(([0.0], eps_b_vec.astype(float), eps_g_vec.astype(float)))
-    #Quantities of durables vector
-    d = np.array([d0, d1, d2, d3, d4]) * d_mult
-    return tau_vec, p_E_vec, eps_vec, d
+    #Inefficiency and tax adjusted price of energy
+    p_tilde_e = (1 + eps_vec) * (1 + tau_vec) * p_e
+    #Price of the household consumption bundle
+    if nu != 1:
+        p_bundle = (xi * p_core**(1-nu) + (1-xi) *p_tilde_e**(1-nu))**(1/(1-nu))
+    else:
+        p_bundle = p_core**xi * p_tilde_e**(1-xi)
+    
+    return tau_vec, p_e, eps_vec, d, p_tilde_e, p_bundle
 
 def transfers(e_dist, Div, Tax, e_grid):
     # hardwired incidence rules are proportional to skill; scale does not matter
@@ -304,34 +313,20 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable in
     return disp_inc
 
 #Construct the utility shifter for durables
-def make_shifters(n_b, n_g, gamma_b, gamma_g, dep_util_frac_b, dep_util_frac_g, d, gamma_mult):
-    dep_rate_b = 1 - (dep_util_frac_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
+def make_shifters(n_b, n_g, mu_b, mu_g, dep_util_b, dep_util_g, d, mu_mult):
+    dep_rate_b = 1 - (1-dep_util_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
     vintages_b = np.arange(n_b)
-    gammas_b_vector = gamma_b * (1 - dep_rate_b) ** vintages_b
-    dep_rate_g = 1 - (dep_util_frac_g) ** (1 / (n_g - 1))        # Depreciation rate for good g
+    mus_b_vector = mu_b * (1 - dep_rate_b) ** vintages_b
+    dep_rate_g = 1 - (1-dep_util_g) ** (1 / (n_g - 1))        # Depreciation rate for good g
     vintages_g = np.arange(n_g)
-    gammas_g_vector = gamma_g * (1 - dep_rate_g) ** vintages_g
+    mus_g_vector = mu_g * (1 - dep_rate_g) ** vintages_g
     # Combine
-    shifters = ( np.array([0.0] + list(gammas_b_vector) + list(gammas_g_vector))) * d * gamma_mult
+    shifters = ( np.array([0.0] + list(mus_b_vector) + list(mus_g_vector)))* mu_mult * d 
     return shifters
-
-#Price of the household consumption bundle + Decomposition of core and energy consumption
-def make_consu_bundle_price(p_core, n_b, p_e_b, n_g, p_e_g, tau_vec, xi, nu, eps_vec):
-    p_e_b_vec = np.ones(n_b) * p_e_b
-    p_e_g_vec = np.ones(n_g) * p_e_g
-    p_e = np.concatenate([[0.0], p_e_b_vec, p_e_g_vec])
-    p_tilde_e = (1 + eps_vec) * (1 + tau_vec) * p_e
-    if nu != 1:
-        p_bundle = (xi * p_core**(1-nu) + (1-xi) * ((1 + eps_vec) * (1 + tau_vec) * p_e)**(1-nu))**(1/(1-nu))
-    else:
-        p_bundle = p_core**xi * ((1 + eps_vec) * (1 + tau_vec) * p_e)**(1-xi)
-    return p_bundle, p_e, p_tilde_e
-
 
 #%% Assemble the HH block (staged block)
 hh_durables = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
                 backward_init=hh_init,
                 hetinputs=[make_grids, income_grid, transfers, adj_costs, 
-                           disp_inc_f, make_shifters,#, make_price_durable_vector,#make_prices_durables, 
-                           create_vectors, make_consu_bundle_price])
+                           disp_inc_f, make_shifters, create_vectors])
 # %%
