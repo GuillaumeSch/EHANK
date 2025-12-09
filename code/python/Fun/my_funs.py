@@ -28,26 +28,6 @@ def policy_functions(
         • d_tilde    → color
         • d          → transparency (alpha)
         • z          → line style
-
-    Parameters
-    ----------
-    ss : dict
-        Dictionary of steady-state objects indexed by model name.
-    xmax, xmin : float
-        Range for x-axis as multiples of average wealth.
-    d_tilde_list, d_list : lists
-        Durable choice states for next period (d_tilde) and current (d).
-    ie_list : list
-        Productivity states z to plot.
-    figsize : float
-        Global figure size scaling.
-    models : list
-        Models to compare.
-    plots : list
-        Which figures to include: 'assets', 'da', 'cons', 'disc'.
-    save_path : str or None
-        If provided, save figure.
-
     """
 
     # ---- 0. Extract common grids/objects -------------------------------------
@@ -91,21 +71,37 @@ def policy_functions(
 
     # ---- 4. Style maps -------------------------------------------------------
 
-    # Model → line width (main difference between models)
+    # Model → line width
     base_lw = 2.0
     lw_map = {m: base_lw + 0.8*i for i, m in enumerate(models)}
 
     # z → line style
     linestyles = ['-', '--', '-.', ':']
     linestyle_map = {iz: linestyles[i_ % len(linestyles)] for i_, iz in enumerate(ie_list)}
-    
-    # d_tilde → color (via HSV)
-    n_dt = len(d_tilde_list)
-    color_map = {}
-    for i, d_tilde in enumerate(d_tilde_list):
-        h = i / max(n_dt, 1)
-        r, g, b = colorsys.hsv_to_rgb(h, 1, 1)
-        color_map[d_tilde] = (r, g, b)
+
+    # ============================================================
+    #  FIXED COLOR PALETTE for d_tilde
+    # ============================================================
+
+    fixed_colors = {
+        0: "#808080",   # None
+        1: "#8B4513",   # New Brown
+        2: "#C4A484",   # Old Brown
+        3: "#228B22",   # New Green
+        4: "#90EE90"    # Old Green
+    }
+
+    fixed_labels = {
+        0: "None",
+        1: "New Brown",
+        2: "Old Brown",
+        3: "New Green",
+        4: "Old Green"
+    }
+
+    # restrict to the values you pass
+    color_map = {dt: fixed_colors[dt] for dt in d_tilde_list}
+    labels_dt = [fixed_labels[dt] for dt in d_tilde_list]
 
     # d → transparency alpha
     if len(d_list) > 1:
@@ -113,9 +109,6 @@ def policy_functions(
     else:
         alphas = [1.0]
     alpha_map = {d_val: alpha for d_val, alpha in zip(d_list, alphas)}
-
-    # human-readable labels for d_tilde
-    labels_dt = ['None','New Brown','Old Brown','New Green','Old Green']
 
     # ---- 5. Plot loops -------------------------------------------------------
     for model in models:
@@ -128,7 +121,7 @@ def policy_functions(
                     col = color_map[d_tilde]
                     alpha = alpha_map[d]
 
-                    label = f"{model} – {labels_dt[d_tilde]}"
+                    label = f"{model} – {fixed_labels[d_tilde]}"
 
                     # Assets
                     if 0 in selected:
@@ -169,11 +162,11 @@ def policy_functions(
     # ---- 6. Per-panel formatting --------------------------------------------
     for idx, ax in zip(selected, axes):
 
-        # reference lines
         if idx == 0:   # assets
             ax.plot(a_grid[amin_idx:amax_idx]/A,
                     a_grid[amin_idx:amax_idx],
                     color='gray', linestyle=':', linewidth=1.2)
+
         if idx == 1:   # Δassets
             ax.axhline(0, color='gray', linestyle=':', linewidth=1.2)
 
@@ -186,11 +179,11 @@ def policy_functions(
 
     plt.tight_layout()
 
-    # ---- 7. Save figure ------------------------------------------------------
     if save_path is not None:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
     plt.show()
+
 
 
 
