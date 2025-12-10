@@ -23,7 +23,7 @@ baseline_calibration = {
     "gamma": 1/2.5,         # Risk aversion (CRRA parameter)
     "omega": 0.78,          # Weight of nondurable consumption vs durable services
     "taste_shock": 1e-1,    # Idiosyncratic taste shock
-    "dbar": 0.01,              # Subsistence level of durable services
+    "dbar": 0.2,              # Subsistence level of durable services
 
     # Labor disutility
     "frisch": 1,            # Frisch elasticity of labor supply
@@ -85,7 +85,7 @@ baseline_calibration = {
     # -------------------------
     # 7. Energy (brown vs green)
     # -------------------------
-    "p_e_n": 0.0,          # Energy price for non-holders (basic energy...)
+    "p_e_n": 1.0,          # Energy price for non-holders (basic energy...)
     "p_e_b": 1.0,          # Brown energy price (gasoline)
     "p_e_g": 1.0,          # Green energy price (electricity)
 
@@ -134,18 +134,34 @@ ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solve
 check_resource_constraint(ss)
 display_ss_durables(ss)
 
+#%%-------------Graphs for NBB meeting-------------------
+#%% Durables shares at baseline SS
+display_ss_durables(ss, save_path='../../output/figures/Durable_Shares_SS.png', show_plot=True)
+
+
+#%%Effet of tau_b on durables shares
+comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b.png', title='Effect of carbon tax on durable shares at SS', x_label='Carbon tax on brown energy')
+
+#%%Effet of dbar on durables shares
+comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.001, 0.5, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_dbar.png', title='Effect of dbar on durable shares at SS', x_label='Dbar (subsistence level of durables)')
+
+#%%Policy functions
+ss_dict = dict()
+ss_dict['baseline'] = ss
+
+policy_functions(ss_dict, plots=['da','cons','disc'], ie_list=[2], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=4, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
+
+
+
+
+
+
 #%% Effet of tau_b on durables shares
-comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b.png')
+comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b.png', title='Effect of carbon tax on durables shares at SS', x_label='Carbon tax on brown energy')
 #%% Effet of eps_b on durables shares
 comparative_statics_plot_shares(ha, ss, {"eps_b": np.linspace(0.2, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_eps_b.png')
 #%% Effet of d_1 (quantity of BN) on durables shares
-comparative_statics_plot_shares(ha, ss, {"d1": np.linspace(0.02, 0.06, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_d_1.png')
-#%% Effet of d_2 (quantity of BO) on durables shares
-comparative_statics_plot_shares(ha, ss, {"d2": np.linspace(0.02, 0.06, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_d_2.png')
-#%% Effet of d_3 (quantity of GN) on durables shares
-comparative_statics_plot_shares(ha, ss, {"d3": np.linspace(0.02, 0.06, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_d_3.png')
-#%% Effet of d_4 (quantity of GO) on durables shares
-comparative_statics_plot_shares(ha, ss, {"d4": np.linspace(0.02, 0.06, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_d_4.png')
+comparative_statics_plot_shares(ha, ss, {"d1": np.linspace(1, 3, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_d_1.png')
 #%% Effet of d_bar on durables shares
 comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.001, 0.02, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_dbar.png')
 #%% Effet of gamma_mult on durables shares
@@ -180,9 +196,7 @@ ss_dict['baseline'] = ss
 
 policy_functions(ss_dict, plots=['disc'], ie_list=[0], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
 
-
-
-#%%
+#%%Distribution
 plot_distribution(ss, lines_dim = 0, 
                  labels = ['$\\tilde{D}$ = None','$\\tilde{D}$ = New Brown','$\\tilde{D}$ = Old Brown','$\\tilde{D}$ = New Green','$\\tilde{D}$ = Old Green'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Durables_D_tilde.png')
@@ -195,6 +209,9 @@ plot_distribution(ss, lines_dim = 2,
 plot_distribution(ss,
                  labels = ['Total'],
                  truncate_at = 6, save_path='../../output/figures/Distribution_Total.png')
+
+
+
 
 #%%
 evaluate_param_changes('d_mult', [100, 0.100], ha, ss,

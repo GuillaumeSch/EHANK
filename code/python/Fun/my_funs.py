@@ -28,16 +28,17 @@ def policy_functions(
         • d_tilde    → color
         • d          → transparency (alpha)
         • z          → line style
+    Legend omits model name if only one model is provided.
     """
 
     # ---- 0. Extract common grids/objects -------------------------------------
     a_grid = ss['baseline'].internals['hh']['a_grid']
     A = ss['baseline']['A']
 
-    max_val = xmax * A
-    min_val = xmin * A
-    amax_idx = np.searchsorted(a_grid, max_val)
-    amin_idx = np.searchsorted(a_grid, min_val)
+    # ---- Safe xmin/xmax handling to not exceed grid ---------------------------
+    amin_idx = np.searchsorted(a_grid, xmin * A, side='left')
+    amax_idx = np.searchsorted(a_grid, xmax * A, side='right')
+    amax_idx = min(amax_idx, len(a_grid))  # ensure within array
 
     # ---- 1. Extract policy objects for all models ----------------------------
     a, da, c, P = {}, {}, {}, {}
@@ -55,8 +56,9 @@ def policy_functions(
 
     titles = {
         0: r'Assets ($a^*(\tilde{d},\,d,\,z,\,a^{-})$)',
-        1: r'$\Delta$ Assets ($da^*$)',
-        2: r'Consumption ($c^*$)',
+        #1: r'$\Delta$ Assets ($da^*$)',
+        1: r'Savings',
+        2: r'Consumption',
         3: r'Durable Adoption Probability'
     }
     ylabels = {0: "Assets", 1: "Δ Assets", 2: "Consumption", 3: "Probability"}
@@ -70,18 +72,11 @@ def policy_functions(
         axes = [axes]
 
     # ---- 4. Style maps -------------------------------------------------------
-
-    # Model → line width
     base_lw = 2.0
     lw_map = {m: base_lw + 0.8*i for i, m in enumerate(models)}
 
-    # z → line style
     linestyles = ['-', '--', '-.', ':']
     linestyle_map = {iz: linestyles[i_ % len(linestyles)] for i_, iz in enumerate(ie_list)}
-
-    # ============================================================
-    #  FIXED COLOR PALETTE for d_tilde
-    # ============================================================
 
     fixed_colors = {
         0: "#808080",   # None
@@ -99,11 +94,8 @@ def policy_functions(
         4: "Old Green"
     }
 
-    # restrict to the values you pass
     color_map = {dt: fixed_colors[dt] for dt in d_tilde_list}
-    labels_dt = [fixed_labels[dt] for dt in d_tilde_list]
 
-    # d → transparency alpha
     if len(d_list) > 1:
         alphas = np.linspace(0.3, 1.0, len(d_list))
     else:
@@ -111,6 +103,8 @@ def policy_functions(
     alpha_map = {d_val: alpha for d_val, alpha in zip(d_list, alphas)}
 
     # ---- 5. Plot loops -------------------------------------------------------
+    single_model = len(models) == 1
+
     for model in models:
         for d_tilde in d_tilde_list:
             for d in d_list:
@@ -121,7 +115,11 @@ def policy_functions(
                     col = color_map[d_tilde]
                     alpha = alpha_map[d]
 
-                    label = f"{model} – {fixed_labels[d_tilde]}"
+                    # Legend label
+                    if single_model:
+                        label = fixed_labels[d_tilde]
+                    else:
+                        label = f"{model} – {fixed_labels[d_tilde]}"
 
                     # Assets
                     if 0 in selected:
@@ -173,7 +171,7 @@ def policy_functions(
         ax.set_title(titles[idx])
         ax.set_ylabel(ylabels[idx])
         ax.set_xlabel('Ratio of ind. wealth to avg. wealth')
-        ax.set_xlim([xmin, xmax])
+        ax.set_xlim([xmin, xmax-1])
 
         ax.legend(frameon=False)
 
@@ -183,6 +181,7 @@ def policy_functions(
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
     plt.show()
+
 
 
 
@@ -761,37 +760,59 @@ def evaluate_two_param_changes(param1, values1, param2, values2, ha, cali,
         ]
         print(f"{case_name:<40} | " + " | ".join(formatted_row))
 
-#Display the aggregates for durables given a SS.
-def display_ss_durables(ss):
-    #display(Math(r"\tilde{D}^{None} = " + str(np.round(ss['D_T_N'], 3))))
+import matplotlib.pyplot as plt
+import numpy as np
+from IPython.display import display, Math
+
+def display_ss_durables(ss, title="Durable Shares", save_path=None, show_plot=False):
+    """
+    Display and optionally plot durable goods aggregates from a steady state dictionary.
+
+    Parameters:
+    ss : dict
+        Dictionary containing steady-state values with keys like 'D_N', 'D_BN', 'D_BO', etc.
+    title : str
+        Title for the plot.
+    save_path : str or None
+        If provided, the plot will be saved to this path.
+    show_plot : bool
+        If True, the plot will be displayed.
+    """
+
+    # === Display exactly as before ===
     display(Math(r"D^{None} = " + str(np.round(ss['D_N'], 3))))
-
-    #display(Math(r"\tilde{D}^{Brown, New} = " + str(np.round(ss['D_T_BN'], 3))))
     display(Math(r"D^{Brown, New} = " + str(np.round(ss['D_BN'], 3))))
-
-    #display(Math(r"\tilde{D}^{Brown, Medium} = " + str(np.round(ss['D_T_BM'], 3))))
-    #display(Math(r"D^{Brown, Medium} = " + str(np.round(ss['D_BM'], 3))))
-
-    #display(Math(r"\tilde{D}^{Brown, Old} = " + str(np.round(ss['D_T_BO'], 3))))
     display(Math(r"D^{Brown, Old} = " + str(np.round(ss['D_BO'], 3))))
     display(Math(r"D^{Brown} = " + str(np.round(ss['D_B'], 3))))
-
-
-    #display(Math(r"\tilde{D}^{Green, New} = " + str(np.round(ss['D_T_GN'], 3))))
     display(Math(r"D^{Green, New} = " + str(np.round(ss['D_GN'], 3))))
-
-    #display(Math(r"\tilde{D}^{Green, Medium} = " + str(np.round(ss['D_T_GM'], 3))))
-    #display(Math(r"D^{Green, Medium} = " + str(np.round(ss['D_GM'], 3))))
-
-    #display(Math(r"\tilde{D}^{Green, Old} = " + str(np.round(ss['D_T_GO'], 3))))
     display(Math(r"D^{Green, Old} = " + str(np.round(ss['D_GO'], 3))))
     display(Math(r"D^{Green} = " + str(np.round(ss['D_G'], 3))))
 
+    display(Math(r"Check. Total = " + str(np.round(ss['D_N'] + ss['D_BN'] + ss['D_BO'] + ss['D_GN'] + ss['D_GO'], 3))))
 
-    #display(Math(r"Check. Total(Tilde) = " + str(ss['D_T_N'] + ss['D_T_BN']+ ss['D_T_BM']+ ss['D_T_BO']+ ss['D_T_GN']+ ss['D_T_GM'] + ss['D_T_GO'])))
-    #display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BM']+ ss['D_BO']+ ss['D_GN']+ ss['D_GM'] + ss['D_GO'])))
-    #display(Math(r"Check. Total(Tilde) = " + str(ss['D_T_N'] + ss['D_T_BN']+ ss['D_T_BO']+ ss['D_T_GN'] + ss['D_T_GO'])))
-    display(Math(r"Check. Total = " + str(ss['D_N'] + ss['D_BN']+ ss['D_BO']+ ss['D_GN'] + ss['D_GO'])))
+    # === Plotting ===
+    if show_plot or save_path:
+        plot_keys = ['D_N', 'D_BN', 'D_BO', 'D_GN', 'D_GO']
+        plot_labels = ['None', 'Brown, New', 'Brown, Old', 'Green, New', 'Green, Old']
+        values = [ss[k] for k in plot_keys]
+
+        # Specific colors
+        colors = ["#808080", "#8B4513", "#C4A484", "#228B22", "#90EE90"]
+
+        plt.figure(figsize=(8,5))
+        plt.bar(plot_labels, values, color=colors)
+        plt.ylabel(title)
+        plt.title(title)
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=300)
+        
+        if show_plot:
+            plt.show()
+        else:
+            plt.close()
+
 
 def display_calibrated_from_unknowns(ss_dict, unknowns_dict):
     """
