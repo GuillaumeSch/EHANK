@@ -20,7 +20,6 @@ def rsrce_cstrt(p_e_n, p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E
     d_b_vec = np.ones(n_b) * d1 * (1-delta)**np.arange(n_b)
     d_g_vec = np.ones(n_g) * d1 * (1+x_g) * (1-delta)**np.arange(n_g)
     d_vec = np.concatenate([[d0], d_b_vec, d_g_vec])
-    
     eps_vec = np.concatenate(([0.0], eps_b * np.arange(n_b), eps_g * np.arange(n_g)))
     p_E_vec = np.concatenate([[p_e_n], np.ones(n_b) * p_e_b, np.ones(n_g) * p_e_g]) 
     C_E_vec = np.array([0, C_E1, C_E2, C_E3, C_E4])

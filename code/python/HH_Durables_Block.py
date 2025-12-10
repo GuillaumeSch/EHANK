@@ -316,13 +316,9 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):                 #Disposable in
     return disp_inc
 
 #Construct the utility shifter for durables
-def make_shifters(n_b, n_g, mu_b, mu_g, dep_util_b, dep_util_g, d, mu_mult):
-    dep_rate_b = 1 - (1-dep_util_b) ** (1 / (n_b - 1))        # Depreciation rate for good b
-    vintages_b = np.arange(n_b)
-    mus_b_vector = mu_b * (1 - dep_rate_b) ** vintages_b
-    dep_rate_g = 1 - (1-dep_util_g) ** (1 / (n_g - 1))        # Depreciation rate for good g
-    vintages_g = np.arange(n_g)
-    mus_g_vector = mu_g * (1 - dep_rate_g) ** vintages_g
+def make_shifters(n_b, n_g, mu_g, d, mu_mult):
+    mus_b_vector = 1 * np.ones(n_b)
+    mus_g_vector = mu_g * np.ones(n_g)
     # Combine
     shifters = ( np.array([0.0] + list(mus_b_vector) + list(mus_g_vector)))* mu_mult * d 
     return shifters

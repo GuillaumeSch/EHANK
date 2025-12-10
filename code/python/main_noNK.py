@@ -62,10 +62,7 @@ baseline_calibration = {
     "chi": 0.05,             # Resale loss when selling a durable
 
     # Utility from durables
-    "mu_b": 1.0,         # Utility weight of brown durable
-    "mu_g": 1.0,         # Utility weight of green durable
-    "dep_util_b": 0,     # Depreciation (utility) for oldest brown vintage
-    "dep_util_g": 0,     # Same for green vintage
+    "mu_g": 1.0,         # Relative utility of green durable w.r.t brown durable
     "mu_mult": 1.0,      # Scale parameter for utility shifter
 
     # Physical lifetime
