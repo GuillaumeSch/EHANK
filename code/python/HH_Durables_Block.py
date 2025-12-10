@@ -244,10 +244,10 @@ def hh_init(disp_inc, a_grid, omega, gamma, dbar, shifters):
     return V, Va
 
 #construct Markov process for productivity, for depreciation of durables and the assets grid
-def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_b, lifetime_g):
+def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, n_b, n_g, lifetime_new, lifetime_old):
     e_grid, e_dist, e_markov = grids.markov_rouwenhorst(rho_e, sd_e, n_e)
     a_grid = grids.agrid(max_a, n_a, min_a)
-    d_grid, d_markov, d_grid_name = make_d_grid(n_b, n_g, lifetime_b, lifetime_g)
+    d_grid, d_markov, d_grid_name = make_d_grid(n_b, n_g, lifetime_new, lifetime_old)
     return e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name
 
 #def income_grid(e_grid, tau, w, N):
@@ -262,9 +262,12 @@ def create_vectors(n_b, n_g,
                    p_e_n, p_e_b, p_e_g,
                    eps_b, eps_g,
                    nu, xi, p_core,
-                   d0, d1, d2, d3, d4, d_mult):
+                   d0, d1, x_g, delta_A, lifetime_old):
     #Quantities of durables vector
-    d = np.array([d0, d1, d2, d3, d4]) * d_mult
+    delta= lifetime_old/4*delta_A
+    d_b_vec = np.ones(n_b) * d1 * (1-delta)**np.arange(n_b)
+    d_g_vec = np.ones(n_g) * d1 * (1+x_g) * (1-delta)**np.arange(n_g)
+    d = np.concatenate([[d0], d_b_vec, d_g_vec])
     #Tau vector
     tau_b_vec = np.ones(n_b) * tau_b
     tau_g_vec = np.ones(n_g) * tau_g

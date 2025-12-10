@@ -20,10 +20,10 @@ baseline_calibration = {
     # -------------------------
     "beta": 0.80,          # Discount factor
     "eis": 0.5,             # Elasticity of intertemporal substitution
-    "gamma": 1/2,         # Risk aversion (CRRA parameter)
+    "gamma": 1/2.5,         # Risk aversion (CRRA parameter)
     "omega": 0.78,          # Weight of nondurable consumption vs durable services
     "taste_shock": 1e-1,    # Idiosyncratic taste shock
-    "dbar": 0.005,              # Subsistence level of durable services
+    "dbar": 0.01,              # Subsistence level of durable services
 
     # Labor disutility
     "frisch": 1,            # Frisch elasticity of labor supply
@@ -69,12 +69,13 @@ baseline_calibration = {
     "mu_mult": 1.0,      # Scale parameter for utility shifter
 
     # Physical lifetime
-    "lifetime_b": 60,       # Brown car durability (quarters)
-    "lifetime_g": 60,       # Green car durability (quarters)
+    "lifetime_new": 16,  # New car durability (quarters)
+    "lifetime_old": 32,  # Used car durability (quarters)
 
     # Durable quantities
-    "d0": 0.0, "d1": 0.02, "d2": 0.02*0.85, "d3": 0.025, "d4": 0.025*0.85,
-    "d_mult": 100.0,          # Scale parameter for durable quantities
+    "d0": 0.0, "d1": 3,     # Quantity of new brown durable. The other quantities will follow from premium and depreciations.
+    "x_g": 0.20,            # Green durable premium
+    "delta_A": 0.085,       # Depreciation for old durables
 
     # -------------------------
     # 6. Government
@@ -107,7 +108,7 @@ baseline_calibration = {
     # -------------------------
     # 9. Financial environment
     # -------------------------
-    "r": 0.06 / 4,          # Quarterly interest rate
+    "r": 0.03 / 4,          # Quarterly interest rate
 }
 
 
@@ -139,9 +140,7 @@ display_ss_durables(ss)
 #%% Effet of tau_b on durables shares
 comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b.png')
 #%% Effet of eps_b on durables shares
-comparative_statics_plot_shares(ha, ss, {"eps_b": np.linspace(0.2, 0.6, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_eps_b.png')
-#%% Effet of d_mult on durables shares
-comparative_statics_plot_shares(ha, ss, {"d_mult": np.linspace(1, 2, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_d_mult.png')
+comparative_statics_plot_shares(ha, ss, {"eps_b": np.linspace(0.2, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_eps_b.png')
 #%% Effet of d_1 (quantity of BN) on durables shares
 comparative_statics_plot_shares(ha, ss, {"d1": np.linspace(0.02, 0.06, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_d_1.png')
 #%% Effet of d_2 (quantity of BO) on durables shares
@@ -160,12 +159,20 @@ comparative_statics_plot_shares(ha, ss, {"mu_b": np.linspace(1, 3, 3)}, unknowns
 comparative_statics_plot_shares(ha, ss, {"mu_g": np.linspace(1, 3, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma_g.png')
 #%% Effet of p_e_b on durables shares
 comparative_statics_plot_shares(ha, ss, {"p_e_b": np.linspace(0.01, 0.5, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_p_e_b.png')
-#%% Effet of lifetime_b on durables shares
-comparative_statics_plot_shares(ha, ss, {"lifetime_b": np.linspace(40, 80, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_lifetime_b.png')
+#%% Effet of lifetime_new on durables shares
+comparative_statics_plot_shares(ha, ss, {"lifetime_new": np.linspace(40, 80, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_lifetime_new.png')
 #%% Effet of chi on durables shares
 comparative_statics_plot_shares(ha, ss, {"chi": np.linspace(0, 0.8, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_chi.png')
 #%% Effet of w on durables shares
 comparative_statics_plot_shares(ha, ss, {"w": np.linspace(0.8, 1.05, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_w.png')
+#%% Effet of p_e_n on durables shares
+comparative_statics_plot_shares(ha, ss, {"p_e_n": np.linspace(0, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_p_e_n.png')
+
+#%% Effet of beta on durables shares
+comparative_statics_plot_shares(ha, ss, {"beta": np.linspace(0.5, 0.95, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_beta.png')
+#%% Effet of gamma on durables shares
+comparative_statics_plot_shares(ha, baseline_calibration, {"gamma": np.linspace(1/1, 1/5, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma.png')
+
 
 
 
@@ -174,7 +181,7 @@ comparative_statics_plot_shares(ha, ss, {"w": np.linspace(0.8, 1.05, 3)}, unknow
 ss_dict = dict()
 ss_dict['baseline'] = ss
 
-policy_functions(ss_dict, plots=['disc'], ie_list=[2], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
+policy_functions(ss_dict, plots=['disc'], ie_list=[0], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
 
 
 
