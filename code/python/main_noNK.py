@@ -18,12 +18,11 @@ baseline_calibration = {
     # -------------------------
     # 1. Preferences
     # -------------------------
-    "beta": 0.80,          # Discount factor
-    "eis": 0.5,             # Elasticity of intertemporal substitution
-    "gamma": 1/2.5,         # Risk aversion (CRRA parameter)
-    "omega": 0.78,          # Weight of nondurable consumption vs durable services
-    "taste_shock": 1e-1,    # Idiosyncratic taste shock
-    "dbar": 0.2,              # Subsistence level of durable services
+    "beta": 0.95,          # Discount factor
+    "gamma": 1/0.8,         # Risk aversion (CRRA parameter)
+    "omega": 0.90,          # Weight of nondurable consumption vs durable services
+    "taste_shock": 1e-3,    # Idiosyncratic taste shock
+    "dbar": 0.05,              # Subsistence level of durable services
 
     # Labor disutility
     "frisch": 1,            # Frisch elasticity of labor supply
@@ -33,7 +32,7 @@ baseline_calibration = {
     # 2. Productivity (idiosyncratic)
     # -------------------------
     "rho_e": 0.95,          # Persistence of productivity shocks
-    "sd_e": 0.5,            # Std. dev. of productivity shocks
+    "sd_e": 0.50,            # Std. dev. of productivity shocks
     "n_e": 5,               # Number of grid points
 
     # -------------------------
@@ -41,7 +40,7 @@ baseline_calibration = {
     # -------------------------
     "min_a": 0.0,           # Minimum asset holdings
     "max_a": 100,           # Maximum asset holdings
-    "n_a": 20,              # Grid size
+    "n_a": 100,              # Grid size
 
     # -------------------------
     # 4. Labor and production
@@ -62,23 +61,23 @@ baseline_calibration = {
     "chi": 0.05,             # Resale loss when selling a durable
 
     # Utility from durables
-    "mu_g": 1.0,         # Relative utility of green durable w.r.t brown durable
-    "mu_mult": 1.0,      # Scale parameter for utility shifter
+    "mu_g": 0.98,         # Relative utility of green durable w.r.t brown durable
+    "mu_mult": 3.0,      # Scale parameter for utility shifter
 
     # Physical lifetime
     "lifetime_new": 16,  # New car durability (quarters)
     "lifetime_old": 32,  # Used car durability (quarters)
 
     # Durable quantities
-    "d0": 0.0, "d1": 3,     # Quantity of new brown durable. The other quantities will follow from premium and depreciations.
+    "d0": 0.0, "d1": 0.2,     # Quantity of new brown durable. The other quantities will follow from premium and depreciations.
     "x_g": 0.20,            # Green durable premium
-    "delta_A": 0.085,       # Depreciation for old durables
+    "delta_A": 0.080,       # Depreciation for old durables
 
     # -------------------------
     # 6. Government
     # -------------------------
     "B": 4,                 # Government debt
-    "G": 0.3,               # Government spending
+    "G": 0.0,               # Government spending
     "Tax": 0.358,           # Lump-sum tax
     "tau": 0,               # Labor income tax rate
 
@@ -87,7 +86,7 @@ baseline_calibration = {
     # -------------------------
     "p_e_n": 1.0,          # Energy price for non-holders (basic energy...)
     "p_e_b": 1.0,          # Brown energy price (gasoline)
-    "p_e_g": 1.0,          # Green energy price (electricity)
+    "p_e_g": 1.,          # Green energy price (electricity)
 
     "eps_b": 0.40*0,          # Inefficiency of brown vintage
     "eps_g": 0.20*0,          # Inefficiency of green vintage
@@ -105,7 +104,7 @@ baseline_calibration = {
     # -------------------------
     # 9. Financial environment
     # -------------------------
-    "r": 0.03 / 4,          # Quarterly interest rate
+    "r": 0.05 / 4,          # Quarterly interest rate
 }
 
 
@@ -133,6 +132,9 @@ targets_ss = {'asset_mkt':0.0,'GBC': 0.0}
 ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
 check_resource_constraint(ss)
 display_ss_durables(ss)
+print(ss['B'])
+
+
 
 #%%-------------Graphs for NBB meeting-------------------
 #%% Durables shares at baseline SS
@@ -140,16 +142,16 @@ display_ss_durables(ss, save_path='../../output/figures/Durable_Shares_SS.png', 
 
 
 #%%Effet of tau_b on durables shares
-comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b.png', title='Effect of carbon tax on durable shares at SS', x_label='Carbon tax on brown energy')
+comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 0.25, 5)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b.png', title='Effect of carbon tax on durable shares at SS', x_label='Carbon tax on brown energy')
 
 #%%Effet of dbar on durables shares
-comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.001, 0.5, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_dbar.png', title='Effect of dbar on durable shares at SS', x_label='Dbar (subsistence level of durables)')
+comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.01, 0.1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_dbar.png', title='Effect of dbar on durable shares at SS', x_label='Dbar (subsistence level of durables)')
 
 #%%Policy functions
 ss_dict = dict()
 ss_dict['baseline'] = ss
 
-policy_functions(ss_dict, plots=['da','cons','disc'], ie_list=[2], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=4, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
+policy_functions(ss_dict, plots=['assets', 'da', 'cons', 'disc'], ie_list=[4], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
 
 
 
@@ -165,7 +167,7 @@ comparative_statics_plot_shares(ha, ss, {"d1": np.linspace(1, 3, 3)}, unknowns_s
 #%% Effet of d_bar on durables shares
 comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.001, 0.02, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_dbar.png')
 #%% Effet of gamma_mult on durables shares
-comparative_statics_plot_shares(ha, ss, {"mu_mult": np.linspace(1, 3, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma_mult.png')
+comparative_statics_plot_shares(ha, ss, {"mu_mult": np.linspace(1, 5, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma_mult.png')
 #%% Effet of gamma_b on durables shares
 comparative_statics_plot_shares(ha, ss, {"mu_b": np.linspace(1, 3, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma_b.png')
 #%% Effet of gamma_g on durables shares
@@ -186,7 +188,19 @@ comparative_statics_plot_shares(ha, ss, {"beta": np.linspace(0.5, 0.95, 10)}, un
 #%% Effet of gamma on durables shares
 comparative_statics_plot_shares(ha, baseline_calibration, {"gamma": np.linspace(1/1, 1/5, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma.png')
 
+#%% Effet of omega on durables shares
+comparative_statics_plot_shares(ha, baseline_calibration, {"omega": np.linspace(0.5, 0.99, 5)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_omega.png')
 
+#%% Effet of x_g on durables shares
+comparative_statics_plot_shares(ha, baseline_calibration, {"x_g": np.linspace(0.1, 0.5, 5)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_x_g.png')
+
+#%% Effet of mu_g on durables shares
+comparative_statics_plot_shares(ha, baseline_calibration, {"mu_g": np.linspace(0.97, 1, 5)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_mu_g.png')
+
+
+
+#%% Effet of delta_A on durables shares
+comparative_statics_plot_shares(ha, baseline_calibration, {"delta_A": np.linspace(0.070, 0.090, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_delta_A.png')
 
 
 
@@ -194,7 +208,7 @@ comparative_statics_plot_shares(ha, baseline_calibration, {"gamma": np.linspace(
 ss_dict = dict()
 ss_dict['baseline'] = ss
 
-policy_functions(ss_dict, plots=['disc'], ie_list=[0], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
+policy_functions(ss_dict, plots=['disc'], ie_list=[4], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
 
 #%%Distribution
 plot_distribution(ss, lines_dim = 0, 
@@ -262,17 +276,34 @@ evaluate_two_param_changes('d_mult', [1, 2],
 
 
 #%%
+titles = [
+        r"Carbon tax rate: $\tau_B$",     
+        r"Carbon tax revenues: $T_E$",  
+        r"Lump Sum Tax : $T$",     
+        r"Share of no durable holding : $D_N$",  
+        r"Share of Brown: $D_B$",
+        r"Share of New Brown: $D_{BN}$",
+        r"Share of Old Brown: $D_{BO}$",
+        r"Share of Green: $D_G$",
+        r"Share of New Green: $D_{GN}$",
+        r"Share of Old Green: $D_{GO}$",     
+        r"Total Consumption: $C$",  
+        r"Consu. of Brown energy: $C^B$", 
+        r"Consu. of Green energy: $C^G$",
+        r"Government Expenditures: $G$",
+        r"Government Debt: $B$",
+        ]
 IRFs = plot_linear_irfs(
     shocks_list=['tau_b'],
     e = {"tau_b": 0.10},
     rho = {"tau_b": 0.80},
-    unknowns_td=['G','B'],
+    unknowns_td=['Tax','B'],
     targets_td=['asset_mkt', "GBC"],
     ha=ha,
     ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["tau_b", "T_E","Tax", "D_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "i", "r", "G", "B"],
-    #titles = titles,
+    outputs=["tau_b", "T_E","Tax", "D_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "G", "B"],
+    titles = titles,
     figsize=(18, 12),
     save_path='../../output/figures/IRFs_tau_b.png',
 )

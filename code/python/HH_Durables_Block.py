@@ -50,6 +50,15 @@ def util(c, d, omega, gamma, dbar, shifters):
         u = (X ** (1 - gamma)) / (1 - gamma)
     return u
 
+def util_debug(c, d, omega, gamma, dbar, shifters):
+    c = np.asarray(c)
+    d = np.asarray(d)
+    d_eff = dbar + shifters[d]
+    X = (c ** omega) * (d_eff ** (1 - omega))
+    if gamma == 1.0:
+        return np.log(X)
+    return (X ** (1 - gamma)) / (1 - gamma)
+
 #%% Stage 3 - Consumption-Savings Continuous Choice
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
 def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, omega, gamma, dbar, shifters, p_bundle):
