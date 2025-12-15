@@ -18,29 +18,36 @@ def policy_functions(
     figsize=0.6,
     models=['baseline'],
     plots=['assets','da','cons','disc'],
+    vintage_groups=None,
     save_path=None
 ):
     """
-    Plot household policy functions (assets, Δassets, consumption, discrete choice)
-    for one or multiple models, with visual encodings:
+    Plot household policy functions (assets, Δassets, consumption, discrete choice).
 
-        • model      → line width
-        • d_tilde    → color
-        • d          → transparency (alpha)
-        • z          → line style
-    Legend omits model name if only one model is provided.
+    Optional vintage aggregation:
+    -----------------------------
+    vintage_groups: dict or None
+        Example:
+        {
+            "Brown": [1, 2],   # New Brown + Old Brown
+            "Green": [3, 4]    # New Green + Old Green
+        }
+
+        If None, each d_tilde is plotted separately (default behavior).
     """
+
+    import numpy as np
+    import matplotlib.pyplot as plt
 
     # ---- 0. Extract common grids/objects -------------------------------------
     a_grid = ss['baseline'].internals['hh']['a_grid']
     A = ss['baseline']['A']
 
-    # ---- Safe xmin/xmax handling to not exceed grid ---------------------------
     amin_idx = np.searchsorted(a_grid, xmin * A, side='left')
     amax_idx = np.searchsorted(a_grid, xmax * A, side='right')
-    amax_idx = min(amax_idx, len(a_grid))  # ensure within array
+    amax_idx = min(amax_idx, len(a_grid))
 
-    # ---- 1. Extract policy objects for all models ----------------------------
+    # ---- 1. Extract policy objects -------------------------------------------
     a, da, c, P = {}, {}, {}, {}
 
     for model in models:
@@ -50,20 +57,19 @@ def policy_functions(
         c[model]  = hh['consav']['c']
         P[model]  = hh['durables']['law_of_motion'].P
 
-    # ---- 2. Which plots to show ---------------------------------------------
+    # ---- 2. Which plots to show ----------------------------------------------
     plot_map = {'assets': 0, 'da': 1, 'cons': 2, 'disc': 3}
     selected = [plot_map[p] for p in plots if p in plot_map]
 
     titles = {
         0: r'Assets ($a^*(\tilde{d},\,d,\,z,\,a^{-})$)',
-        #1: r'$\Delta$ Assets ($da^*$)',
         1: r'Savings',
         2: r'Consumption',
         3: r'Durable Adoption Probability'
     }
     ylabels = {0: "Assets", 1: "Δ Assets", 2: "Consumption", 3: "Probability"}
 
-    # ---- 3. Prepare figure ---------------------------------------------------
+    # ---- 3. Figure -----------------------------------------------------------
     fig, axes = plt.subplots(
         1, len(selected),
         figsize=(6 * figsize * len(selected), 5 * figsize)
@@ -76,7 +82,8 @@ def policy_functions(
     lw_map = {m: base_lw + 0.8*i for i, m in enumerate(models)}
 
     linestyles = ['-', '--', '-.', ':']
-    linestyle_map = {iz: linestyles[i_ % len(linestyles)] for i_, iz in enumerate(ie_list)}
+    linestyle_map = {iz: linestyles[i_ % len(linestyles)]
+                     for i_, iz in enumerate(ie_list)}
 
     fixed_colors = {
         0: "#808080",   # None
@@ -94,78 +101,87 @@ def policy_functions(
         4: "Old Green"
     }
 
-    color_map = {dt: fixed_colors[dt] for dt in d_tilde_list}
+    group_colors = {
+        "None": "#808080",
+        "Brown": "#8B4513",
+        "Green": "#228B22"
+    }
 
     if len(d_list) > 1:
         alphas = np.linspace(0.3, 1.0, len(d_list))
     else:
         alphas = [1.0]
-    alpha_map = {d_val: alpha for d_val, alpha in zip(d_list, alphas)}
+    alpha_map = {d: a for d, a in zip(d_list, alphas)}
 
-    # ---- 5. Plot loops -------------------------------------------------------
     single_model = len(models) == 1
 
+    # ---- 5. Define plotting groups -------------------------------------------
+    if vintage_groups is None:
+        plot_groups = {fixed_labels[dt]: [dt] for dt in d_tilde_list}
+        group_color = {fixed_labels[dt]: fixed_colors[dt] for dt in d_tilde_list}
+    else:
+        plot_groups = vintage_groups
+        group_color = group_colors
+
+    # ---- 6. Plot loops -------------------------------------------------------
     for model in models:
-        for d_tilde in d_tilde_list:
+        for group_name, d_tildes in plot_groups.items():
             for d in d_list:
                 for iz in ie_list:
 
                     lw = lw_map[model]
                     ls = linestyle_map[iz]
-                    col = color_map[d_tilde]
+                    col = group_color[group_name]
                     alpha = alpha_map[d]
 
-                    # Legend label
-                    if single_model:
-                        label = fixed_labels[d_tilde]
-                    else:
-                        label = f"{model} – {fixed_labels[d_tilde]}"
+                    label = group_name
+                    if not single_model:
+                        label = f"{model} – {label}"
 
-                    # Assets
+                    # ---- Sum over vintages ---------------------------------
+                    a_sum  = sum(a[model][dt, d, iz, amin_idx:amax_idx]
+                                 for dt in d_tildes)
+                    da_sum = sum(da[model][dt, d, iz, amin_idx:amax_idx]
+                                 for dt in d_tildes)
+                    c_sum  = sum(c[model][dt, d, iz, amin_idx:amax_idx]
+                                 for dt in d_tildes)
+                    P_sum  = sum(P[model][dt, d, iz, amin_idx:amax_idx]
+                                 for dt in d_tildes)
+
+                    x = a_grid[amin_idx:amax_idx] / A
+
                     if 0 in selected:
                         axes[selected.index(0)].plot(
-                            a_grid[amin_idx:amax_idx]/A,
-                            a[model][d_tilde, d, iz, amin_idx:amax_idx],
-                            label=label, color=col, linestyle=ls,
-                            linewidth=lw, alpha=alpha
+                            x, a_sum, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha, label=label
                         )
 
-                    # ΔAssets
                     if 1 in selected:
                         axes[selected.index(1)].plot(
-                            a_grid[amin_idx:amax_idx]/A,
-                            da[model][d_tilde, d, iz, amin_idx:amax_idx],
-                            label=label, color=col, linestyle=ls,
-                            linewidth=lw, alpha=alpha
+                            x, da_sum, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha, label=label
                         )
 
-                    # Consumption
                     if 2 in selected:
                         axes[selected.index(2)].plot(
-                            a_grid[amin_idx:amax_idx]/A,
-                            c[model][d_tilde, d, iz, amin_idx:amax_idx],
-                            label=label, color=col, linestyle=ls,
-                            linewidth=lw, alpha=alpha
+                            x, c_sum, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha, label=label
                         )
 
-                    # Durable adoption probability
                     if 3 in selected:
                         axes[selected.index(3)].plot(
-                            a_grid[amin_idx:amax_idx]/A,
-                            P[model][d_tilde, d, iz, amin_idx:amax_idx],
-                            label=label, color=col, linestyle=ls,
-                            linewidth=lw, alpha=alpha
+                            x, P_sum, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha, label=label
                         )
 
-    # ---- 6. Per-panel formatting --------------------------------------------
+    # ---- 7. Formatting -------------------------------------------------------
     for idx, ax in zip(selected, axes):
 
-        if idx == 0:   # assets
-            ax.plot(a_grid[amin_idx:amax_idx]/A,
-                    a_grid[amin_idx:amax_idx],
+        if idx == 0:
+            ax.plot(x, a_grid[amin_idx:amax_idx],
                     color='gray', linestyle=':', linewidth=1.2)
 
-        if idx == 1:   # Δassets
+        if idx == 1:
             ax.axhline(0, color='gray', linestyle=':', linewidth=1.2)
 
         ax.set_title(titles[idx])
@@ -173,7 +189,9 @@ def policy_functions(
         ax.set_xlabel('Ratio of ind. wealth to avg. wealth')
         ax.set_xlim([xmin, xmax-1])
 
-        ax.legend(frameon=False)
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys(), frameon=False)
 
     plt.tight_layout()
 
@@ -181,6 +199,7 @@ def policy_functions(
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
     plt.show()
+
 
 
 
@@ -764,7 +783,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from IPython.display import display, Math
 
-def display_ss_durables(ss, title="Durable Shares", save_path=None, show_plot=False):
+def display_ss_durables(ss, title="Durable Shares", save_path=None, show_plot=False, durables_to_plot="full"):
     """
     Display and optionally plot durable goods aggregates from a steady state dictionary.
 
@@ -777,30 +796,40 @@ def display_ss_durables(ss, title="Durable Shares", save_path=None, show_plot=Fa
         If provided, the plot will be saved to this path.
     show_plot : bool
         If True, the plot will be displayed.
+    durables_to_plot : str or list
+        "full" for all 5 durables, "restricted" for D_N, D_B, D_G, or a custom list of keys.
     """
 
-    # === Display exactly as before ===
-    display(Math(r"D^{None} = " + str(np.round(ss['D_N'], 3))))
-    display(Math(r"D^{Brown, New} = " + str(np.round(ss['D_BN'], 3))))
-    display(Math(r"D^{Brown, Old} = " + str(np.round(ss['D_BO'], 3))))
-    display(Math(r"D^{Brown} = " + str(np.round(ss['D_B'], 3))))
-    display(Math(r"D^{Green, New} = " + str(np.round(ss['D_GN'], 3))))
-    display(Math(r"D^{Green, Old} = " + str(np.round(ss['D_GO'], 3))))
-    display(Math(r"D^{Green} = " + str(np.round(ss['D_G'], 3))))
+    # === Determine which durables to display/plot ===
+    if durables_to_plot == "full":
+        display_keys = ['D_N', 'D_BN', 'D_BO', 'D_GN', 'D_GO']
+        display_labels = ['None', 'Brown, New', 'Brown, Old', 'Green, New', 'Green, Old']
+        colors = ["#808080", "#8B4513", "#C4A484", "#228B22", "#90EE90"]
+    elif durables_to_plot == "restricted":
+        display_keys = ['D_N', 'D_B', 'D_G']
+        display_labels = ['None', 'Brown', 'Green']
+        colors = ["#808080", "#8B4513", "#228B22"]
+    elif isinstance(durables_to_plot, list):
+        display_keys = durables_to_plot
+        display_labels = durables_to_plot  # Default labels are keys; user can modify later if needed
+        colors = plt.cm.tab10.colors[:len(display_keys)]  # Auto-select colors
+    else:
+        raise ValueError("durables_to_plot must be 'full', 'restricted', or a list of keys.")
 
-    display(Math(r"Check. Total = " + str(np.round(ss['D_N'] + ss['D_BN'] + ss['D_BO'] + ss['D_GN'] + ss['D_GO'], 3))))
+    # === Display ===
+    for k, label in zip(display_keys, display_labels):
+        if k in ss:
+            display(Math(f"{label} = {np.round(ss[k], 3)}"))
+
+    # Check total (optional: sum of selected durables)
+    total = sum(ss[k] for k in display_keys if k in ss)
+    display(Math(f"Check. Total = {np.round(total, 3)}"))
 
     # === Plotting ===
     if show_plot or save_path:
-        plot_keys = ['D_N', 'D_BN', 'D_BO', 'D_GN', 'D_GO']
-        plot_labels = ['None', 'Brown, New', 'Brown, Old', 'Green, New', 'Green, Old']
-        values = [ss[k] for k in plot_keys]
-
-        # Specific colors
-        colors = ["#808080", "#8B4513", "#C4A484", "#228B22", "#90EE90"]
-
+        values = [ss[k] for k in display_keys if k in ss]
         plt.figure(figsize=(8,5))
-        plt.bar(plot_labels, values, color=colors)
+        plt.bar(display_labels, values, color=colors)
         plt.ylabel(title)
         plt.title(title)
         plt.tight_layout()
@@ -812,6 +841,7 @@ def display_ss_durables(ss, title="Durable Shares", save_path=None, show_plot=Fa
             plt.show()
         else:
             plt.close()
+
 
 
 def display_calibrated_from_unknowns(ss_dict, unknowns_dict):
@@ -1258,6 +1288,12 @@ def comparative_statics_plot_shares(
             line_colors = ["#808080", "#8B4513", "#C4A484", "#228B22", "#90EE90"]
         if line_labels is None:
             line_labels = ["None", "Brown New", "Brown Old", "Green New", "Green Old"]
+            
+    if len(outputs) == 3:
+        if line_colors is None:
+            line_colors = ["#808080", "#8B4513", "#228B22"]
+        if line_labels is None:
+            line_labels = ["None", "Brown", "Green"]
 
 
     # Custom labels if provided
@@ -1380,3 +1416,105 @@ def compute_gini(D, x, plot=False, return_lorenz=False):
     if return_lorenz:
         return gini, (cumw, cumxw)
     return gini
+
+
+def plot_durable_choice_shares(
+    SS_object,
+    truncate_at=None,          # e.g., 5 → keep up to 5×average wealth
+    title="Durable Choice Shares by Normalized Wealth Level",
+    save_path=None             # str or None, path to save the figure
+):
+    """
+    Plot, for each normalized wealth level, the fraction of households
+    choosing each durable type. Shares sum to 1 at each wealth point.
+
+    Default labels and colors are applied.
+
+    Parameters
+    ----------
+    SS_object : object
+        Must contain:
+        - SS_object.internals['hh']['consav']['D'] : distribution (choice, durable, prod, assets)
+        - SS_object.internals['hh']['a_grid'] : asset grid
+        - SS_object['A'] : average wealth
+
+    truncate_at : float or None
+        If given, keep all a <= truncate_at * average wealth.
+
+    title : str
+        Plot title.
+
+    save_path : str or None
+        File path to save the figure. If None, figure is not saved.
+    """
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # Fixed labels & colors as default
+    fixed_colors = {
+        0: "#808080",   # None
+        1: "#8B4513",   # New Brown
+        2: "#C4A484",   # Old Brown
+        3: "#228B22",   # New Green
+        4: "#90EE90"    # Old Green
+    }
+
+    fixed_labels = {
+        0: "None",
+        1: "New Brown",
+        2: "Old Brown",
+        3: "New Green",
+        4: "Old Green"
+    }
+
+    # Load distribution and asset grid
+    D = np.asarray(SS_object.internals['hh']['consav']['D'])  # (choice, durable, prod, assets)
+    a_grid = np.asarray(SS_object.internals['hh']['a_grid'])
+    assert D.ndim == 4, "D must be 4D: (choice, durable, prod, assets)"
+
+    # 1. Compute actual average wealth
+    mass = D.sum(axis=(0,1,2))  # total mass by assets
+    A_actual = np.sum(mass * a_grid)
+
+    # 2. Collapse over choice & productivity → (durable, assets)
+    M = D.sum(axis=(0, 2))
+
+    # 3. Truncate tail if requested
+    if truncate_at is not None:
+        cutoff_val = truncate_at * A_actual
+        cutoff_idx = np.searchsorted(a_grid, cutoff_val, side='right') - 1
+        cutoff_idx = max(1, cutoff_idx)
+        M = M[:, :cutoff_idx+1]
+        a_grid = a_grid[:cutoff_idx+1]
+
+    # 4. Normalize wealth
+    x_axis = a_grid / A_actual
+
+    # 5. Convert counts to shares at each wealth level
+    totals = M.sum(axis=0)
+    totals[totals == 0] = np.nan
+    shares = M / totals[None, :]
+
+    Nd = shares.shape[0]
+
+    # 6. Plot
+    plt.figure(figsize=(10,6))
+
+    for d in range(Nd):
+        color = fixed_colors.get(d, None)
+        label = fixed_labels.get(d, f"durable {d}")
+        plt.plot(x_axis, shares[d], label=label, color=color, linewidth=2)
+
+    plt.xlabel("Wealth / Average Wealth")
+    plt.ylabel("Share choosing durable (sums to 1 at each wealth level)")
+    plt.title(title)
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+
+    # 7. Save figure if requested
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+
+    plt.show()

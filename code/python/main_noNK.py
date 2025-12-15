@@ -40,7 +40,7 @@ baseline_calibration = {
     # -------------------------
     "min_a": 0.0,           # Minimum asset holdings
     "max_a": 100,           # Maximum asset holdings
-    "n_a": 100,              # Grid size
+    "n_a": 20,              # Grid size
 
     # -------------------------
     # 4. Labor and production
@@ -105,6 +105,12 @@ baseline_calibration = {
     # 9. Financial environment
     # -------------------------
     "r": 0.05 / 4,          # Quarterly interest rate
+    
+    
+    "rss": 0.05 / 4,          
+    "phi_pi": 1.5,
+    "ishock": 0,
+    "piw": 0.0,          
 }
 
 
@@ -138,11 +144,14 @@ print(ss['B'])
 
 #%%-------------Graphs for NBB meeting-------------------
 #%% Durables shares at baseline SS
-display_ss_durables(ss, save_path='../../output/figures/Durable_Shares_SS.png', show_plot=True)
+display_ss_durables(ss, save_path='../../output/figures/Durable_Shares_SS_restr.png', show_plot=True, durables_to_plot="restricted")
+display_ss_durables(ss, save_path='../../output/figures/Durable_Shares_SS_full.png', show_plot=True, durables_to_plot="full")
+
 
 
 #%%Effet of tau_b on durables shares
-comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 0.25, 5)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b.png', title='Effect of carbon tax on durable shares at SS', x_label='Carbon tax on brown energy')
+comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 0.25, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b_full.png', title='Effect of carbon pricing on durable shares at SS', x_label='Carbon pricing on brown energy')
+comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 0.25, 10)}, unknowns_ss, targets_ss, ["D_N", "D_B", "D_G"], save_path='../../output/figures/comp_stat_tau_b_restr.png', title='Effect of carbon pricing on durable shares at SS', x_label='Carbon pricing on brown energy')
 
 #%%Effet of dbar on durables shares
 comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.01, 0.1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_dbar.png', title='Effect of dbar on durable shares at SS', x_label='Dbar (subsistence level of durables)')
@@ -151,64 +160,12 @@ comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.01, 0.1, 3)}, unk
 ss_dict = dict()
 ss_dict['baseline'] = ss
 
-policy_functions(ss_dict, plots=['assets', 'da', 'cons', 'disc'], ie_list=[4], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
+policy_functions(ss_dict, plots=['disc'], ie_list=[2], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=10, vintage_groups={"None": [0], "Brown": [1, 2],"Green": [3, 4]}, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde_0_2.png')
+policy_functions(ss_dict, plots=['disc'], ie_list=[4], d_list=[0], d_tilde_list=[0, 1, 2, 3, 4], xmax=10, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde_0_4.png')
 
 
-
-
-
-
-#%% Effet of tau_b on durables shares
-comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b.png', title='Effect of carbon tax on durables shares at SS', x_label='Carbon tax on brown energy')
-#%% Effet of eps_b on durables shares
-comparative_statics_plot_shares(ha, ss, {"eps_b": np.linspace(0.2, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_eps_b.png')
-#%% Effet of d_1 (quantity of BN) on durables shares
-comparative_statics_plot_shares(ha, ss, {"d1": np.linspace(1, 3, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_d_1.png')
-#%% Effet of d_bar on durables shares
-comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.001, 0.02, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_dbar.png')
-#%% Effet of gamma_mult on durables shares
-comparative_statics_plot_shares(ha, ss, {"mu_mult": np.linspace(1, 5, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma_mult.png')
-#%% Effet of gamma_b on durables shares
-comparative_statics_plot_shares(ha, ss, {"mu_b": np.linspace(1, 3, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma_b.png')
-#%% Effet of gamma_g on durables shares
-comparative_statics_plot_shares(ha, ss, {"mu_g": np.linspace(1, 3, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma_g.png')
-#%% Effet of p_e_b on durables shares
-comparative_statics_plot_shares(ha, ss, {"p_e_b": np.linspace(0.01, 0.5, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_p_e_b.png')
-#%% Effet of lifetime_new on durables shares
-comparative_statics_plot_shares(ha, ss, {"lifetime_new": np.linspace(40, 80, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_lifetime_new.png')
-#%% Effet of chi on durables shares
-comparative_statics_plot_shares(ha, ss, {"chi": np.linspace(0, 0.8, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_chi.png')
-#%% Effet of w on durables shares
-comparative_statics_plot_shares(ha, ss, {"w": np.linspace(0.8, 1.05, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_w.png')
-#%% Effet of p_e_n on durables shares
-comparative_statics_plot_shares(ha, ss, {"p_e_n": np.linspace(0, 1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_p_e_n.png')
-
-#%% Effet of beta on durables shares
-comparative_statics_plot_shares(ha, ss, {"beta": np.linspace(0.5, 0.95, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_beta.png')
-#%% Effet of gamma on durables shares
-comparative_statics_plot_shares(ha, baseline_calibration, {"gamma": np.linspace(1/1, 1/5, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_gamma.png')
-
-#%% Effet of omega on durables shares
-comparative_statics_plot_shares(ha, baseline_calibration, {"omega": np.linspace(0.5, 0.99, 5)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_omega.png')
-
-#%% Effet of x_g on durables shares
-comparative_statics_plot_shares(ha, baseline_calibration, {"x_g": np.linspace(0.1, 0.5, 5)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_x_g.png')
-
-#%% Effet of mu_g on durables shares
-comparative_statics_plot_shares(ha, baseline_calibration, {"mu_g": np.linspace(0.97, 1, 5)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_mu_g.png')
-
-
-
-#%% Effet of delta_A on durables shares
-comparative_statics_plot_shares(ha, baseline_calibration, {"delta_A": np.linspace(0.070, 0.090, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_delta_A.png')
-
-
-
-#%%
-ss_dict = dict()
-ss_dict['baseline'] = ss
-
-policy_functions(ss_dict, plots=['disc'], ie_list=[4], d_list=[1], d_tilde_list=[0, 1, 2, 3, 4], xmax=5, figsize=0.8, save_path='../../output/figures/Policy_Functions_dtilde.png')
+#%% Shares at each wealth level
+plot_durable_choice_shares(ss, truncate_at=50, save_path='../../output/figures/Durable_Choice_Shares_by_Wealth.png', title='Durable choice shares by wealth level')
 
 #%%Distribution
 plot_distribution(ss, lines_dim = 0, 
@@ -226,58 +183,9 @@ plot_distribution(ss,
 
 
 
-
-#%%
-evaluate_param_changes('d_mult', [100, 0.100], ha, ss,
-                      ss_vars = ['asset_mkt', 'rsrce_cstrt', 'D_N', 'D_B', 'D_G'])
-
-
-#%%
-ss_dict = dict()
-ss_dict['baseline'] = deepcopy(ss)
-ss_dict['alt'] = deepcopy(ss)
-ss_dict['alt']['dbar'] = 0.1
-ss_dict['alt'] = ha.steady_state(ss_dict['alt'])
-
-
-ss_dict['alt2'] = deepcopy(ss_dict['alt'])
-ss_dict['alt2']['gamma_mult'] = 1.5
-ss_dict['alt2'] = ha.steady_state(ss_dict['alt2'])
-
-
-display_ss_durables(ss_dict['alt2'] )
-
-
-
-#policy_functions(ss_dict, xmax=5, d_tilde_list=[0], models=['baseline','alt'])
-
-#plot_distribution(ss)
-
-#%%
-comparative_statics_plot_shares(ha, ss, {"d_mult": np.linspace(0.1, 5, 3)}, unknowns_ss, targets_ss, ["D_N", "D_B", "D_G"])
-
-
-#%%
-evaluate_param_changes('d_mult', [0.5, 1.05, 1.50, 2, 5, 10, 20, 150], ha, ss,
-                      ss_vars = ['asset_mkt', 'rsrce_cstrt', 'D_N', 'D_B', 'D_G'])
-
-#%%
-evaluate_param_changes('d_mult', [1, 2, 3, 10, 20, 50], ha, ss,
-                      ss_vars = ['asset_mkt', 'rsrce_cstrt', 'D_N', 'D_B', 'D_G'])
-
-
-#%%
-evaluate_two_param_changes('d_mult', [1, 2],
-                           'dbar', [0.1, 0.5, 1.0],
-                           ha, ss, ss_vars = ['asset_mkt', 'rsrce_cstrt', 'D_N', 'D_B', 'D_G'])
-
-
-
-
-
 #%%
 titles = [
-        r"Carbon tax rate: $\tau_B$",     
+        r"Carbon pricing: $\tau_B$",     
         r"Carbon tax revenues: $T_E$",  
         r"Lump Sum Tax : $T$",     
         r"Share of no durable holding : $D_N$",  
@@ -308,36 +216,73 @@ IRFs = plot_linear_irfs(
     save_path='../../output/figures/IRFs_tau_b.png',
 )
 
+#%% IRFS Macro variables
+titles = [
+        r"Carbon Pricing: $\tau_B$",     
+        r"Share of Brown: $D_B$",
+        r"Share of Green: $D_G$", 
+        r"Total Consumption: $C$",  
+        r"Consu. of Brown Energy: $C^B$", 
+        r"Consu. of Green Energy: $C^G$",
+        ]
+IRFs = plot_linear_irfs(
+    shocks_list=['tau_b'],
+    e = {"tau_b": 0.10},
+    rho = {"tau_b": 0.80},
+    unknowns_td=['Tax','B'],
+    targets_td=['asset_mkt', "GBC"],
+    ha=ha,
+    ss=ss,
+    #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
+    outputs=["tau_b","D_B", "D_G", "C", "C_E_B", "C_E_G"],
+    titles = titles,
+    figsize=(9, 5),
+    save_path='../../output/figures/IRFs_tau_b_macro.png',
+)
 
-#%%
-
-J = hh_durables.jacobian(ss, ['d1'], T=50)
-
-plt.plot(J['D_G']['d1'][:20, 0], label='test')
-plt.axhline(0, color='gray', linestyle=':')
-plt.legend()
-plt.show()
-
-
-#%%
-# #%% Evaluate the model at the calibration with differences in a parameter.
-evaluate_param_changes('r', [0.016, 0.02, 0.0], ha, ss_3,
-                      ss_vars = ['asset_mkt', 'diff_core','diff_BN', 'diff_GN', 'diff_BO', 'diff_GO', 'labor_mkt'])
-
-#%%
-drawdag(ha)
-#%% 
-
-ss_baseline = ha.steady_state(baseline_calibration)
-ss_baseline.toplevel
-
-check_resource_constraint(ss_baseline)
-
-
-#%%
+#%% IRFS Inequality variables
 
 
 
-#%%
 
+IRFs = plot_linear_irfs(
+    shocks_list=['tau_b'],
+    e = {"tau_b": 0.10},
+    rho = {"tau_b": 0.80},
+    unknowns_td=['Tax','B'],
+    targets_td=['asset_mkt', "GBC"],
+    ha=ha,
+    ss=ss,
+    #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
+    outputs=["tau_b","C", "C_CORE", "C_0_0_2_10", "C_1_1_2_10", "C_2_2_2_10", "C_3_3_2_10", "C_4_4_2_10", "C_1_1_2_0","C_1_1_2_19", "V_0_2_10", "V_1_2_10", "V_2_2_10", "V_3_2_10", "V_4_2_10"],
+    #titles = titles,
+    figsize=(18, 12),
+    save_path='../../output/figures/IRFs_tau_b_ineq.png',
+)
 
+# %%
+titles = [
+        r"Carbon Pricing: $\tau_B$",     
+        r"Total Consumption: $C$",
+        r"Total Core Consumption: $C_{core}$", 
+        r"$C_{core}(d = N) = \sum c(\tilde{d},d = N,e,a) \cdot g(\tilde{d},d = N,e,a)$",  
+        r"$C_{core}(d = BN) = \sum c(\tilde{d},d = BN,e,a) \cdot g(\tilde{d},d = BN,e,a)$",
+        r"$C_{core}(d = BO) = \sum c(\tilde{d},d = BO,e,a) \cdot g(\tilde{d},d = BO,e,a)$",
+        r"$C_{core}(d = GN) = \sum c(\tilde{d},d = GN,e,a) \cdot g(\tilde{d},d = GN,e,a)$",
+        r"$C_{core}(d = GO) = \sum c(\tilde{d},d = GO,e,a) \cdot g(\tilde{d},d = GO,e,a)$",
+        ]
+IRFs = plot_linear_irfs(
+    shocks_list=['tau_b'],
+    e = {"tau_b": 0.10},
+    rho = {"tau_b": 0.80},
+    unknowns_td=['Tax','B'],
+    targets_td=['asset_mkt', "GBC"],
+    ha=ha,
+    ss=ss,
+    #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
+    outputs=["tau_b","C", "C_CORE", "C_0", "C_1", "C_2", "C_3", "C_4"],
+    titles = titles,
+    figsize=(18, 12),
+    save_path='../../output/figures/IRFs_tau_b_ineq.png',
+)
+# %%

@@ -215,6 +215,16 @@ def compute_Agg_Transf(T, c):
     Agg_Transf = np.zeros_like(c) + T[np.newaxis, np.newaxis, ..., np.newaxis]
     return Agg_Transf
 
+def compute_objects(c, V):
+    VV = V
+    v_0_2_10, v_1_2_10, v_2_2_10, v_3_2_10, v_4_2_10 = [np.zeros_like(c) for _ in range(5)]
+    v_0_2_10 = np.zeros_like(c) + VV[0,2,0]
+    v_1_2_10 = np.zeros_like(c) + VV[1,2,0]
+    v_2_2_10 = np.zeros_like(c) + VV[2,2,0]
+    v_3_2_10 = np.zeros_like(c) + VV[3,2,0]
+    v_4_2_10 = np.zeros_like(c) + VV[4,2,0]
+    return v_0_2_10, v_1_2_10, v_2_2_10, v_3_2_10, v_4_2_10    
+
 def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec, eps_vec):
     c_core = xi * (p_core/p_bundle[...,np.newaxis,np.newaxis, np.newaxis])**(-nu)*c
     mask = p_e == 0
@@ -231,11 +241,22 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec, eps_ve
     
     t_E = c_E * tau_vec[...,np.newaxis, np.newaxis, np.newaxis] * (1+ eps_vec[...,np.newaxis, np.newaxis, np.newaxis]) * p_e[...,np.newaxis, np.newaxis, np.newaxis]
     
-    return c_core, c_E, c_E1, c_E2, c_E3, c_E4, c_E_B, c_E_G, t_E
+    c_0_0_2_10 = np.zeros_like(c) + c_core[0,0,2,10]
+    c_1_1_2_10 = np.zeros_like(c) + c_core[1,1,2,10]
+    c_1_1_2_0 = np.zeros_like(c) + c_core[1,1,2,0]
+    c_1_1_2_19 = np.zeros_like(c) + c_core[1,1,2,19]
+    c_2_2_2_10 = np.zeros_like(c) + c_core[2,2,2,10]
+    c_3_3_2_10 = np.zeros_like(c) + c_core[3,3,2,10]
+    c_4_4_2_10 = np.zeros_like(c) + c_core[4,4,2,10]
+    
+    c_0, c_1, c_2, c_3, c_4 = [np.zeros_like(c) for _ in range(5)]
+    c_0[:,0,...], c_1[:,1,...], c_2[:,2,...], c_3[:,3,...], c_4[:,4,...] = c_core[:,0,...], c_core[:,1,...], c_core[:,2,...], c_core[:,3,...], c_core[:,4,...]
+    
+    return c_core, c_E, c_E1, c_E2, c_E3, c_E4, c_E_B, c_E_G, t_E, c_0_0_2_10, c_1_1_2_10, c_2_2_2_10, c_3_3_2_10, c_4_4_2_10, c_1_1_2_0, c_1_1_2_19, c_0, c_1, c_2, c_3, c_4
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand, compute_Agg_Transf, decomposition_consu_bundle])
+                            name='consav', hetoutputs=[D_demand, compute_Agg_Transf, decomposition_consu_bundle, compute_objects])
                             #name='consav', hetoutputs=[D_demand, compute_flows, compute_Agg_Transf, decomposition_consu_bundle])
 
 
