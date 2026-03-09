@@ -7,14 +7,14 @@ def fiscal(B, r, G, Tax, T_E):
     return GBC
 
 @sj.simple
-def mkt_clearing(A, B, N, N_Y):
+def mkt_clearing(A, B, N):
     asset_mkt = A - B
-    labor_mkt = N - N_Y
-    return asset_mkt, labor_mkt
+    #labor_mkt = N - N_Y
+    return asset_mkt
 
 #Compute the resource constraint (equivalent of goods market clearing condition)
 @sj.simple
-def rsrce_cstrt(p_e_n, p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E1, C_E2, C_E3, C_E4, G, Y, d0, d1,lifetime_old, delta_A, x_g, chi, XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO, XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO):
+def rsrce_cstrt(p_e_n, p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E0, C_E1, C_E2, C_E3, C_E4, G, Y, d0, d1,lifetime_old, delta_A, x_g, chi, XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO, XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO):
     #Need to construct vectors for durables prices, energy inefficiencies, energy prices and energy consumption. Should be the same as in HH Block
     delta= lifetime_old/4*delta_A
     d_b_vec = np.ones(n_b) * d1 * (1-delta)**np.arange(n_b)
@@ -22,7 +22,7 @@ def rsrce_cstrt(p_e_n, p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E
     d_vec = np.concatenate([[d0], d_b_vec, d_g_vec])
     eps_vec = np.concatenate(([0.0], eps_b * np.arange(n_b), eps_g * np.arange(n_g)))
     p_E_vec = np.concatenate([[p_e_n], np.ones(n_b) * p_e_b, np.ones(n_g) * p_e_g]) 
-    C_E_vec = np.array([0, C_E1, C_E2, C_E3, C_E4])
+    C_E_vec = np.array([C_E0, C_E1, C_E2, C_E3, C_E4])
     AD_CORE = p_core*C_CORE + np.sum((1+eps_vec) * p_E_vec * C_E_vec)
     AD_DURABLES = np.sum(d_vec *([XPLUS_N, XPLUS_BN, XPLUS_BO, XPLUS_GN, XPLUS_GO] - (1-chi)*np.array([XMINUS_N, XMINUS_BN, XMINUS_BO, XMINUS_GN, XMINUS_GO])))
     AD = AD_CORE + AD_DURABLES + G
@@ -31,10 +31,15 @@ def rsrce_cstrt(p_e_n, p_e_b, p_e_g, eps_b, eps_g, n_b, n_g, p_core, C_CORE, C_E
     return rsrce_cstrt, AD, AD_CORE, AD_DURABLES, AS
 
 @sj.simple
-def prod(Y, Z, markup_ss):
+def prod_old(Y, Z, markup_ss):
     N_Y = Y / Z
     #w = Z_core / markup_ss
     return N_Y
+
+@sj.simple
+def prod(Z,N):
+    Y = Z*N
+    return Y
 
 @sj.simple
 def nkpc(piw, N, C, vphi, frisch, markup_ss, gamma, beta):

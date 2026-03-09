@@ -233,8 +233,8 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec, eps_ve
     c_E[non_zero_mask] = (1-xi) * ((1 + eps_vec[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]) * (1 + tau_vec[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]) * p_e[non_zero_mask,np.newaxis,np.newaxis,np.newaxis]/
                           p_bundle[non_zero_mask,np.newaxis,np.newaxis,np.newaxis])**(-nu)*c[non_zero_mask]
     
-    c_E1, c_E2, c_E3, c_E4 = [np.zeros_like(c_E) for _ in range(4)]
-    c_E1[1,...], c_E2[2,...], c_E3[3,...], c_E4[4,...] = c_E[1,...], c_E[2,...], c_E[3,...], c_E[4,...]
+    c_E0, c_E1, c_E2, c_E3, c_E4 = [np.zeros_like(c_E) for _ in range(5)]
+    c_E0[0,...], c_E1[1,...], c_E2[2,...], c_E3[3,...], c_E4[4,...] = c_E[0,...], c_E[1,...], c_E[2,...], c_E[3,...], c_E[4,...]
     
     c_E_B = c_E1 +  c_E2 #Consumption of brown energy
     c_E_G = c_E3 +  c_E4 #Consumption of green energy
@@ -252,11 +252,11 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec, eps_ve
     c_0, c_1, c_2, c_3, c_4 = [np.zeros_like(c) for _ in range(5)]
     c_0[:,0,...], c_1[:,1,...], c_2[:,2,...], c_3[:,3,...], c_4[:,4,...] = c_core[:,0,...], c_core[:,1,...], c_core[:,2,...], c_core[:,3,...], c_core[:,4,...]
     
-    return c_core, c_E, c_E1, c_E2, c_E3, c_E4, c_E_B, c_E_G, t_E, c_0_0_2_10, c_1_1_2_10, c_2_2_2_10, c_3_3_2_10, c_4_4_2_10, c_1_1_2_0, c_1_1_2_19, c_0, c_1, c_2, c_3, c_4
+    return c_core, c_E, c_E0, c_E1, c_E2, c_E3, c_E4, c_E_B, c_E_G, t_E, c_0_0_2_10, c_1_1_2_10, c_2_2_2_10, c_3_3_2_10, c_4_4_2_10, c_1_1_2_0, c_1_1_2_19, c_0, c_1, c_2, c_3, c_4
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand, compute_Agg_Transf, decomposition_consu_bundle, compute_objects])
+                            name='consav', hetoutputs=[D_demand, compute_Agg_Transf, decomposition_consu_bundle, compute_objects, compute_flows])
                             #name='consav', hetoutputs=[D_demand, compute_flows, compute_Agg_Transf, decomposition_consu_bundle])
 
 

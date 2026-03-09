@@ -119,8 +119,8 @@ for k, v in baseline_calibration.items():
     globals()[k] = v
 
 #%% === Create the model ===
-#ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, rsrce_cstrt], name="Simple HA Model")
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod], name="Simple HA Model")
+ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, rsrce_cstrt], name="Simple HA Model")
+#ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
@@ -132,42 +132,15 @@ hh_solution = ha.steady_state(baseline_calibration)
 
 
 
-
-#%%
-hh_solution
-
-
-
-
-
-#%%
-unknowns_ss = {'B':baseline_calibration['B'],'Tax':baseline_calibration['Tax']}
-targets_ss = {'asset_mkt':0.0,'GBC': 0.0}
-
-ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
-check_resource_constraint(ss)
-display_ss_durables(ss)
-print(ss['B'])
-
 #%% This simply allows to satisfy the GBC. Not the equilibrium.
 unknowns_ss = {'Tax':baseline_calibration['Tax']}
 targets_ss = {'GBC': 0.0}
 
 sol_GBC = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
-check_resource_constraint(ss)
-display_ss_durables(ss)
-print(ss['B'])
-print(ss['Tax'])
-
-#%%
-comparative_statics_plot(ha, ss, {"G": np.linspace(0.05 / 4, 0.06 / 4, 2)}, unknowns_ss, targets_ss, ["B", "Tax", "G","C","asset_mkt","A"], plot_deviation=False)
-
-
-#%%
-comparative_statics_plot(ha, ss, {"r": np.linspace(0.05 / 4, 0.08 / 4, 4)}, unknowns_ss, targets_ss, ["B", "Tax", "G","C","asset_mkt","A"], plot_deviation=False)
-
-#%%
-comparative_statics_plot(ha, ss, {"B": np.linspace(1, 4, 4)}, unknowns_ss, targets_ss, ["B", "Tax", "G","C","asset_mkt","A"], plot_deviation=False)
+check_resource_constraint(sol_GBC)
+display_ss_durables(sol_GBC)
+print(sol_GBC['B'])
+print(sol_GBC['Tax'])
 
 
 #%% This is the propor equilibrium
@@ -376,11 +349,11 @@ comparative_statics_plot(ha, ss, {"Y": np.linspace(0.99, 1.01, 3)}, unknowns__1,
 
 # %%
 IRFs = plot_linear_irfs(
-    shocks_list=['tau_b','G'],
-    e = {"tau_b": 0.010,"G": 0.001},
-    rho = {"tau_b": 0.80,"G": 0.80},
-    unknowns_td=['Tax','Y','N'],
-    targets_td=["GBC",'asset_mkt','labor_mkt'],
+    shocks_list=['tau_b'],
+    e = {"tau_b": 0.010},
+    rho = {"tau_b": 0.80},
+    unknowns_td=['Tax','N'],
+    targets_td=["GBC",'asset_mkt'],
     ha=ha,
     ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
@@ -390,7 +363,8 @@ IRFs = plot_linear_irfs(
     #save_path='../../output/figures/IRFs_tau_b.png',
 )
 # %%
-unknowns = ['Tax','Y','N']
-targets = ["GBC",'asset_mkt','labor_mkt']
+unknowns = ['Tax','N']
+targets = ["GBC",'asset_mkt']
 inputs = ['G']
 drawdag(ha, unknowns, targets, inputs)
+# %%

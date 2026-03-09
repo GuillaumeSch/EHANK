@@ -1025,7 +1025,7 @@ def check_resource_constraint(ss):
 
     # Include GBC (2)
     # Government BC
-    LHS_2 = p_core*C_core + np.sum((1+eps_vec) * p_E * C_E) + np.sum(X_plus - X_minus * chi) + G
+    LHS_2 = p_core*C_core + np.sum((1+eps_vec) * p_E * C_E) + np.sum(X_plus - X_minus * (1-chi)) + G
     RHS_2 = w*N
     print("Aggregated BC (including the government BC) (2 with GBC)", LHS_2 - RHS_2)
 
@@ -1056,9 +1056,9 @@ def check_resource_constraint(ss):
     
     #Other market clearing conditions
     # --- (2) Labor clearing ---
-    N = ss['N']
-    N_Y = ss['N_Y']
-    results["labor_clearing"] = N - N_Y
+    #N = ss['N']
+    #N_Y = ss['N_Y']
+    #results["labor_clearing"] = N - N_Y
 
     # --- (3) Asset clearing ---
     A = ss['A']
@@ -1073,7 +1073,7 @@ def check_resource_constraint(ss):
         return "✅ OK" if abs(x) < tol else "⚠️  FAIL"
 
     print(f"{'Resource Constraint':<30} {results['resource_constraint']:>20.4e} {status(results['resource_constraint']):>12}")
-    print(f"{'Labor Clearing':<30} {results['labor_clearing']:>20.4e} {status(results['labor_clearing']):>12}")
+    #print(f"{'Labor Clearing':<30} {results['labor_clearing']:>20.4e} {status(results['labor_clearing']):>12}")
     print(f"{'Asset Clearing':<30} {results['asset_clearing']:>20.4e} {status(results['asset_clearing']):>12}")
 
     print("=" * 65)
