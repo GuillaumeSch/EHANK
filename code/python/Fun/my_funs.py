@@ -569,11 +569,12 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"PP (dev. from ss)",
     for i, var in enumerate(variables):
         for j, irf in enumerate(irfs_list):
             if var in irf:
-                data = 100 * np.array(irf[var][:T_plot])
+                #data = 100 * np.array(irf[var][:T_plot])
+                data = np.array(irf[var][:T_plot])
             else:
                 data = np.zeros(T_plot)
-            #axes[i].plot(data, label=labels[j])
-            axes[i].plot(data)
+            axes[i].plot(data, label=labels[j])
+            #axes[i].plot(data)
 
         # Use custom title if provided
         if titles is not None:
@@ -1087,6 +1088,7 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
     Run comparative statics over a grid of parameter values and plot 
     how outputs vary relative to the baseline, one subplot per output.
     Handles solver failures by interpolating/extrapolating and marking them.
+    Special case: if 'd' is in outputs, plots lineplot comparing different d vectors.
     """
 
     # --- Check param_grid ---
@@ -1095,7 +1097,7 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
     param, grid = list(param_grid.items())[0]
 
     # --- Baseline values ---
-    baseline_values = {key: ss_base[key] for key in outputs}
+    baseline_values = {key: ss_base[key] for key in outputs if key != "d"}
 
     # --- Storage ---
     results = {key: [] for key in outputs}
@@ -1125,83 +1127,105 @@ def comparative_statics_plot(ha, ss_base, param_grid, unknowns_ss, targets_ss, o
         try:
             ss_dev = ha.solve_steady_state(calib_dev, unknowns_ss, targets_ss, solver=solver)
             for key in outputs:
-                results[key].append(ss_dev[key])
+                if key == "d":
+                    results[key].append(np.array(ss_dev.internals['hh']['d']).flatten())
+                else:
+                    results[key].append(ss_dev[key])
             success_flags.append(True)
             print(f"Solved {i}/{n_points} steady states for {param} = {val:.3f}")
         except Exception as e:
             for key in outputs:
-                results[key].append(np.nan)  # placeholder for failed solve
+                if key == "d":
+                    results[key].append(np.full(5, np.nan))
+                else:
+                    results[key].append(np.nan)
             success_flags.append(False)
             print(f"❌ Failed to solve {i}/{n_points} steady states for {param} = {val:.3f} ({e})")
 
     # Convert to arrays
     for key in results:
-        results[key] = np.array(results[key])
+        if key != "d":
+            results[key] = np.array(results[key])
 
     # --- Interpolate missing values ---
     results_interp = {}
     x = np.array(grid)
     for key in outputs:
-        y = results[key]
-        mask = ~np.isnan(y)
-        if mask.sum() >= 2:  # need at least 2 points for interpolation
-            y_interp = np.interp(x, x[mask], y[mask])
-        else:
-            y_interp = y  # leave as is if too few valid points
-        results_interp[key] = y_interp
+        if key != "d":
+            y = results[key]
+            mask = ~np.isnan(y)
+            if mask.sum() >= 2:
+                y_interp = np.interp(x, x[mask], y[mask])
+            else:
+                y_interp = y
+            results_interp[key] = y_interp
 
-    # --- Plot: subplots, one per output ---
-    n_outputs = len(outputs)
-    ncols = 2 if n_outputs > 1 else 1
-    nrows = int(np.ceil(n_outputs / ncols))
+    # --- Plot: subplots, one per scalar output ---
+    scalar_outputs = [k for k in outputs if k != "d"]
+    n_outputs = len(scalar_outputs)
+    if n_outputs > 0:
+        ncols = 2 if n_outputs > 1 else 1
+        nrows = int(np.ceil(n_outputs / ncols))
+        fig, axes = plt.subplots(nrows, ncols, figsize=(6*ncols, 4*nrows), squeeze=False)
 
-    fig, axes = plt.subplots(nrows, ncols, figsize=(6*ncols, 4*nrows), squeeze=False)
+        for idx, key in enumerate(scalar_outputs):
+            r, c = divmod(idx, ncols)
+            ax = axes[r, c]
 
-    for idx, key in enumerate(outputs):
-        r, c = divmod(idx, ncols)
-        ax = axes[r, c]
+            if plot_deviation:
+                y_values = results_interp[key] - baseline_values[key]
+                ylabel = f"{key} deviation"
+            else:
+                y_values = results_interp[key]
+                ylabel = f"{key} level"
 
-        if plot_deviation:
-            y_values = results_interp[key] - baseline_values[key]
-            ylabel = f"{key} deviation"
-        else:
-            y_values = results_interp[key]
-            ylabel = f"{key} level"
+            ax.plot(grid, y_values, marker='o', label='Interpolated')
 
-        # Plot interpolated curve
-        ax.plot(grid, y_values, marker='o', label='Interpolated')
+            failed_idx = np.where(~np.array(success_flags))[0]
+            if failed_idx.size > 0:
+                ax.scatter(np.array(grid)[failed_idx],
+                           y_values[failed_idx],
+                           color='red', marker='x', s=80, label='Failed solve')
 
-        # Mark failures with red crosses
-        failed_idx = np.where(~np.array(success_flags))[0]
-        if failed_idx.size > 0:
-            ax.scatter(np.array(grid)[failed_idx],
-                       y_values[failed_idx],
-                       color='red', marker='x', s=80, label='Failed solve')
+            if plot_deviation:
+                ax.axhline(0, color='gray', linestyle='--', linewidth=0.8)
 
-        if plot_deviation:
-            ax.axhline(0, color='gray', linestyle='--', linewidth=0.8)
+            ax.set_xlabel(param)
+            ax.set_ylabel(ylabel)
+            ax.set_title(f"{key} vs {param}")
+            ax.legend()
 
-        ax.set_xlabel(param)
-        ax.set_ylabel(ylabel)
-        ax.set_title(f"{key} vs {param}")
-        ax.legend()
+        for idx in range(len(scalar_outputs), nrows*ncols):
+            r, c = divmod(idx, ncols)
+            fig.delaxes(axes[r, c])
 
-    # Remove any empty subplots
-    for idx in range(len(outputs), nrows*ncols):
-        r, c = divmod(idx, ncols)
-        fig.delaxes(axes[r, c])
+        fig.suptitle(f"Comparative Statics: varying {param}", fontsize=14, y=1.02)
 
-    fig.suptitle(f"Comparative Statics: varying {param}", fontsize=14, y=1.02)
-    
-    # Save if requested
-    if save_path is not None:
-        plt.savefig(save_path, bbox_inches='tight', dpi=300)
-    
-    fig.tight_layout()
-    plt.show()
+        if save_path is not None:
+            plt.savefig(save_path, bbox_inches='tight', dpi=300)
+        fig.tight_layout()
+        plt.show()
 
-    return results, results_interp, success_flags
+    # --- Special plot for d ---
+    if "d" in outputs:
+        goods = ["None", "Brown-New", "Brown-Old", "Green-New", "Green-Old"]
+        order = [0, 2, 4, 1, 3]
+        goods_reordered = [goods[i] for i in order]
+        x = np.arange(len(goods_reordered))
 
+        plt.figure(figsize=(7,4))
+        for i, val in enumerate(grid):
+            d_vec = np.array(results["d"][i]).flatten()[order]
+            plt.plot(x, d_vec, marker='o', label=f"{param}={val:.3f}")
+
+        plt.xticks(x, goods_reordered)
+        plt.ylabel("Price × Quantity")
+        plt.title(f"Price x Quantity by durable type ({param} variation)")
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+    return results, results_interp if scalar_outputs else None, success_flags
 
 def comparative_statics_plot_shares(
     ha, ss_base, param_grid, unknowns_ss, targets_ss, outputs,
@@ -1518,3 +1542,101 @@ def plot_durable_choice_shares(
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
     plt.show()
+
+def compare_ss_table(s1, s2, round_digits=2):
+
+
+    import numpy as _np
+    try:
+        import pandas as _pd
+    except Exception:
+        _pd = None
+
+    # obtain keys (works if s1,s2 are dict-like)
+    keys1 = set(s1.keys()) if hasattr(s1, "keys") else set(dir(s1))
+    keys2 = set(s2.keys()) if hasattr(s2, "keys") else set(dir(s2))
+    common = sorted(keys1 & keys2)
+
+    rows = []
+    for k in common:
+        try:
+            v1 = s1[k] if (hasattr(s1, "keys") and k in s1) else getattr(s1, k, None)
+        except Exception:
+            v1 = getattr(s1, k, None)
+        try:
+            v2 = s2[k] if (hasattr(s2, "keys") and k in s2) else getattr(s2, k, None)
+        except Exception:
+            v2 = getattr(s2, k, None)
+
+        # Try numeric array conversion
+        def to_arr(x):
+            try:
+                a = _np.array(x)
+                return a
+            except Exception:
+                return None
+
+        A = to_arr(v1)
+        B = to_arr(v2)
+
+        row = {"variable": k}
+        if A is None or B is None:
+            row.update({
+                #"type": type(v1).__name__ + " / " + type(v2).__name__,
+                "ss": str(v1),
+                "ss_final": str(v2),
+                "diff": "N/A"
+            })
+        else:
+            #row["type"] = f"array{A.shape}"
+            #row["shape"] = str(A.shape)
+            # scalar case (0-d or shape == ())
+            if A.shape == () and B.shape == ():
+                a = float(A)
+                b = float(B)
+                d = b - a
+                row.update({
+                    "ss": round(a, round_digits),
+                    "ss_final": round(b, round_digits),
+                    "diff": round(d, round_digits),
+                    #"max_abs_diff": round(abs(d), round_digits),
+                    #"mean_diff": round(d, round_digits)
+                })
+            else:
+                # ensure same shape
+                if A.shape != B.shape:
+                    row.update({
+                        "ss": f"array shape {A.shape}",
+                        "ss_final": f"array shape {B.shape}",
+                        "diff": "shape_mismatch"
+                    })
+                else:
+                    diff = B - A
+                    maxabs = float(_np.max(_np.abs(diff)))
+                    meandiff = float(_np.mean(diff))
+                    # display compact repr for arrays: if small, show entries; else show mean/std
+                    def compact_repr(X):
+                        if X.size <= 10:
+                            return _np.round(X.flatten(), round_digits).tolist()
+                        else:
+                            return f"mean={round(float(_np.mean(X)), round_digits)}, std={round(float(_np.std(X)), round_digits)}"
+                    row.update({
+                        "ss": compact_repr(A),
+                        "ss_final": compact_repr(B),
+                        "diff": f"max_abs={round(maxabs, round_digits)}",
+                        #"max_abs_diff": round(maxabs, round_digits),
+                        #"mean_diff": round(meandiff, round_digits)
+                    })
+        rows.append(row)
+
+    if _pd is not None:
+        df = _pd.DataFrame(rows)
+        # order columns
+        cols = ["variable", "type", "shape", "ss", "ss_final", "diff", "max_abs_diff", "mean_diff"]
+        cols = [c for c in cols if c in df.columns]
+        print(df[cols].to_string(index=False))
+    else:
+        # fallback
+        for r in rows:
+            print(r)
+    #return rows

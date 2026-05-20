@@ -13,6 +13,10 @@ from sequence_jacobian.blocks.stage_block import StageBlock
 from sequence_jacobian.utilities.misc import make_tuple, logit_choice
 from sequence_jacobian.utilities.ordered_set import OrderedSet
 from sequence_jacobian.utilities.interpolate import interpolate_coord_robust, interpolate_coord
+from sequence_jacobian import utilities as utils
+from sequence_jacobian.classes import ImpulseDict
+
+
 
 
 def make_d_grid(n_b=3, n_g=3, lifetime_new=16, lifetime_old=32):
@@ -440,3 +444,25 @@ class StageBlockDurables(StageBlock):
             except:
                 cur_exp = lom_T @ cur_exp
         return cur_exp
+    
+    def _impulse_nonlinear(self, ssin, inputs, outputs, ss_initial):
+        ss = self.extract_ss_dict(ssin)
+        if ss_initial is not None:
+            #ss_init = self.extract_ss_dict(ss_initial) #GSCHWEGLER MODIFICATION
+            #ss[self.stages[0].name]['D'] = ss_init[self.name][self.stages[0].name]['D']
+            ss[self.stages[0].name]['D'] = ss_initial.internals[self.name][self.stages[0].name]['D']
+
+        # report_path is dict(stage: {output: TxN-dim array})
+        # lom_path is list[t][stage] in chronological order
+        report_path, lom_path = self.backward_nonlinear(ss, inputs)
+        
+        # D_path is dict(stage: TxN-dim array)
+        D_path = self.forward_nonlinear(ss, lom_path)
+
+        aggregates = {}
+        for stage in self.stages:
+            for o in stage.report:
+                if self.M_outputs @ o in outputs:
+                    aggregates[self.M_outputs @ o] = utils.optimized_routines.fast_aggregate(D_path[stage.name], report_path[stage.name][o])
+
+        return ImpulseDict(aggregates, T=inputs.T) - ssin

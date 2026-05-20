@@ -256,8 +256,9 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec, eps_ve
 
 #Initialize Stage 3
 consav_stage = Continuous1D_Durables(backward=['V', 'Va'], policy='a', f=dcegm,
-                            name='consav', hetoutputs=[D_demand, compute_Agg_Transf, decomposition_consu_bundle, compute_objects, compute_flows])
-                            #name='consav', hetoutputs=[D_demand, compute_flows, compute_Agg_Transf, decomposition_consu_bundle])
+                            name='consav', hetoutputs=[D_demand, compute_Agg_Transf, decomposition_consu_bundle, compute_objects])
+                            #name='consav', hetoutputs=[D_demand, compute_Agg_Transf, decomposition_consu_bundle, compute_objects, compute_flows])
+                           
 
 
 
@@ -354,7 +355,7 @@ def make_shifters(n_b, n_g, mu_g, d, mu_mult):
     return shifters
 
 #%% Assemble the HH block (staged block)
-hh_durables = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
+hh = StageBlockDurables([depreciation_stage, prod_stage, durables_stage, consav_stage], name='hh',
                 backward_init=hh_init,
                 hetinputs=[make_grids, income_grid, transfers, adj_costs, 
                            disp_inc_f, make_shifters, create_vectors])

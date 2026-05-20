@@ -7,7 +7,7 @@ def fiscal(B, r, G, Tax, T_E):
     return GBC
 
 @sj.simple
-def mkt_clearing(A, B, N):
+def mkt_clearing(A, B):
     asset_mkt = A - B
     #labor_mkt = N - N_Y
     return asset_mkt
@@ -39,7 +39,8 @@ def prod_old(Y, Z, markup_ss):
 @sj.simple
 def prod(Z,N):
     Y = Z*N
-    return Y
+    w = Z
+    return Y, w
 
 @sj.simple
 def nkpc(piw, N, C, vphi, frisch, markup_ss, gamma, beta):

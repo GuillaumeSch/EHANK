@@ -1,5 +1,5 @@
 #%%
-from HH_Durables_Block import hh_durables
+from HH_Durables_Block import hh
 from Model_Blocks import fiscal, mkt_clearing, prod, rsrce_cstrt, nkpc, inflation, taylor_rule
 import sequence_jacobian as sj
 import json
@@ -51,7 +51,7 @@ baseline_calibration = {
     "Z": 1,                 # Productivity in core goods
     "p_core": 1,            # Price of nondurable consumption good (numéraire)
     "Div": 0,               # Dividends (if firms distribute profit)
-    "w": 1,                 # Wage
+    #"w": 1,                 # Wage
 
     # -------------------------
     # 5. Durable goods (b = brown, g = green)
@@ -61,7 +61,7 @@ baseline_calibration = {
     "chi": 0.05,             # Resale loss when selling a durable
 
     # Utility from durables
-    "mu_g": 0.98,         # Relative utility of green durable w.r.t brown durable
+    "mu_g": 0.98,        # Relative utility of green durable w.r.t brown durable
     "mu_mult": 3.0,      # Scale parameter for utility shifter
 
     # Physical lifetime
@@ -69,7 +69,7 @@ baseline_calibration = {
     "lifetime_old": 32,  # Used car durability (quarters)
 
     # Durable quantities
-    "d0": 0.0, "d1": 0.2,     # Quantity of new brown durable. The other quantities will follow from premium and depreciations.
+    "d0": 0.0, "d1": 0.2,     # d0: "Price" of no-durable. d1: Quantity of new brown durable. The other quantities will follow from premium and depreciations.
     "x_g": 0.20,            # Green durable premium
     "delta_A": 0.080,       # Depreciation for old durables
 
@@ -119,7 +119,7 @@ for k, v in baseline_calibration.items():
     globals()[k] = v
 
 #%% === Create the model ===
-ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod, rsrce_cstrt], name="Simple HA Model")
+ha = sj.create_model([hh, fiscal, mkt_clearing, prod], name="Simple HA Model")
 #ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
@@ -133,17 +133,13 @@ hh_solution = ha.steady_state(baseline_calibration)
 
 
 #%% This simply allows to satisfy the GBC. Not the equilibrium.
-unknowns_ss = {'Tax':baseline_calibration['Tax']}
-targets_ss = {'GBC': 0.0}
+unknowns_GBC = {'Tax':baseline_calibration['Tax']}
+targets_GBC = {'GBC': 0.0}
 
-sol_GBC = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
-check_resource_constraint(sol_GBC)
-display_ss_durables(sol_GBC)
-print(sol_GBC['B'])
-print(sol_GBC['Tax'])
+sol_GBC = ha.solve_steady_state(baseline_calibration , unknowns_GBC, targets_GBC, solver='hybr')
 
 
-#%% This is the propor equilibrium
+#%% This is the proper equilibrium
 unknowns_ss = {'Tax':sol_GBC['Tax'],'r':sol_GBC['r']}
 targets_ss = {'GBC': 0.0,'asset_mkt': 0.0}
 
@@ -154,10 +150,37 @@ print(ss['B'])
 print(ss['Tax'])
 
 #%%
+J_ha = hh.jacobian(ss, inputs=['r', 'w','T','d1','delta_A','tau_b'], T=40)
+plt.plot(J_ha['A']['r'][:,0])
+#%%
+J_G = fiscal.jacobian(ss, inputs=['r'], T=40)
+plt.plot(J_G['GBC']['r'][:,0])
+
+
+
+
+#%%
 comparative_statics_plot(ha, ss, {"tau_b": np.linspace(0, 0.20, 4)}, unknowns_ss, targets_ss, ["B", "Tax", "G","C","r","asset_mkt","A","D_B","D_G","D_N"], plot_deviation=False)
 
+#%%
+comparative_statics_plot(ha, ss, {"d1": np.linspace(0.19, 0.21, 3)}, unknowns_ss, targets_ss, ["d","B", "Tax", "G","C","r","asset_mkt","A","D_B","D_G","D_N", "rsrce_cstrt"], plot_deviation=False)
 
-#%%-------------Graphs for NBB meeting-------------------
+#%%
+comparative_statics_plot(ha, ss, {"d1": np.linspace(0.19, 0.21, 3)}, unknowns_GBC, targets_GBC, ["B", "Tax", "G","C","r","asset_mkt","A","D_B","D_G","D_N", "rsrce_cstrt"], plot_deviation=False)
+
+
+
+
+#%%
+#%%
+comparative_statics_plot(ha, ss, {"delta_A": np.linspace(0.075, 0.09, 3)}, unknowns_ss, targets_ss, ["d","B", "Tax", "G","C","r","asset_mkt","A","D_B","D_G","D_N", "rsrce_cstrt"], plot_deviation=False)
+
+#%%
+comparative_statics_plot(ha, ss, {"delta_A": np.linspace(0.075, 0.09, 3)}, unknowns_GBC, targets_GBC, ["d","B", "Tax", "G","C","r","asset_mkt","A","D_B", "D_BN", "D_BO","D_G","D_GN","D_GO","D_N", "rsrce_cstrt"], plot_deviation=False)
+
+
+
+ #%%-------------Graphs for NBB meeting-------------------
 #%% Durables shares at baseline SS
 display_ss_durables(ss, save_path='../../output/figures/Durable_Shares_SS_restr.png', show_plot=True, durables_to_plot="restricted")
 display_ss_durables(ss, save_path='../../output/figures/Durable_Shares_SS_full.png', show_plot=True, durables_to_plot="full")
@@ -166,10 +189,18 @@ display_ss_durables(ss, save_path='../../output/figures/Durable_Shares_SS_full.p
 
 #%%Effet of tau_b on durables shares
 comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 0.25, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_tau_b_full.png', title='Effect of carbon pricing on durable shares at SS', x_label='Carbon pricing on brown energy')
-comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 0.25, 10)}, unknowns_ss, targets_ss, ["D_N", "D_B", "D_G"], save_path='../../output/figures/comp_stat_tau_b_restr.png', title='Effect of carbon pricing on durable shares at SS', x_label='Carbon pricing on brown energy')
+#comparative_statics_plot_shares(ha, ss, {"tau_b": np.linspace(0, 0.25, 10)}, unknowns_ss, targets_ss, ["D_N", "D_B", "D_G"], save_path='../../output/figures/comp_stat_tau_b_restr.png', title='Effect of carbon pricing on durable shares at SS', x_label='Carbon pricing on brown energy')
+#%%
+comparative_statics_plot_shares(ha, ss, {"d1": np.linspace(0.10, 0.215, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_d1_full.png', title='Effect of d1 on durable shares at SS', x_label='Quantity x price of new brown durable, d1')
 
 #%%Effet of dbar on durables shares
-comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.01, 0.1, 3)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_dbar.png', title='Effect of dbar on durable shares at SS', x_label='Dbar (subsistence level of durables)')
+comparative_statics_plot_shares(ha, ss, {"dbar": np.linspace(0.01, 0.05, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_dbar_full.png', title='Effect of dbar on durable shares at SS', x_label='Dbar (subsistence level of durables)')
+
+#%%Effet of x_g on durables shares
+comparative_statics_plot_shares(ha, ss, {"x_g": np.linspace(0.00, 0.3, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_xg_full.png', title='Effect of xg on durable shares at SS', x_label='x_g (Green durable premium)')
+
+#%%Effet of delta_A on durables shares
+comparative_statics_plot_shares(ha, ss, {"delta_A": np.linspace(0.070, 0.100, 10)}, unknowns_ss, targets_ss, ["D_N", "D_BN", "D_BO", "D_GN", "D_GO"], save_path='../../output/figures/comp_stat_deltaA_full.png', title='Effect of deltaA on durable shares at SS', x_label='delta_A (Depreciation for old durables)')
 
 #%%Policy functions
 ss_dict = dict()
@@ -204,7 +235,6 @@ titles = [
         r"Carbon tax revenues: $T_E$",  
         r"Lump Sum Tax : $T$",     
         r"Share of no durable holding : $D_N$",
-        r"Share of no durable holding (Choice) : $D_{T_N}$",  
         r"Share of Brown: $D_B$",
         r"Share of New Brown: $D_{BN}$",
         r"Share of Old Brown: $D_{BO}$",
@@ -215,20 +245,21 @@ titles = [
         r"Consu. of Brown energy: $C^B$", 
         r"Consu. of Green energy: $C^G$",
         r"Government Debt: $B$",
+        r"Labor: $N$",
         ]
 IRFs = plot_linear_irfs(
     shocks_list=['tau_b'],
-    e = {"tau_b": 0.10},
+    e = {"tau_b": 0.01},
     rho = {"tau_b": 0.80},
     unknowns_td=['Tax','B'],
     targets_td=['asset_mkt', "GBC"],
     ha=ha,
     ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["tau_b", "T_E","Tax", "D_N","D_T_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "B", "r"],
+    outputs=["tau_b", "T_E","Tax", "D_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "B","N"],
     titles = titles,
     figsize=(18, 12),
-    save_path='../../output/figures/IRFs_tau_b.png',
+    save_path='../../output/figures/IRFs_tau_b_B.png',
 )
 
 #%% IRFS Macro variables
@@ -258,23 +289,6 @@ IRFs = plot_linear_irfs(
 #%% IRFS Inequality variables
 
 
-
-
-IRFs = plot_linear_irfs(
-    shocks_list=['tau_b'],
-    e = {"tau_b": 0.10},
-    rho = {"tau_b": 0.80},
-    unknowns_td=['Tax','B'],
-    targets_td=['asset_mkt', "GBC"],
-    ha=ha,
-    ss=ss,
-    #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["tau_b","C", "C_CORE", "C_0_0_2_10", "C_1_1_2_10", "C_2_2_2_10", "C_3_3_2_10", "C_4_4_2_10", "C_1_1_2_0","C_1_1_2_19", "V_0_2_10", "V_1_2_10", "V_2_2_10", "V_3_2_10", "V_4_2_10"],
-    #titles = titles,
-    figsize=(18, 12),
-    save_path='../../output/figures/IRFs_tau_b_ineq.png',
-)
-
 # %%
 titles = [
         r"Carbon Pricing: $\tau_B$",     
@@ -303,17 +317,12 @@ IRFs = plot_linear_irfs(
 # %%
 
 
-
-
-
-
-
+# %% Different unknowns and targets
 titles = [
         r"Carbon pricing: $\tau_B$",     
         r"Carbon tax revenues: $T_E$",  
         r"Lump Sum Tax : $T$",     
         r"Share of no durable holding : $D_N$",
-        r"Share of no durable holding (Choice) : $D_{T_N}$",  
         r"Share of Brown: $D_B$",
         r"Share of New Brown: $D_{BN}$",
         r"Share of Old Brown: $D_{BO}$",
@@ -324,30 +333,8 @@ titles = [
         r"Consu. of Brown energy: $C^B$", 
         r"Consu. of Green energy: $C^G$",
         r"Government Debt: $B$",
+        r"Labor: $N$",
         ]
-IRFs = plot_linear_irfs(
-    shocks_list=['tau_b'],
-    e = {"tau_b": 0.010},
-    rho = {"tau_b": 0.80},
-    unknowns_td=['Tax','d0'],
-    targets_td=["GBC",'asset_mkt'],
-    ha=ha,
-    ss=ss,
-    #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["tau_b", "T_E","Tax", "D_N","D_T_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "B", "r","GBC","asset_mkt","N","labor_mkt","w"],
-    titles = titles,
-    figsize=(18, 12),
-    #save_path='../../output/figures/IRFs_tau_b.png',
-)
-# %%
-
-
-unknowns__1 = {'N':1,'Tax':ss['Tax'],'r':ss['r']}
-targets_1 = {'labor_mkt':0.0,'GBC': 0.0,'asset_mkt': 0.0}
-
-comparative_statics_plot(ha, ss, {"Y": np.linspace(0.99, 1.01, 3)}, unknowns__1, targets_1, ["B","r", "Tax", "G","C","asset_mkt","A","N_Y","Y","N","labor_mkt"], plot_deviation=False)
-
-# %%
 IRFs = plot_linear_irfs(
     shocks_list=['tau_b'],
     e = {"tau_b": 0.010},
@@ -357,14 +344,115 @@ IRFs = plot_linear_irfs(
     ha=ha,
     ss=ss,
     #outputs=["tau_b","T_E_ENDO","B", "r", "Z_core","G", "Tax","D_B","D_BO", "D_BN", "D_G","D_GO", "D_GN", "D_N", "goods_mkt", "asset_mkt", "Y_core","C", "C_E", "C_CORE"],
-    outputs=["tau_b", "T_E","Tax", "D_N","D_T_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "B", "r","GBC","asset_mkt","N","labor_mkt","w","Y","goods_mkt","G"],
+    outputs=["tau_b", "T_E","Tax", "D_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "B", "N"],
     titles = titles,
     figsize=(18, 12),
-    #save_path='../../output/figures/IRFs_tau_b.png',
+    save_path='../../output/figures/IRFs_tau_b_N.png',
 )
+# %% Different unknowns and targets
+
 # %%
-unknowns = ['Tax','N']
-targets = ["GBC",'asset_mkt']
-inputs = ['G']
-drawdag(ha, unknowns, targets, inputs)
+exo_td = ['tau_b']
+unknowns_td=['Tax','N']
+targets_td=["GBC",'asset_mkt']
+inputs = ['tau_b']
+drawdag(ha, exo_td, unknowns_td, targets_td)
+
+
+
+
+
+
+
+
+
+
+
+#%% Transition Exercise
+# %% Initial Steady State
+calib_final = ss.copy()
+calib_final["tau_b"] = 0.01
+
+
+unknowns_ss = {'Tax':ss['Tax'],'N':ss['N']}
+targets_ss = {'GBC': 0.0,'asset_mkt': 0.0}
+
+ss_final = ha.solve_steady_state(calib_final, unknowns_ss, targets_ss, solver="hybr")
+
+# %%
+compare_ss_table(ss, ss_final, round_digits=2)
+
+# %% Transition Exercise
+e_tau_b = -0.01
+T = 300 
+rho_tau_b = 0.8
+dtau_b = e_tau_b * (rho_tau_b** np.arange(T))
+shocks = {"tau_b": dtau_b}
+unknowns_td = ["N", "Tax"]
+targets_td = ["asset_mkt", "GBC"]
+irfs = ha.solve_impulse_nonlinear(ss=ss_final, unknowns=unknowns_td, targets=targets_td, inputs=shocks, ss_initial=ss, maxit = 100)
+#IRFs deviation from initial SS in level
+irfs_dev_level = (ss_final+irfs-ss)/100
+#IRFs deviation in level
+irfs_level = (ss_final+irfs)/100
+
+
+
+show_irfs([combine_irfs(ss_final+irfs-ss,ss,"div")], 
+          ["tau_b", "T_E","Tax", "D_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "B", "N"],
+          titles=titles, figsize=(18,12), T_plot = 50, save_path='../../output/figures/IRFs_tau_b_N_td.png',ylabel='PP deviation from initial SS')
+
+
+
+#%%
+def combine_irfs(irfs, ss_final, op="add"):
+    """
+    Combine two dictionaries-like objects (irfs and ss_final)
+    using an element-wise operation over common keys.
+
+    If division by zero occurs, the original irfs value is kept.
+
+    Parameters
+    ----------
+    irfs : dict-like (e.g., ImpulseDict)
+    ss_final : dict-like (e.g., SteadyStateDict)
+    op : str
+        One of "add", "sub", "mul", "div"
+
+    Returns
+    -------
+    result : same type as irfs
+    """
+    import copy
+    import operator
+
+    ops = {
+        "add": operator.add,
+        "sub": operator.sub,
+        "mul": operator.mul,
+        "div": operator.truediv,
+    }
+
+    if op not in ops:
+        raise ValueError(f"Unsupported operation '{op}'. Choose from {list(ops.keys())}.")
+
+    result = copy.deepcopy(irfs)
+
+    for key in irfs:
+        if key in ss_final:
+            if op == "div":
+                if ss_final[key] == 0:
+                    result[key] = irfs[key]
+                else:
+                    result[key] = irfs[key] / ss_final[key]
+            else:
+                result[key] = ops[op](irfs[key], ss_final[key])
+
+    return result
+
+
+# %%
+show_irfs([IRFs*100,combine_irfs(ss_final+irfs-ss,ss,"div")*100], 
+          ["tau_b", "T_E","Tax", "D_N","D_B", "D_BN", "D_BO", "D_G", "D_GN", "D_GO", "C", "C_E_B", "C_E_G", "B", "N"],
+          titles=titles, figsize=(18,12), T_plot = 50, save_path='../../output/figures/IRFs_tau_b_N_both.png',ylabel='PP deviation from initial SS',labels=['Temporary Shock', 'Permanent Shock'])
 # %%
