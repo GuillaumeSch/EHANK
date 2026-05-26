@@ -201,7 +201,190 @@ def policy_functions(
     plt.show()
 
 
+def policy_functions_Simple(
+    ss,
+    xmax=10,
+    xmin=0,
+    d_tilde_list=[0],
+    d_list=[0],
+    ie_list=[3],
+    figsize=0.6,
+    models=['baseline'],
+    plots=['assets','da','cons','disc'],
+    vintage_groups=None,
+    save_path=None
+):
+    """
+    Plot household policy functions (assets, Δassets, consumption, discrete choice).
 
+    Optional vintage aggregation:
+    -----------------------------
+    vintage_groups: dict or None
+        Example:
+        {
+            "Brown": [1, 2],   # New Brown + Old Brown
+            "Green": [3, 4]    # New Green + Old Green
+        }
+
+        If None, each d_tilde is plotted separately (default behavior).
+    """
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # ---- 0. Extract common grids/objects -------------------------------------
+    a_grid = ss['baseline'].internals['hh']['a_grid']
+    A = ss['baseline']['A']
+
+    amin_idx = np.searchsorted(a_grid, xmin * A, side='left')
+    amax_idx = np.searchsorted(a_grid, xmax * A, side='right')
+    amax_idx = min(amax_idx, len(a_grid))
+
+    # ---- 1. Extract policy objects -------------------------------------------
+    a, da, c, P = {}, {}, {}, {}
+
+    for model in models:
+        hh = ss[model].internals['hh']
+        a[model]  = hh['consav']['a']
+        da[model] = a[model] - a_grid
+        c[model]  = hh['consav']['c']
+        P[model]  = hh['durables']['law_of_motion'].P
+
+    # ---- 2. Which plots to show ----------------------------------------------
+    plot_map = {'assets': 0, 'da': 1, 'cons': 2, 'disc': 3}
+    selected = [plot_map[p] for p in plots if p in plot_map]
+
+    titles = {
+        0: r'Assets ($a^*(\tilde{d},\,d,\,z,\,a^{-})$)',
+        1: r'Savings',
+        2: r'Consumption',
+        3: r'Durable Adoption Probability'
+    }
+    ylabels = {0: "Assets", 1: "Δ Assets", 2: "Consumption", 3: "Probability"}
+
+    # ---- 3. Figure -----------------------------------------------------------
+    fig, axes = plt.subplots(
+        1, len(selected),
+        figsize=(6 * figsize * len(selected), 5 * figsize)
+    )
+    if len(selected) == 1:
+        axes = [axes]
+
+    # ---- 4. Style maps -------------------------------------------------------
+    base_lw = 2.0
+    lw_map = {m: base_lw + 0.8*i for i, m in enumerate(models)}
+
+    linestyles = ['-', '--', '-.', ':']
+    linestyle_map = {iz: linestyles[i_ % len(linestyles)]
+                     for i_, iz in enumerate(ie_list)}
+
+    fixed_colors = {
+        0: "#8B4513",   # Brown
+        1: "#228B22",   # Green
+    }
+
+    fixed_labels = {
+        0: "Brown",
+        1: "Green"
+    }
+
+    group_colors = {
+        "Brown": "#8B4513",
+        "Green": "#228B22"
+    }
+
+    if len(d_list) > 1:
+        alphas = np.linspace(0.3, 1.0, len(d_list))
+    else:
+        alphas = [1.0]
+    alpha_map = {d: a for d, a in zip(d_list, alphas)}
+
+    single_model = len(models) == 1
+
+    # ---- 5. Define plotting groups -------------------------------------------
+    if vintage_groups is None:
+        plot_groups = {fixed_labels[dt]: [dt] for dt in d_tilde_list}
+        group_color = {fixed_labels[dt]: fixed_colors[dt] for dt in d_tilde_list}
+    else:
+        plot_groups = vintage_groups
+        group_color = group_colors
+
+    # ---- 6. Plot loops -------------------------------------------------------
+    for model in models:
+        for group_name, d_tildes in plot_groups.items():
+            for d in d_list:
+                for iz in ie_list:
+
+                    lw = lw_map[model]
+                    ls = linestyle_map[iz]
+                    col = group_color[group_name]
+                    alpha = alpha_map[d]
+
+                    label = group_name
+                    if not single_model:
+                        label = f"{model} – {label}"
+
+                    # ---- Sum over vintages ---------------------------------
+                    a_sum  = sum(a[model][dt, d, iz, amin_idx:amax_idx]
+                                 for dt in d_tildes)
+                    da_sum = sum(da[model][dt, d, iz, amin_idx:amax_idx]
+                                 for dt in d_tildes)
+                    c_sum  = sum(c[model][dt, d, iz, amin_idx:amax_idx]
+                                 for dt in d_tildes)
+                    P_sum  = sum(P[model][dt, d, iz, amin_idx:amax_idx]
+                                 for dt in d_tildes)
+
+                    x = a_grid[amin_idx:amax_idx] / A
+
+                    if 0 in selected:
+                        axes[selected.index(0)].plot(
+                            x, a_sum, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha, label=label
+                        )
+
+                    if 1 in selected:
+                        axes[selected.index(1)].plot(
+                            x, da_sum, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha, label=label
+                        )
+
+                    if 2 in selected:
+                        axes[selected.index(2)].plot(
+                            x, c_sum, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha, label=label
+                        )
+
+                    if 3 in selected:
+                        axes[selected.index(3)].plot(
+                            x, P_sum, color=col, linestyle=ls,
+                            linewidth=lw, alpha=alpha, label=label
+                        )
+
+    # ---- 7. Formatting -------------------------------------------------------
+    for idx, ax in zip(selected, axes):
+
+        if idx == 0:
+            ax.plot(x, a_grid[amin_idx:amax_idx],
+                    color='gray', linestyle=':', linewidth=1.2)
+
+        if idx == 1:
+            ax.axhline(0, color='gray', linestyle=':', linewidth=1.2)
+
+        ax.set_title(titles[idx])
+        ax.set_ylabel(ylabels[idx])
+        ax.set_xlabel('Ratio of ind. wealth to avg. wealth')
+        ax.set_xlim([xmin, xmax-1])
+
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys(), frameon=False)
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+
+    plt.show()
 
 
 
