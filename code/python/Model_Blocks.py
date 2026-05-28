@@ -43,8 +43,8 @@ def prod(Z,N):
     return Y, w
 
 @sj.simple
-def nkpc(piw, N, C, vphi, frisch, markup_ss, gamma, beta):
-    kappa_w = 0.01 #(1 - theta_w) * (1 - beta * theta_w)/theta_w #to adjust better
+def nkpc(piw, N, C, vphi, frisch, markup_ss, gamma, beta, kappa_w):
+    #kappa_w = 0.01 #(1 - theta_w) * (1 - beta * theta_w)/theta_w #to adjust better
     piwres = kappa_w * (vphi * (N)**(1/frisch) - 1/markup_ss * C**(-gamma)) + beta * piw(1) - piw
     return piwres
 

@@ -443,7 +443,12 @@ class StageBlockDurables(StageBlock):
                 try:
                     cur_exp = lom_T.__matmul__(cur_exp,keep_shape = True)
                 except:
-                    cur_exp = lom_T @ cur_exp
+                    try:
+                        cur_exp = lom_T @ cur_exp
+                    except:
+                        lom_T.i = lom_T.i+1
+                        cur_exp = lom_T @ cur_exp
+                        lom_T.i = lom_T.i-1
             # see if variable this period
             if o in ss_report:
                 cur_exp = ss_report[o]
@@ -455,7 +460,12 @@ class StageBlockDurables(StageBlock):
             try:
                 cur_exp = lom_T.__matmul__(cur_exp,keep_shape = True)
             except:
-                cur_exp = lom_T @ cur_exp
+                try:
+                    cur_exp = lom_T @ cur_exp
+                except:
+                    lom_T.i = lom_T.i+1
+                    cur_exp = lom_T @ cur_exp
+                    lom_T.i = lom_T.i-1
         return cur_exp
     
     def _impulse_nonlinear(self, ssin, inputs, outputs, ss_initial):

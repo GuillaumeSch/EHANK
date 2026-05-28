@@ -36,7 +36,7 @@ baseline_calibration = {
     # -------------------------
     "min_a": 0.0,           # Minimum asset holdings
     "max_a": 100,           # Maximum asset holdings
-    "n_a": 20,              # Grid size
+    "n_a": 100,              # Grid size
 
     # -------------------------
     # 4. Labor and production
@@ -85,10 +85,11 @@ baseline_calibration = {
     "r": 0.05 / 2,          # Quarterly interest rate
     
     
-    "rss": 0.05 / 4,          
+    "rss": 0.05 / 2,          
     "phi_pi": 1.5,
     "ishock": 0,
     "piw": 0.0,
+    "kappa_w": 0.01, #Should be (1 - theta_w) * (1 - beta * theta_w)/theta_w, but simple for now
     
     # ------------------------- Only for analyzing HH block in isolation -------------------------
     "w": 1,                 # Wage          
@@ -112,11 +113,13 @@ print(np.round(hh_sol['D_G']*100, 3),'%')
 ss_dict = dict()
 ss_dict['baseline'] = hh_sol
 
-policy_functions_Simple(ss_dict, ie_list=[2], d_list=[0], d_tilde_list=[0,1], xmax=10, figsize=0.8)
+policy_functions_Simple(ss_dict, ie_list=[2], d_list=[1], d_tilde_list=[0,1], xmax=10, figsize=0.8)
 
 #%%
 #%% === Create the model ===
 ha = sj.create_model([hh, fiscal, mkt_clearing, prod], name="Simple HA Model")
+hank = sj.create_model([hh, fiscal, mkt_clearing, prod, nkpc, inflation], name="HANK Model")
+
 #ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod], name="Simple HA Model")
 print(ha)
 print('It has inputs: ' + str(ha.inputs))
@@ -130,8 +133,20 @@ ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solve
 print(ss['B'])
 print(ss['Tax'])
 print(ss['r'])
+print("Share of Brown at SS:")
+print(np.round(ss['D_B']*100, 3),'%')
+print("\nShare of Green at SS:")
+print(np.round(ss['D_G']*100, 3),'%')
 
 # %%
+ss_hank = hank.steady_state(ss)
+#%%
+unknowns_ss_hank = {'Tax':ss['Tax'],'r':ss['r'],'vphi':baseline_calibration['vphi']}
+targets_ss_hank = {'GBC': 0.0,'asset_mkt': 0.0, 'piwres': 0.0}
+
+ss_hank = hank.solve_steady_state(ss , unknowns_ss_hank, targets_ss_hank, solver='hybr')
+
+
 #%% Shock to energy prices
 titles = [
         r"Brown Energy Price: $p_e_b$",     
@@ -147,6 +162,18 @@ IRFs = plot_linear_irfs(
     ss=ss,
     outputs=["p_e_b", "r"],
     titles = titles,
+    figsize=(18, 12),
+)
+# %%
+IRFs = plot_linear_irfs(
+    shocks_list=['p_e_b'],
+    e = {"p_e_b": 0.01},
+    rho = {"p_e_b": 0.80},
+    unknowns_td=['r','G'],
+    targets_td=['asset_mkt', "GBC"],
+    ha=ha,
+    ss=ss,
+    outputs=["C","r"],
     figsize=(18, 12),
 )
 # %%
