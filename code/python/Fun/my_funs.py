@@ -773,7 +773,8 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"PP (dev. from ss)",
         axes[i].set_xlabel(r"quarter")
         axes[i].set_ylabel(ylabel)
         axes[i].grid(True)
-        #axes[i].legend()
+        if i == 0:
+            axes[i].legend()
 
     # Remove empty subplots
     for k in range(n_var, len(axes)):

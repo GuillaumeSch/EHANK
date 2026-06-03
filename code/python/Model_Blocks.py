@@ -25,21 +25,10 @@ def rsrce_cstrt(C, C_CORE, C_E, Y, G, D_T_G, D_G, psi_g, p_e_b, p_e_g, C_E_B, C_
     return rsrce_cstrt, AD, AD_NONDURABLES, AD_DURABLES, AS
 
 @sj.simple
-def prod_old(Y, Z):
+def prod(Y, Z):
     N_D = Y / Z
     return N_D
 
-@sj.simple
-def prod(Z,N):
-    Y = Z*N
-    w = Z
-    return Y, w
-
-# @sj.simple
-# def nkpc(piw, N, UCE, vphi, frisch, markup_ss, gamma, beta, kappa_w,w):
-#     #kappa_w = 0.01 #(1 - theta_w) * (1 - beta * theta_w)/theta_w #to adjust better
-#     piwres = kappa_w * (vphi * (N)**(1/frisch) - 1/markup_ss * w * UCE) + beta * piw(1) - piw
-#     return piwres
 
 @sj.solved(unknowns={"piw": (-0.1, 0.1)}, targets=["piwres"], solver="brentq")
 def nkpc(piw, N, vphi, frisch, markup_ss, gamma, beta, theta_w,w,Y):
