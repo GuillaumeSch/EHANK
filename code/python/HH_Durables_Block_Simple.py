@@ -28,7 +28,7 @@ durables_stage = LogitChoiceDurables(value='V', backward='Va', index=0, name='du
 #%%--------------------------------------------------------------------------
 # Utility function
 # ---------------------------------------------------------------------------
-#@njit
+@njit
 def util(c, gamma):
     if gamma == 1.0:
         u = np.log(c)
@@ -38,7 +38,7 @@ def util(c, gamma):
 
 #%% Stage 3 - Consumption-Savings Continuous Choice
 #Discrete Choice - Endogenous Grid point Method. Performs single step of backward iteration.
-def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma, p_bundle):
+def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma, p_bundle):
     """DC-EGM algorithm"""
     n_d = adj_matrix.shape[0] #Number of discrete choices
     # use all FOCs on endogenous grid
@@ -67,8 +67,9 @@ def dcegm(V, Va, a_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma, p_bund
     uc = np.maximum(1e-8, c) ** (-gamma) # Marginal Utility of Consu
     uc = make_strictly_decreasing(uc)                             # Correct for the infinite values.
     Va = (1 + r) * uc                                             # envelope condition
+    uce = e_grid[np.newaxis, np.newaxis, :, np.newaxis] * uc
 
-    return V, Va, a, c
+    return V, Va, a, c, uce
 
 
 #Simple wrapper to make it independent of the size of the state space. Temporarily collapse states associated with all other stages into a single axis.
@@ -91,7 +92,7 @@ def upperenv(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args):
 # Interpolate there to get a candidate solution $a_i$.
 # Since the endogenous grid is non-monotonic, the same point $a^{grid}_i$ may be bracketed by another segment $(a_{\tilde j}^{endo}, a_{\tilde j+1}^{endo}).$
 # When this happens, we keep the solution that gives higher value.
-#@njit
+@njit
 def upperenv_vec(W, a_endo, disp_inc, a_grid, d_type, p_c_type, *args):
     """Interpolate value function and consumption to exogenous grid."""
     n_b, n_a = W.shape

@@ -787,12 +787,10 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"PP (dev. from ss)",
     plt.show()
 
 
-def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs, T_plot=50,
-                     rho=None, e=None, T=300, figsize=(18, 6), ylabel=r"PP (dev. from ss)",
+def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs,
+                     T_plot=50, rho=None, e=None, T=300,
+                     figsize=(18, 6), ylabel=r"PP (dev. from ss)",
                      labels=None, save_path=None, titles=None):
-    """
-    Compute linear IRFs and plot them.
-    """
 
     # Default values if not provided
     if rho is None:
@@ -801,18 +799,38 @@ def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs, T_pl
         e = {shock: 0.01 for shock in shocks_list}
 
     # Build shocks dictionary with time series
-    shocks = {shock: e[shock] * rho[shock]**np.arange(T) for shock in shocks_list}
+    shocks = {
+        shock: e[shock] * rho[shock]**np.arange(T)
+        for shock in shocks_list
+    }
 
     # Solve the system
     irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
+
+    # Add shocks to outputs
+    outputs_plot = list(shocks_list) + list(outputs)
+
+    # Add titles if provided
+    if titles is not None:
+        titles_plot = [f"Shock: {shock}" for shock in shocks_list] + list(titles)
+    else:
+        titles_plot = None
 
     # Default label
     if labels is None:
         labels = [" + ".join(shocks_list)]
 
-    # Plot with custom titles
-    show_irfs([irfs], outputs, labels=labels, ylabel=ylabel, T_plot=T_plot,
-              figsize=figsize, save_path=save_path, titles=titles)
+    # Plot
+    show_irfs(
+        [irfs],
+        outputs_plot,
+        labels=labels,
+        ylabel=ylabel,
+        T_plot=T_plot,
+        figsize=figsize,
+        save_path=save_path,
+        titles=titles_plot
+    )
     
     return irfs
 

@@ -1,6 +1,6 @@
 #%%
 from HH_Durables_Block_Simple import hh
-from Model_Blocks import fiscal, mkt_clearing, prod, rsrce_cstrt, nkpc, inflation, taylor_rule
+from Model_Blocks import fiscal, mkt_clearing, prod, prod_old, rsrce_cstrt, nkpc, inflation, taylor_rule
 import sequence_jacobian as sj
 import json
 from copy import deepcopy
@@ -16,7 +16,7 @@ baseline_calibration = {
     # -------------------------
     # 1. Preferences
     # -------------------------
-    "beta": 0.95,          # Discount factor
+    "beta": 0.965,          # Discount factor
     "gamma": 1/0.8,         # Risk aversion (CRRA parameter)
     "taste_shock": 1e-3,    # Idiosyncratic taste shock
 
@@ -36,7 +36,7 @@ baseline_calibration = {
     # -------------------------
     "min_a": 0.0,           # Minimum asset holdings
     "max_a": 100,           # Maximum asset holdings
-    "n_a": 100,              # Grid size
+    "n_a": 20,              # Grid size
 
     # -------------------------
     # 4. Labor and production
@@ -58,9 +58,9 @@ baseline_calibration = {
     # -------------------------
     # 6. Government
     # -------------------------
-    "B": 1,                 # Government debt
+    "B": 2,                 # Government debt
     "G": 0.1,               # Government spending
-    "Tax": 0.358*0,           # Lump-sum tax
+    "Tax": 0,               # Lump-sum tax
     "tau": 0,               # Labor income tax rate
 
     # -------------------------
@@ -77,19 +77,20 @@ baseline_calibration = {
     # -------------------------
     "xi": 0.70,             # Share parameter for core goods in consumption
     "nu": 0.4,              # Elasticity of substitution core vs energy
-    "markup_ss": 1,         # Steady-state markup
+    "markup_ss": 1.2,       # Steady-state markup
 
     # -------------------------
     # 9. Financial environment
     # -------------------------
-    "r": 0.05 / 2,          # Quarterly interest rate
+    "r": 0.05 / 4,          # Quarterly interest rate
     
     
-    "rss": 0.05 / 2,          
+    "rss": 0.05 / 4,          
     "phi_pi": 1.5,
     "ishock": 0,
     "piw": 0.0,
-    "kappa_w": 0.01, #Should be (1 - theta_w) * (1 - beta * theta_w)/theta_w, but simple for now
+    #"kappa_w": 0.01, #Should be (1 - theta_w) * (1 - beta * theta_w)/theta_w, but simple for now
+    "theta_w": 0.75, 
     
     # ------------------------- Only for analyzing HH block in isolation -------------------------
     "w": 1,                 # Wage          
@@ -117,8 +118,8 @@ policy_functions_Simple(ss_dict, ie_list=[2], d_list=[1], d_tilde_list=[0,1], xm
 
 #%%
 #%% === Create the model ===
-ha = sj.create_model([hh, fiscal, mkt_clearing, prod], name="Simple HA Model")
-hank = sj.create_model([hh, fiscal, mkt_clearing, prod, nkpc, inflation], name="HANK Model")
+ha = sj.create_model([hh, fiscal, mkt_clearing, rsrce_cstrt, prod_old], name="Simple HA Model")
+hank = sj.create_model([hh, fiscal, mkt_clearing, rsrce_cstrt, prod_old, nkpc, inflation, taylor_rule], name="HANK Model")
 
 #ha = sj.create_model([hh_durables, fiscal, mkt_clearing, prod], name="Simple HA Model")
 print(ha)
@@ -126,54 +127,138 @@ print('It has inputs: ' + str(ha.inputs))
 print('It has outputs: ' + str(ha.outputs))
 
 # %% Steady State
-unknowns_ss = {'Tax':baseline_calibration['Tax'],'r':baseline_calibration['r']}
-targets_ss = {'GBC': 0.0,'asset_mkt': 0.0}
+unknowns_ss = {'Tax':baseline_calibration['Tax'],'beta':0.97,'N':baseline_calibration['N']}
+targets_ss = {'GBC': 0.0,'asset_mkt': 0.0, 'labor_mkt': 0.0}
 
 ss = ha.solve_steady_state(baseline_calibration , unknowns_ss, targets_ss, solver='hybr')
 print(ss['B'])
 print(ss['Tax'])
 print(ss['r'])
+print(ss['beta'])
 print("Share of Brown at SS:")
 print(np.round(ss['D_B']*100, 3),'%')
 print("\nShare of Green at SS:")
 print(np.round(ss['D_G']*100, 3),'%')
-
-# %%
-ss_hank = hank.steady_state(ss)
 #%%
-unknowns_ss_hank = {'Tax':ss['Tax'],'r':ss['r'],'vphi':baseline_calibration['vphi']}
-targets_ss_hank = {'GBC': 0.0,'asset_mkt': 0.0, 'piwres': 0.0}
+ss_dict = dict()
+ss_dict['baseline'] = ss
+
+policy_functions_Simple(ss_dict, ie_list=[4], d_list=[0], d_tilde_list=[0,1], xmax=10, figsize=0.8)
+
+
+#%%
+unknowns_ss_hank = {'Tax':ss['Tax'],'beta':ss['beta'],'vphi':baseline_calibration['vphi'],'N':baseline_calibration['N']}
+targets_ss_hank = {'GBC': 0.0,'asset_mkt': 0.0, 'wnkpc': 0.0, 'labor_mkt': 0.0}
 
 ss_hank = hank.solve_steady_state(ss , unknowns_ss_hank, targets_ss_hank, solver='hybr')
 
 
-#%% Shock to energy prices
-titles = [
-        r"Brown Energy Price: $p_e_b$",     
+#%% IRFS ####
+#############$
+
+outputs = ['C', 'C_CORE','C_E','Y', 'w', 'N', 'N_D','D_B', 'D_G', 'G', 'B', 'Tax', 'r','piw','i','rsrce_cstrt', 'AD', 'AD_CORE', 'AD_DURABLES', 'AS']
+names_outputs = [
+        r"Consumption: $C$",
+        r"Core Consumption: $C_{core}$",
+        r"Energy Consumption: $C_E$",
+        r"Output: $Y$",
+        r"Wage: $w$",
+        r"Labor Supply: $N^s$",
+        r"Labor Demand: $N^d$",
+        r"Brown Durable Stock: $D_B$",
+        r"Green Durable Stock: $D_G$",
+        r"Government Spending: $G$",
+        r"Government Debt: $B$",
+        r"Lump-Sum Tax: $Tax$",
         r"Interest Rate: $r$",
+        r"Wage Inflation: $\pi_w$",
+        r"Nominal Interest Rate: $i$",
         ]
-IRFs = plot_linear_irfs(
+
+#Equilibrium coniditions to close the model.
+targets_td=['asset_mkt', 'GBC', 'wnkpc', 'labor_mkt']
+#Unknowns to solve for in the transition (those that are not directly shocked)
+unknowns_td=['Tax','Y','N', 'w']
+
+#%% Shock to brown energy price
+IRFs_p_e_b = plot_linear_irfs(
     shocks_list=['p_e_b'],
     e = {"p_e_b": 0.01},
     rho = {"p_e_b": 0.80},
-    unknowns_td=['Tax','r'],
-    targets_td=['asset_mkt', "GBC"],
-    ha=ha,
-    ss=ss,
-    outputs=["p_e_b", "r"],
-    titles = titles,
-    figsize=(18, 12),
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=hank,
+    ss=ss_hank,
+    outputs= outputs,
+    titles = names_outputs,
+    figsize=(12, 9),
 )
+#%% Shock to Carbon tax
+IRFs_tau_b = plot_linear_irfs(
+    shocks_list=['tau_b'],
+    e = {"tau_b": 0.01},
+    rho = {"tau_b": 0.80}, 
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=hank,
+    ss=ss_hank,
+    outputs= outputs,
+    titles = names_outputs,
+    figsize=(12, 9),
+)
+#%% Shock to nominal interest rate (monetary policy shock)
+IRFs_i = plot_linear_irfs(
+    shocks_list=['ishock'],
+    e = {"ishock": 0.01},
+    rho = {"ishock": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=hank,
+    ss=ss_hank,
+    outputs= outputs,
+    titles = names_outputs,
+    figsize=(12, 9),
+)
+#%% Compare IRFs
+
+show_irfs(
+        [IRFs_p_e_b,IRFs_tau_b],
+        outputs,
+        titles = names_outputs,
+    )
+
+
+#%%  
+
+param_grid = {'Z': np.linspace(0.98, 1.02, 5)}
+
+# Track output, wage, and interest rate
+outputs = ['Z','D_B', 'D_G','r','Tax','C','Y']
+results = comparative_statics_plot(
+    ha=hank,
+    ss_base=ss_hank,
+    param_grid=param_grid,
+    unknowns_ss=unknowns_ss,
+    targets_ss=targets_ss,
+    outputs=outputs,
+    plot_deviation=False
+)
+
+
 # %%
-IRFs = plot_linear_irfs(
-    shocks_list=['p_e_b'],
-    e = {"p_e_b": 0.01},
-    rho = {"p_e_b": 0.80},
-    unknowns_td=['r','G'],
-    targets_td=['asset_mkt', "GBC"],
-    ha=ha,
-    ss=ss,
-    outputs=["C","r"],
-    figsize=(18, 12),
-)
+
+shocks que je veux regarder:
+- shock to brown energy price (p_e_b)
+- shock to carbon tax (tau_b)
+- shock to monetary policy (ishock)
+
+Variables d'intérêt:
+- Share of brown and green durables (D_B, D_G)
+- Consumption (C)
+- Output (Y)
+- Interest rate (r)
+- Government debt (B)
+
+Variables endogènes:
+
 # %%
