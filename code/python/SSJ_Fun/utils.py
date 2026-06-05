@@ -17,7 +17,7 @@ from sequence_jacobian import utilities as utils
 from sequence_jacobian.classes import ImpulseDict
 
 
-def make_d_grid_simple(delta_g=0.01):
+def make_d_grid_simple(delta_g=0.01, delta_b=0.00):
     # 0 = brown
     # 1 = green
     d_grid = np.arange(2)
@@ -26,7 +26,7 @@ def make_d_grid_simple(delta_g=0.01):
         1: 'green'
     }
     d_markov = np.array([
-        [1.0,      0.0],
+        [1-delta_b,    delta_b],
         [delta_g,  1 - delta_g]
     ])
     return d_grid, d_markov, mapping

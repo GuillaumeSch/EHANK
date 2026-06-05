@@ -63,7 +63,7 @@ warnings.filterwarnings("error", category=RuntimeWarning)
 
 baseline_calibration = {
 
-    # -------------------------------------------------------------------------
+    # ---------------------- ---------------------------------------------------
     # Preferences
     # -------------------------------------------------------------------------
     "beta":        0.965,      # Household discount factor
@@ -103,6 +103,7 @@ baseline_calibration = {
     # Green durables: e.g. electric vehicles (run on electricity)
     # -------------------------------------------------------------------------
     "delta_g": 0.05,           # Depreciation rate of green durables (quarterly)
+    "delta_b": 0.00,           # Depreciation rate of brown durables (quarterly)
     "psi_g":   0.1,            # Switching cost from brown to green durable
 
     # -------------------------------------------------------------------------
@@ -346,7 +347,7 @@ targets_td  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
 # ]
 outputs = [
     "C", "Y", "w",
-    "D_B", "D_G", "Tax", "r", "piw", "i",
+    "D_B", "D_G", "Tax", "r", "piw", "i"
 ]
 names_outputs = [
     r"Consumption: $C$",
@@ -418,3 +419,295 @@ show_irfs(
 
 
 # %%
+# =============================================================================
+# 8. COUNTERFACTUAL: BROWN ENERGY PRICE SHOCK WITHOUT DURABLE ADOPTION
+# =============================================================================
+# Goal: isolate the *direct* demand effect of an oil price shock from the
+# *adoption* channel (households switching from Brown to Green durables).
+#
+# Strategy: compute an alternative steady state where psi_g is so large
+# that no household ever switches durable type ("no adoption" equilibrium).
+# We calibrate delta_b so that the share of Brown durables (D_B = 83%)
+# matches the baseline SS, ensuring a fair comparison.
+#
+# Unknowns (4): Tax, beta, N, delta_b
+# Targets  (4): GBC, asset_mkt, labor_mkt, D_B = 0.83
+# =============================================================================
+
+# --- Step 1: Build starting point from baseline SS ---
+# Start from the baseline HANK steady state and raise the switching cost
+# to a prohibitively large value, effectively shutting down durable adoption.
+ss_hank_no_adoption = deepcopy(ss_hank)
+ss_hank_no_adoption["psi_g"] = 1e6   # Switching cost → ∞: no household ever switches durable
+
+# --- Step 2: Solve for the counterfactual steady state ---
+# We back out delta_b so that the Brown durable share matches the baseline (83%).
+# This ensures the two steady states are comparable in terms of durable composition.
+unknowns_ss_no_adoption = {
+    "Tax":     ss_hank["Tax"],
+    "beta":    ss_hank["beta"],
+    "N":       ss_hank["N"],
+    "delta_b": ss_hank["delta_b"],   # Backed out to match D_B target
+}
+targets_ss_no_adoption = {
+    "GBC":       0.0,
+    "asset_mkt": 0.0,
+    "labor_mkt": 0.0,
+    "D_B":       ss_hank['D_B'],   # Match baseline Brown durable share
+}
+
+ss_hank_no_adoption = hank.solve_steady_state(
+    ss_hank_no_adoption,
+    unknowns_ss_no_adoption,
+    targets_ss_no_adoption,
+    solver="hybr",
+)
+
+# --- Print key steady-state values ---
+print("\nSteady State — No Adoption Counterfactual:")
+print(f"  Government debt (B):      {ss_hank_no_adoption['B']:.4f}")
+print(f"  Lump-sum tax (Tax):       {ss_hank_no_adoption['Tax']:.4f}")
+print(f"  Real interest rate (r):   {ss_hank_no_adoption['r']:.4f}")
+print(f"  Discount factor (β):      {ss_hank_no_adoption['beta']:.4f}")
+print(f"  Brown depreciation (δ_b): {ss_hank_no_adoption['delta_b']:.4f}")
+print(f"  Brown durables (D_B):     {np.round(ss_hank_no_adoption['D_B'] * 100, 3)}%")
+print(f"  Green durables (D_G):     {np.round(ss_hank_no_adoption['D_G'] * 100, 3)}%")
+
+
+# %%
+# --- Step 3: Compute IRFs for the brown energy price shock ---
+# Same shock as before (1% rise in p_e_b, AR(1) with rho=0.80),
+# but now evaluated at the no-adoption steady state.
+IRFs_p_e_b_no_adoption = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e  ={"p_e_b": 0.01},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td =targets_td,
+    ha     =hank,
+    ss     =ss_hank_no_adoption,
+    outputs=outputs,
+    titles =names_outputs,
+    figsize=(12, 9),
+)
+
+# %%
+# --- Step 4: Compare IRFs with and without the adoption channel ---
+# Overlaying the two IRFs reveals the contribution of durable switching
+# to the aggregate and distributional response to an oil price shock.
+show_irfs(
+    [IRFs_p_e_b, IRFs_p_e_b_no_adoption],
+    outputs,
+    titles=names_outputs,
+    labels=[
+        "Baseline (with adoption)",
+        "Counterfactual (no adoption)",
+    ],
+)
+
+# %%
+# =============================================================================
+# 9. COUNTERFACTUAL: BROWN ENERGY PRICE SHOCK WITH A BROWN ENERGY TAX RESPONSE
+# =============================================================================
+# Goal: compare two fiscal response rules to an oil price shock.
+#
+#   Baseline     — the government responds via a lump-sum transfer (Tax adjusts).
+#                  All households receive the same transfer regardless of durable type.
+#
+#   Counterfactual — the government instead adjusts the carbon tax on brown energy
+#                  (tau_b adjusts). This is a targeted response: it subsidizes or
+#                  taxes brown energy users specifically, with implications for
+#                  the durable adoption margin.
+#
+# The two experiments share the same steady state (ss_hank) and the same shock
+# (1% rise in p_e_b, AR(1) with rho = 0.80). Only the fiscal closure differs:
+#   Baseline:        unknowns_td = ["Tax",  "Y", "N", "w"]
+#   Counterfactual:  unknowns_td = ["tau_b","Y", "N", "w"]
+# =============================================================================
+
+# --- Step 1: Compute IRFs under the brown energy tax response ---
+# tau_b now absorbs the fiscal adjustment instead of the lump-sum tax.
+unknowns_td_tau_response = ["tau_b", "Y", "N", "w"]
+
+IRFs_p_e_b_tau_response = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e  ={"p_e_b": 0.01},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td_tau_response,
+    targets_td =targets_td,
+    ha     =hank,
+    ss     =ss_hank,
+    outputs=outputs,
+    titles =names_outputs,
+    figsize=(12, 9),
+)
+
+# --- Step 2: Compare IRFs across fiscal rules ---
+# Differences across the two IRFs reflect the distributional consequences
+# of targeting brown energy users (via tau_b) vs. all households (via Tax).
+show_irfs(
+    [IRFs_p_e_b, IRFs_p_e_b_tau_response],
+    outputs,
+    titles=names_outputs,
+    labels=[
+        "Baseline (lump-sum fiscal response)",
+        "Counterfactual (brown energy tax response)",
+    ],
+)
+
+# %%
+# =============================================================================
+# 10. COUNTERFACTUAL A — CARBON TAX STEADY STATE (SAME DURABLE COMPOSITION)
+# =============================================================================
+# Goal: assess how the economy responds to an oil price shock when a carbon
+# tax is already in place in steady state.
+#
+# We construct an alternative SS with tau_b = 0.05 (a 5% carbon tax on brown
+# energy). To isolate the effect of the tax from any compositional change,
+# we back out psi_g so that the Brown durable share remains at its baseline
+# level (D_B = ss_hank["D_B"]). A higher psi_g makes switching to green
+# harder, counteracting the adoption incentive created by the carbon tax.
+#
+# Unknowns (4): Tax, beta, N, psi_g
+# Targets  (4): GBC, asset_mkt, labor_mkt, D_B = baseline
+# =============================================================================
+
+# --- Step 1: Start from baseline SS and impose the carbon tax ---
+ss_hank_carbontax = deepcopy(ss_hank)
+ss_hank_carbontax["tau_b"] = 0.05   # 5% carbon tax on brown energy
+
+# --- Step 2: Solve for the counterfactual SS ---
+# psi_g is backed out to keep D_B equal to the baseline share,
+# so differences in IRFs reflect the tax environment, not composition.
+unknowns_ss_carbontax = {
+    "Tax":   ss_hank["Tax"],
+    "beta":  ss_hank["beta"],
+    "N":     ss_hank["N"],
+    "psi_g": ss_hank["psi_g"],   # backed out to match D_B target
+}
+targets_ss_carbontax = {
+    "GBC":       0.0,
+    "asset_mkt": 0.0,
+    "labor_mkt": 0.0,
+    "D_B":       ss_hank["D_B"],   # match baseline Brown durable share
+}
+
+ss_hank_carbontax = hank.solve_steady_state(
+    ss_hank_carbontax,
+    unknowns_ss_carbontax,
+    targets_ss_carbontax,
+    solver="hybr",
+)
+
+# --- Print key steady-state values ---
+print("\nSteady State — Carbon Tax (same durable composition):")
+print(f"  Government debt (B):          {ss_hank_carbontax['B']:.4f}")
+print(f"  Lump-sum tax (Tax):           {ss_hank_carbontax['Tax']:.4f}")
+print(f"  Real interest rate (r):       {ss_hank_carbontax['r']:.4f}")
+print(f"  Discount factor (β):          {ss_hank_carbontax['beta']:.4f}")
+print(f"  Green switching cost (ψ_g):   {ss_hank_carbontax['psi_g']:.4f}")
+print(f"  Brown durables (D_B):         {np.round(ss_hank_carbontax['D_B'] * 100, 3)}%")
+print(f"  Green durables (D_G):         {np.round(ss_hank_carbontax['D_G'] * 100, 3)}%")
+
+# --- Step 3: Compute IRFs for the brown energy price shock ---
+IRFs_p_e_b_carbontax = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e  ={"p_e_b": 0.01},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td =targets_td,
+    ha     =hank,
+    ss     =ss_hank_carbontax,
+    outputs=outputs,
+    titles =names_outputs,
+    figsize=(12, 9),
+)
+
+# --- Step 4: Compare IRFs ---
+# Differences reflect how a pre-existing carbon tax changes the transmission
+# of an oil price shock, holding durable composition constant.
+show_irfs(
+    [IRFs_p_e_b, IRFs_p_e_b_carbontax],
+    outputs,
+    titles=names_outputs,
+    labels=[
+        "Baseline (τ_b = 0)",
+        "Counterfactual (τ_b = 0.05, same D_B)",
+    ],
+)
+
+
+# %%
+# =============================================================================
+# 11. COUNTERFACTUAL B — GREENER STEADY STATE (LOWER BROWN DURABLE SHARE)
+# =============================================================================
+# Goal: assess how the economy responds to an oil price shock when it starts
+# from a "greener" steady state where fewer households own brown durables.
+#
+# Here we target D_B = 70% (vs. ~83% at baseline) and back out the carbon
+# tax tau_b needed to decarbonize the durable stock to that level.
+# Unlike Counterfactual A, the durable composition *does* differ from baseline.
+# This allows us to study whether a greener fleet attenuates oil price shocks.
+#
+# Unknowns (4): Tax, beta, N, tau_b
+# Targets  (4): GBC, asset_mkt, labor_mkt, D_B = 0.70
+# =============================================================================
+
+# --- Step 1: Solve for the greener SS ---
+# tau_b is backed out so that the equilibrium Brown share equals 70%.
+unknowns_ss_greener = {
+    "Tax":   ss_hank["Tax"],
+    "beta":  ss_hank["beta"],
+    "N":     ss_hank["N"],
+    "tau_b": 0,   # backed out to match D_B = 0.70 target
+}
+targets_ss_greener = {
+    "GBC":       0.0,
+    "asset_mkt": 0.0,
+    "labor_mkt": 0.0,
+    "D_B":       0.70,   # 70% Brown share — greener than baseline
+}
+
+ss_hank_greener = hank.solve_steady_state(
+    ss_hank,
+    unknowns_ss_greener,
+    targets_ss_greener,
+    solver="hybr",
+)
+
+# --- Print key steady-state values ---
+print("\nSteady State — Greener Economy (D_B = 70%):")
+print(f"  Government debt (B):      {ss_hank_greener['B']:.4f}")
+print(f"  Lump-sum tax (Tax):       {ss_hank_greener['Tax']:.4f}")
+print(f"  Real interest rate (r):   {ss_hank_greener['r']:.4f}")
+print(f"  Discount factor (β):      {ss_hank_greener['beta']:.4f}")
+print(f"  Brown energy tax (τ_b):   {ss_hank_greener['tau_b']:.4f}")
+print(f"  Brown durables (D_B):     {np.round(ss_hank_greener['D_B'] * 100, 3)}%")
+print(f"  Green durables (D_G):     {np.round(ss_hank_greener['D_G'] * 100, 3)}%")
+
+# --- Step 2: Compute IRFs for the brown energy price shock ---
+IRFs_p_e_b_greener = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e  ={"p_e_b": 0.01},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td =targets_td,
+    ha     =hank,
+    ss     =ss_hank_greener,
+    outputs=outputs,
+    titles =names_outputs,
+    figsize=(12, 9),
+)
+
+# --- Step 3: Compare IRFs ---
+# Differences now reflect both the carbon tax environment *and* the
+# compositional effect of having more green-durable households at the start.
+show_irfs(
+    [IRFs_p_e_b, IRFs_p_e_b_greener],
+    outputs,
+    titles=names_outputs,
+    labels=[
+        "Baseline (D_B ≈ 83%)",
+        "Counterfactual (D_B = 70%, greener fleet)",
+    ],
+)

@@ -486,7 +486,7 @@ def hh_init(disp_inc, a_grid, gamma):
     return V, Va
 
 
-def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, delta_g):
+def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, delta_g, delta_b):
     """
     Construct the state-space grids.
 
@@ -508,7 +508,7 @@ def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, delta_g):
     """
     e_grid, e_dist, e_markov = grids.markov_rouwenhorst(rho_e, sd_e, n_e)
     a_grid = grids.agrid(max_a, n_a, min_a)
-    d_grid, d_markov, d_grid_name = make_d_grid_simple(delta_g)
+    d_grid, d_markov, d_grid_name = make_d_grid_simple(delta_g, delta_b)
     return e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name
 
 
