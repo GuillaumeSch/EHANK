@@ -250,11 +250,23 @@ print(f"  Green durables (D_G):  {np.round(ss['D_G'] * 100, 3)}%")
 ss_dict_ge = {"baseline": ss}
 policy_functions_Simple(
     ss_dict_ge,
+    ie_list=[2],
+    d_list=[0],
+    d_tilde_list=[0, 1],
+    xmax=4,
+    figsize=0.8,
+    save_path="../../output/figures/policy_functions/policy_functions_ie2.png"
+)
+
+ss_dict_ge = {"baseline": ss}
+policy_functions_Simple(
+    ss_dict_ge,
     ie_list=[4],
     d_list=[0],
     d_tilde_list=[0, 1],
-    xmax=10,
+    xmax=4,
     figsize=0.8,
+    save_path="../../output/figures/policy_functions/policy_functions_ie4.png"
 )
 
 
@@ -297,7 +309,7 @@ ss_hank = hank.solve_steady_state(
 
 param_grid = {"psi_g": np.linspace(0.06, 0.14, 5)}
 
-cs_outputs = ["psi_g", "D_B", "D_G", "r", "Tax", "C", "Y"]
+cs_outputs = ["D_B", "D_G", "beta","C"]
 
 results = comparative_statics_plot(
     ha=hank,
@@ -307,6 +319,7 @@ results = comparative_statics_plot(
     targets_ss=targets_ss,
     outputs=cs_outputs,
     plot_deviation=False,
+    save_path="../../output/figures/comp_stat/comp_stat_psig.png"
 )
 
 # %%
@@ -346,13 +359,13 @@ targets_td  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
 #     r"Nominal Interest Rate: $i$",
 # ]
 outputs = [
-    "C", "Y", "w",
-    "D_B", "D_G", "Tax", "r", "piw", "i"
+    "C", "Y", "w", "piw","D_B", "D_G", "Tax", "r", "i"
 ]
 names_outputs = [
     r"Consumption: $C$",
     r"Output: $Y$",
     r"Wage: $w$",
+    r"Wage Inflation: $\pi_w$",
     r"Brown Durable Stock: $D_B$",
     r"Green Durable Stock: $D_G$",
     r"Lump-Sum Tax: $Tax$",
@@ -366,7 +379,7 @@ names_outputs = [
 # Interpretation: a 1% rise in the consumer price of gasoline, fading at rate 0.80
 IRFs_p_e_b = plot_linear_irfs(
     shocks_list=["p_e_b"],
-    e={"p_e_b": 0.01},
+    e={"p_e_b": 1},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td=targets_td,
@@ -375,13 +388,14 @@ IRFs_p_e_b = plot_linear_irfs(
     outputs=outputs,
     titles=names_outputs,
     figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_p_e_b.png"
 )
 
 # --- Shock 2: Carbon tax shock ---
 # Interpretation: a 1% increase in the carbon tax on brown energy, fading at rate 0.80
 IRFs_tau_b = plot_linear_irfs(
     shocks_list=["tau_b"],
-    e={"tau_b": 0.01},
+    e={"tau_b": 1},
     rho={"tau_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td=targets_td,
@@ -390,13 +404,14 @@ IRFs_tau_b = plot_linear_irfs(
     outputs=outputs,
     titles=names_outputs,
     figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_tau_b.png"
 )
 
 # --- Shock 3: Monetary policy shock (interest rate shock) ---
 # Interpretation: a 1% unexpected increase in the nominal rate, fading at rate 0.80
 IRFs_i = plot_linear_irfs(
     shocks_list=["ishock"],
-    e={"ishock": 0.01},
+    e={"ishock": 1},
     rho={"ishock": 0.80},
     unknowns_td=unknowns_td,
     targets_td=targets_td,
@@ -405,15 +420,20 @@ IRFs_i = plot_linear_irfs(
     outputs=outputs,
     titles=names_outputs,
     figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_i.png"
 )
 
 # --- Compare IRFs across shocks ---
 # Overlays the brown energy price shock and the carbon tax shock on the same plots
+
+
 show_irfs(
     [IRFs_p_e_b, IRFs_tau_b],
-    outputs,
-    titles=names_outputs,
+    ["p_e_b", "tau_b"] + outputs,
+    titles=["Energy price shock", "Carbon tax shock"] + names_outputs,
     labels=["Brown Energy Price Shock", "Carbon Tax Shock"],
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_p_e_b_taub.png"
 )
 
 
@@ -480,7 +500,7 @@ print(f"  Green durables (D_G):     {np.round(ss_hank_no_adoption['D_G'] * 100, 
 # but now evaluated at the no-adoption steady state.
 IRFs_p_e_b_no_adoption = plot_linear_irfs(
     shocks_list=["p_e_b"],
-    e  ={"p_e_b": 0.01},
+    e  ={"p_e_b": 1},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td =targets_td,
@@ -497,12 +517,14 @@ IRFs_p_e_b_no_adoption = plot_linear_irfs(
 # to the aggregate and distributional response to an oil price shock.
 show_irfs(
     [IRFs_p_e_b, IRFs_p_e_b_no_adoption],
-    outputs,
-    titles=names_outputs,
+    ["p_e_b"] + outputs,
+    titles=["Energy price shock"] + names_outputs,
     labels=[
         "Baseline (with adoption)",
         "Counterfactual (no adoption)",
     ],
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_noAdoption.png"
 )
 
 # %%
@@ -531,7 +553,7 @@ unknowns_td_tau_response = ["tau_b", "Y", "N", "w"]
 
 IRFs_p_e_b_tau_response = plot_linear_irfs(
     shocks_list=["p_e_b"],
-    e  ={"p_e_b": 0.01},
+    e  ={"p_e_b": 1},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td_tau_response,
     targets_td =targets_td,
@@ -547,12 +569,14 @@ IRFs_p_e_b_tau_response = plot_linear_irfs(
 # of targeting brown energy users (via tau_b) vs. all households (via Tax).
 show_irfs(
     [IRFs_p_e_b, IRFs_p_e_b_tau_response],
-    outputs,
-    titles=names_outputs,
+    ["p_e_b"] + ["tau_b"] + outputs,
+    titles=["Energy price shock"] + ["Brown Energy tax rate"]+ names_outputs,
     labels=[
         "Baseline (lump-sum fiscal response)",
         "Counterfactual (brown energy tax response)",
     ],
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_brownSubsidy.png"
 )
 
 # %%
@@ -612,7 +636,7 @@ print(f"  Green durables (D_G):         {np.round(ss_hank_carbontax['D_G'] * 100
 # --- Step 3: Compute IRFs for the brown energy price shock ---
 IRFs_p_e_b_carbontax = plot_linear_irfs(
     shocks_list=["p_e_b"],
-    e  ={"p_e_b": 0.01},
+    e  ={"p_e_b": 1},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td =targets_td,
@@ -628,12 +652,14 @@ IRFs_p_e_b_carbontax = plot_linear_irfs(
 # of an oil price shock, holding durable composition constant.
 show_irfs(
     [IRFs_p_e_b, IRFs_p_e_b_carbontax],
-    outputs,
-    titles=names_outputs,
+    ["p_e_b"] + outputs,
+    titles=["Energy price shock"] + names_outputs,
     labels=[
         "Baseline (τ_b = 0)",
         "Counterfactual (τ_b = 0.05, same D_B)",
     ],
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_ETF.png"
 )
 
 
@@ -688,7 +714,7 @@ print(f"  Green durables (D_G):     {np.round(ss_hank_greener['D_G'] * 100, 3)}%
 # --- Step 2: Compute IRFs for the brown energy price shock ---
 IRFs_p_e_b_greener = plot_linear_irfs(
     shocks_list=["p_e_b"],
-    e  ={"p_e_b": 0.01},
+    e  ={"p_e_b": 1},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td =targets_td,
@@ -704,10 +730,13 @@ IRFs_p_e_b_greener = plot_linear_irfs(
 # compositional effect of having more green-durable households at the start.
 show_irfs(
     [IRFs_p_e_b, IRFs_p_e_b_greener],
-    outputs,
-    titles=names_outputs,
+    ["p_e_b"] + outputs,
+    titles=["Energy price shock"] + names_outputs,
     labels=[
         "Baseline (D_B ≈ 83%)",
         "Counterfactual (D_B = 70%, greener fleet)",
     ],
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_ETF2.png"
 )
+# %%

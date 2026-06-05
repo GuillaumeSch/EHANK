@@ -748,8 +748,13 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"PP (dev. from ss)",
     n_rows = math.ceil(n_var / n_cols)
     fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex=True)
     axes = np.array(axes).reshape(-1)  # Flatten axes array
+    
 
     for i, var in enumerate(variables):
+        axes[i].axhline(0, color='grey', lw=0.8, ls='--')
+        axes[i].grid(alpha=0.3)
+        axes[i].spines['top'].set_visible(False)
+        axes[i].spines['right'].set_visible(False)
         for j, irf in enumerate(irfs_list):
             if var in irf:
                 #data = 100 * np.array(irf[var][:T_plot])
