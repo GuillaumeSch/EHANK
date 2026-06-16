@@ -18,7 +18,7 @@ def rsrce_cstrt(C, C_CORE, C_E, Y, G, D_T_G, D_G, psi_g, p_e_b, p_e_g, C_E_B, C_
     p_E_vec = np.array([p_e_b, p_e_g])
     C_E_vec = np.array([C_E_B, C_E_G])
     AD_NONDURABLES = C_CORE + np.sum(p_E_vec * C_E_vec)
-    AD_DURABLES = (D_T_G - D_G(-1)) * psi_g
+    AD_DURABLES = (D_T_G - D_G) * psi_g
     AD = AD_NONDURABLES + AD_DURABLES + G
     AS = Y
     rsrce_cstrt = AD - AS
