@@ -331,7 +331,7 @@ def policy_functions_Simple(
                                  for dt in d_tildes)
                     c_sum  = sum(c[model][dt, d, iz, amin_idx:amax_idx]
                                  for dt in d_tildes)
-                    P_sum  = sum(P[model][dt, d, iz, amin_idx:amax_idx]
+                    P_sum  = sum(P[model][dt, d, 0,iz, amin_idx:amax_idx]
                                  for dt in d_tildes)
 
                     x = a_grid[amin_idx:amax_idx] / A

@@ -54,15 +54,14 @@ from numba import njit
 
 # Sequence-Jacobian framework
 from sequence_jacobian import grids, interpolate
-from sequence_jacobian.blocks.support.stages import ExogenousMaker
+from sequence_jacobian.blocks.support.stages import ExogenousMaker, Continuous1D
+
 
 # Custom utilities (grid construction, logit choice, stage block wrappers)
 from SSJ_Fun.utils import (
     make_d_grid_simple,
-    LogitChoiceDurables,
-    Continuous1D_Durables,
+    LogitChoiceDurable,
     StageBlockDurables,
-    ExogenousMaker,
 )
 from Fun.my_funs import *
 
@@ -81,18 +80,26 @@ depreciation_stage = ExogenousMaker(
 
 # Stage 1: Productivity shock — idiosyncratic AR(1) productivity is realized
 prod_stage = ExogenousMaker(
-    markov_name="e_markov", index=1, name="prod"
+    markov_name="e_markov", index=2, name="prod"
 )
 
 # Stage 2: Discrete durable choice — household picks Brown or Green durable
 # The Logit smoother (with scale = taste_shock) avoids a hard discrete kink,
 # making the model differentiable for the sequence-space Jacobian.
-durables_stage = LogitChoiceDurables(
+def fake_util_f(V, vphi):
+    flow_u = np.array([[0, 0],  
+                       [0, 0]])           
+    shape = np.zeros((2, 2,) + V.shape[2:])
+    flow_u = flow_u[..., np.newaxis, np.newaxis, np.newaxis] + shape
+    return flow_u
+
+durables_stage = LogitChoiceDurable(
     value="V",
     backward="Va",
     index=0,
     name="durables",
     taste_shock_scale="taste_shock",
+    f=fake_util_f
 )
 
 
@@ -190,8 +197,7 @@ def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma
     # From the Euler equation: u'(c) = beta * Va
     # → c_endo = (beta * Va)^(-1/gamma)
     W = beta * V                                              # Discounted continuation value
-    W = np.stack([W] * n_d, axis=0)                          # Expand for each discrete choice
-    uc_endo = (beta * Va)[np.newaxis, ...]                    # Euler equation RHS
+    uc_endo = beta * Va                                       # Euler equation RHS
     c_endo = uc_endo ** (-1 / gamma)                          # Implied consumption (endogenous grid)
 
     # Recover the endogenous asset grid a_endo corresponding to c_endo:
@@ -436,7 +442,7 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec):
 
 
 # Initialize Stage 3 (continuous consumption-savings choice)
-consav_stage = Continuous1D_Durables(
+consav_stage = Continuous1D(
     backward=["V", "Va"],
     policy="a",
     f=dcegm,
@@ -475,7 +481,7 @@ def hh_init(disp_inc, a_grid, gamma):
     """
     # Shift disposable income to ensure positivity for the log/power utility
     V = util(disp_inc - np.min(disp_inc) + 1, gamma)
-    V = np.mean(V, axis=0)   # Average over the first axis (d_tilde) to match (n_d, n_e, n_a)
+    #V = np.mean(V, axis=0)   # Average over the first axis (d_tilde) to match (n_d, n_e, n_a)
 
     # Finite-difference derivative in the asset dimension
     Va = np.empty_like(V)
@@ -646,3 +652,4 @@ hh = StageBlockDurables(
     backward_init=hh_init,
     hetinputs=[make_grids, income_grid, transfers, adj_costs, disp_inc_f, create_vectors],
 )
+# %%

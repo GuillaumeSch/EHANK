@@ -104,7 +104,7 @@ baseline_calibration = {
     # -------------------------------------------------------------------------
     "delta_g": 0.05,           # Depreciation rate of green durables (quarterly)
     "delta_b": 0.00,           # Depreciation rate of brown durables (quarterly)
-    "psi_g":   0.1,            # Switching cost from brown to green durable
+    "psi_g":   0.30,            # Switching cost from brown to green durable
 
     # -------------------------------------------------------------------------
     # Government
@@ -169,8 +169,8 @@ hh_sol = hh.steady_state(baseline_calibration)
 
 # --- Print steady-state durable shares ---
 print("Steady-state durable shares (partial equilibrium):")
-print(f"  Brown durables (D_B): {np.round(hh_sol['D_B'] * 100, 3)}%")
-print(f"  Green durables (D_G): {np.round(hh_sol['D_G'] * 100, 3)}%")
+print(f"  Brown durables (D_B): {np.round(hh_sol['D_T_B'] * 100, 3)}%")
+print(f"  Green durables (D_G): {np.round(hh_sol['D_T_G'] * 100, 3)}%")
 
 # --- Plot household policy functions ---
 # ie_list: income grid points to display
@@ -179,7 +179,7 @@ ss_dict_partial = {"baseline": hh_sol}
 policy_functions_Simple(
     ss_dict_partial,
     ie_list=[2],
-    d_list=[1],
+    d_list=[0],
     d_tilde_list=[0, 1],
     xmax=10,
     figsize=0.8,
@@ -243,8 +243,8 @@ print(f"  Government debt (B):   {ss['B']:.4f}")
 print(f"  Lump-sum tax (Tax):    {ss['Tax']:.4f}")
 print(f"  Real interest rate (r):{ss['r']:.4f}")
 print(f"  Discount factor (β):   {ss['beta']:.4f}")
-print(f"  Brown durables (D_B):  {np.round(ss['D_B'] * 100, 3)}%")
-print(f"  Green durables (D_G):  {np.round(ss['D_G'] * 100, 3)}%")
+print(f"  Brown durables (D_B):  {np.round(ss['D_T_B'] * 100, 3)}%")
+print(f"  Green durables (D_G):  {np.round(ss['D_T_G'] * 100, 3)}%")
 
 # --- Plot policy functions at general equilibrium SS ---
 ss_dict_ge = {"baseline": ss}
@@ -252,7 +252,7 @@ policy_functions_Simple(
     ss_dict_ge,
     ie_list=[2],
     d_list=[0],
-    d_tilde_list=[0, 1],
+    d_tilde_list=[0],
     xmax=4,
     figsize=0.8,
     save_path="../../output/figures/policy_functions/policy_functions_ie2.png"
@@ -263,8 +263,8 @@ policy_functions_Simple(
     ss_dict_ge,
     ie_list=[4],
     d_list=[0],
-    d_tilde_list=[0, 1],
-    xmax=4,
+    d_tilde_list=[0,1],
+    xmax=10,
     figsize=0.8,
     save_path="../../output/figures/policy_functions/policy_functions_ie4.png"
 )
@@ -309,7 +309,7 @@ ss_hank = hank.solve_steady_state(
 
 param_grid = {"psi_g": np.linspace(0.06, 0.14, 5)}
 
-cs_outputs = ["D_B", "D_G", "beta","C"]
+cs_outputs = ["D_T_B", "D_T_G", "beta","C"]
 
 results = comparative_statics_plot(
     ha=hank,
@@ -359,7 +359,7 @@ targets_td  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
 #     r"Nominal Interest Rate: $i$",
 # ]
 outputs = [
-    "C", "Y", "w", "piw","D_B", "D_G", "Tax", "r", "i"
+    "C", "Y", "w", "piw","D_T_B", "D_T_G", "Tax", "r", "i"
 ]
 names_outputs = [
     r"Consumption: $C$",
@@ -676,7 +676,7 @@ show_irfs(
 # This allows us to study whether a greener fleet attenuates oil price shocks.
 #
 # Unknowns (4): Tax, beta, N, tau_b
-# Targets  (4): GBC, asset_mkt, labor_mkt, D_B = 0.70
+# Targets  (4): GBC, asset_mkt, labor_mkt, D_B = ...
 # =============================================================================
 
 # --- Step 1: Solve for the greener SS ---
@@ -685,13 +685,13 @@ unknowns_ss_greener = {
     "Tax":   ss_hank["Tax"],
     "beta":  ss_hank["beta"],
     "N":     ss_hank["N"],
-    "tau_b": 0,   # backed out to match D_B = 0.70 target
+    "tau_b": ss_hank["tau_b"],   # backed out to match D_B = ... target
 }
 targets_ss_greener = {
     "GBC":       0.0,
     "asset_mkt": 0.0,
     "labor_mkt": 0.0,
-    "D_B":       0.70,   # 70% Brown share — greener than baseline
+    "D_T_B":     0.53,   # 70% Brown share — greener than baseline
 }
 
 ss_hank_greener = hank.solve_steady_state(
@@ -733,8 +733,8 @@ show_irfs(
     ["p_e_b"] + outputs,
     titles=["Energy price shock"] + names_outputs,
     labels=[
-        "Baseline (D_B ≈ 83%)",
-        "Counterfactual (D_B = 70%, greener fleet)",
+        "Baseline (D_B ≈ "+str(np.round(ss_hank['D_T_B'],4)*100)+"%)",
+        "Counterfactual (D_B = ...%, greener fleet)",
     ],
     figsize=(12, 9),
     save_path="../../output/figures/IRFs/irfs_ETF2.png"
