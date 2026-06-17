@@ -75,7 +75,7 @@ from Fun.my_funs import *
 
 # Stage 0: Durable depreciation — durable good breaks down with some probability
 depreciation_stage = ExogenousMaker(
-    markov_name="d_markov", index=0, name="durable"
+    markov_name="d_markov", index=0, name="depreciation"
 )
 
 # Stage 1: Productivity shock — idiosyncratic AR(1) productivity is realized

@@ -15,6 +15,8 @@ from sequence_jacobian.utilities.ordered_set import OrderedSet
 from sequence_jacobian.utilities.interpolate import interpolate_coord_robust, interpolate_coord
 from sequence_jacobian import utilities as utils
 from sequence_jacobian.classes import ImpulseDict
+from sequence_jacobian.utilities.multidim import batch_multiply_ith_dimension
+
 
 
 def make_d_grid_simple(delta_g=0.01, delta_b=0.00):
@@ -133,6 +135,13 @@ class StageBlockDurables(StageBlock):
 
         return ImpulseDict(aggregates, T=inputs.T) - ssin
     
+class DiscreteChoiceDurables(DiscreteChoice):
+    def __matmul__(self, X):
+        if self.forward:
+            return (self.P * X[np.newaxis, ...]).sum(axis=self.i+2)
+            #return batch_multiply_ith_dimension(self.P, self.i, X)
+        else:
+            return batch_multiply_ith_dimension(self.P_T, self.i, X)
     
 class LogitChoiceDurable(LogitChoice):
     def backward_step(self, inputs, lawofmotion=False):
@@ -164,7 +173,7 @@ class LogitChoiceDurable(LogitChoice):
         P, EV = logit_choice(V, inputs[self.taste_shock_scale])
         
         # make law of motion, use it to take expectations of everything else
-        lom = DiscreteChoice(P, self.index)
+        lom = DiscreteChoiceDurables(P, self.index)
 
         # take expectations
         outputs = {k: lom.T @ inputs[k] for k in self.backward}
@@ -205,7 +214,7 @@ class LogitChoiceDurable(LogitChoice):
             # calculate shocks to choice probabilities (note nifty broadcasting of dEV)
             scale = ss[self.taste_shock_scale]
             dP = lom.P * (dV - dEV) / scale
-            dlom = DiscreteChoice(dP, self.index)
+            dlom = DiscreteChoiceDurables(dP, self.index)
 
             # find shocks to outputs, aggregate everything of interest
             doutputs = {self.value: dEV}

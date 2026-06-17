@@ -104,7 +104,7 @@ baseline_calibration = {
     # -------------------------------------------------------------------------
     "delta_g": 0.05,           # Depreciation rate of green durables (quarterly)
     "delta_b": 0.00,           # Depreciation rate of brown durables (quarterly)
-    "psi_g":   0.30,            # Switching cost from brown to green durable
+    "psi_g":   10.80,            # Switching cost from brown to green durable
 
     # -------------------------------------------------------------------------
     # Government
@@ -178,7 +178,7 @@ print(f"  Green durables (D_G): {np.round(hh_sol['D_T_G'] * 100, 3)}%")
 ss_dict_partial = {"baseline": hh_sol}
 policy_functions_Simple(
     ss_dict_partial,
-    ie_list=[2],
+    ie_list=[0],
     d_list=[0],
     d_tilde_list=[0, 1],
     xmax=10,
@@ -261,9 +261,9 @@ policy_functions_Simple(
 ss_dict_ge = {"baseline": ss}
 policy_functions_Simple(
     ss_dict_ge,
-    ie_list=[4],
+    ie_list=[2,4],
     d_list=[0],
-    d_tilde_list=[0,1],
+    d_tilde_list=[0],
     xmax=10,
     figsize=0.8,
     save_path="../../output/figures/policy_functions/policy_functions_ie4.png"
@@ -307,7 +307,7 @@ ss_hank = hank.solve_steady_state(
 # Vary psi_g across a grid and re-solve the steady state
 # to see how key aggregate variables respond.
 
-param_grid = {"psi_g": np.linspace(0.06, 0.14, 5)}
+param_grid = {"psi_g": np.linspace(0.6, 0.9, 5)}
 
 cs_outputs = ["D_T_B", "D_T_G", "beta","C"]
 
@@ -428,10 +428,10 @@ IRFs_i = plot_linear_irfs(
 
 
 show_irfs(
-    [IRFs_p_e_b, IRFs_tau_b],
-    ["p_e_b", "tau_b"] + outputs,
-    titles=["Energy price shock", "Carbon tax shock"] + names_outputs,
-    labels=["Brown Energy Price Shock", "Carbon Tax Shock"],
+    [IRFs_p_e_b, IRFs_tau_b, IRFs_i],
+    ["p_e_b", "tau_b", "ishock"] + outputs,
+    titles=["Energy price shock", "Carbon tax shock","i shock"] + names_outputs,
+    labels=["Brown Energy Price Shock", "Carbon Tax Shock","i shock"],
     figsize=(12, 9),
     save_path="../../output/figures/IRFs/irfs_p_e_b_taub.png"
 )
@@ -691,7 +691,7 @@ targets_ss_greener = {
     "GBC":       0.0,
     "asset_mkt": 0.0,
     "labor_mkt": 0.0,
-    "D_T_B":     0.53,   # 70% Brown share — greener than baseline
+    "D_T_B":     0.5381,   # 70% Brown share — greener than baseline
 }
 
 ss_hank_greener = hank.solve_steady_state(
