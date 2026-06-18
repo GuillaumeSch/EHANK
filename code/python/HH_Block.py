@@ -54,16 +54,13 @@ from numba import njit
 
 # Sequence-Jacobian framework
 from sequence_jacobian import grids, interpolate
-from sequence_jacobian.blocks.support.stages import ExogenousMaker
+from sequence_jacobian.blocks.support.stages import ExogenousMaker, LogitChoice, Continuous1D
 
 # Custom utilities (grid construction, logit choice, stage block wrappers)
 from SSJ_Fun.utils import (
     make_d_grid_simple,
-    LogitChoiceDurables,
-    Continuous1D_Durables,
-    StageBlockDurables,
-    ExogenousMaker,
 )
+from sequence_jacobian.blocks.stage_block import StageBlock
 from Fun.my_funs import *
 
 
@@ -87,12 +84,30 @@ prod_stage = ExogenousMaker(
 # Stage 2: Discrete durable choice — household picks Brown or Green durable
 # The Logit smoother (with scale = taste_shock) avoids a hard discrete kink,
 # making the model differentiable for the sequence-space Jacobian.
-durables_stage = LogitChoiceDurables(
+def util_l(V, vphi):
+    # on (n| n_)
+    flow_u = np.array([[-vphi, -vphi],  # E|E and E|N
+                       [0    , 0]])     # N|E and N|N
+    
+    flow_u = np.array([[0,0,-np.inf,-np.inf],  # BB|BB, BB|BG, BB|GB, BB|GG
+                        [-np.inf,-np.inf,-np.inf,-np.inf],     # BG|BB, BG|BG, BG|GB, BG|GG
+                        [0,0,-np.inf,-np.inf],     # GB|BB, GB|BG, GB|GB, GB|GG
+                        [-np.inf,-np.inf,0,0]])     # GG|BB, GG|BG, GG|GB, GG|GG
+
+
+    # on (n| n_, z, a)
+    shape = np.zeros((4, 4,) + V.shape[1:])
+    flow_u = flow_u[..., np.newaxis, np.newaxis] + shape
+
+    return flow_u
+
+durables_stage = LogitChoice(
     value="V",
     backward="Va",
     index=0,
     name="durables",
-    taste_shock_scale="taste_shock",
+    taste_shock_scale="taste_shock"
+    ,f=util_l
 )
 
 
@@ -190,25 +205,24 @@ def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma
     # From the Euler equation: u'(c) = beta * Va
     # → c_endo = (beta * Va)^(-1/gamma)
     W = beta * V                                              # Discounted continuation value
-    W = np.stack([W] * n_d, axis=0)                          # Expand for each discrete choice
-    uc_endo = (beta * Va)[np.newaxis, ...]                    # Euler equation RHS
+    uc_endo = (beta * Va)                 # Euler equation RHS
     c_endo = uc_endo ** (-1 / gamma)                          # Implied consumption (endogenous grid)
 
     # Recover the endogenous asset grid a_endo corresponding to c_endo:
     # budget constraint: (1+r)*a_endo + z + T - adj_cost = p_bundle * c_endo + a'
     a_endo = (
-        p_bundle[..., np.newaxis, np.newaxis, np.newaxis] * c_endo
-        + a_grid[np.newaxis, np.newaxis, np.newaxis, :]
+        p_bundle[..., np.newaxis, np.newaxis] * c_endo
+        + a_grid[np.newaxis, np.newaxis, :]
         + adj_matrix[..., np.newaxis, np.newaxis]
-        - z_grid[np.newaxis, np.newaxis, :, np.newaxis]
-        - T[np.newaxis, np.newaxis, :, np.newaxis]
+        - z_grid[np.newaxis, :, np.newaxis]
+        - T[np.newaxis, :, np.newaxis]
     ) / (1 + r)
 
     # --- Upper envelope ---
     # Because the endogenous grid is non-monotone (due to discrete choice kinks),
     # we use the upper envelope to select the globally optimal solution.
-    d_type   = np.arange(n_d)[:, None, None, None] * np.ones_like(a_endo)
-    p_c_type = p_bundle[:, None, None, None]        * np.ones_like(a_endo)
+    d_type   = np.arange(n_d)[:, None, None] * np.ones_like(a_endo)
+    p_c_type = p_bundle[:, None, None]        * np.ones_like(a_endo)
 
     V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, p_c_type, gamma)
 
@@ -218,7 +232,7 @@ def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma
     Va = (1 + r) * uc                       # Envelope condition: Va = (1+r) * u'(c)
 
     # Productivity-weighted marginal utility (used in wage NKPC)
-    uce = e_grid[np.newaxis, np.newaxis, :, np.newaxis] * uc
+    uce = e_grid[np.newaxis, :, np.newaxis] * uc
 
     return V, Va, a, c, uce
 
@@ -362,13 +376,11 @@ def D_demand(c):
 
     for d in range(n_d):
         dd_tilde[d][d, ...]    = 1   # choosing durable d (target)
-        dd[d][:, d, ...]       = 1   # currently holding durable d
 
     # Unpack into named outputs expected by SSJ
-    d_t_B, d_t_G = dd_tilde[0], dd_tilde[1]
-    d_B,   d_G   = dd[0],       dd[1]
+    d_BB, d_BG, d_GB, d_GG = dd_tilde[0], dd_tilde[1], dd_tilde[2], dd_tilde[3]
 
-    return d_t_B, d_B, d_t_G, d_G
+    return d_BB, d_BG, d_GB, d_GG
 
 
 def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec):
@@ -408,16 +420,16 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec):
     t_E    : ndarray  — energy tax revenue paid by each household
     """
     # Broadcast p_bundle along (n_d, n_e, n_a) dimensions
-    p_bun = p_bundle[..., np.newaxis, np.newaxis, np.newaxis]
-    p_en  = p_e[...,     np.newaxis, np.newaxis, np.newaxis]
-    tau   = tau_vec[..., np.newaxis, np.newaxis, np.newaxis]
+    p_bun = p_bundle[..., np.newaxis, np.newaxis]
+    p_en  = p_e[...,     np.newaxis, np.newaxis]
+    tau   = tau_vec[..., np.newaxis, np.newaxis]
 
     # Core consumption (same CES formula for all durable types)
     c_core = xi * (p_core / p_bun) ** (-nu) * c
 
     # Energy consumption (zero if energy price is zero, e.g. no energy good)
     c_E = np.where(
-        p_e[..., np.newaxis, np.newaxis, np.newaxis] == 0,
+        p_e[..., np.newaxis, np.newaxis] == 0,
         0.0,
         (1 - xi) * ((1 + tau) * p_en / p_bun) ** (-nu) * c,
     )
@@ -427,7 +439,9 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec):
     # Green-durable households (axis 0, index 1) use green energy
     c_E_b, c_E_g = np.zeros_like(c_E), np.zeros_like(c_E)
     c_E_b[0, ...] = c_E[0, ...]
-    c_E_g[1, ...] = c_E[1, ...]
+    c_E_b[1, ...] = c_E[1, ...]
+    c_E_g[2, ...] = c_E[2, ...]
+    c_E_g[3, ...] = c_E[3, ...]
 
     # Energy tax revenue: tau * p_e * C_E
     t_E = c_E * tau * p_en
@@ -436,7 +450,7 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec):
 
 
 # Initialize Stage 3 (continuous consumption-savings choice)
-consav_stage = Continuous1D_Durables(
+consav_stage = Continuous1D(
     backward=["V", "Va"],
     policy="a",
     f=dcegm,
@@ -475,7 +489,7 @@ def hh_init(disp_inc, a_grid, gamma):
     """
     # Shift disposable income to ensure positivity for the log/power utility
     V = util(disp_inc - np.min(disp_inc) + 1, gamma)
-    V = np.mean(V, axis=0)   # Average over the first axis (d_tilde) to match (n_d, n_e, n_a)
+    #V = np.mean(V, axis=0)   # Average over the first axis (d_tilde) to match (n_d, n_e, n_a)
 
     # Finite-difference derivative in the asset dimension
     Va = np.empty_like(V)
@@ -542,9 +556,9 @@ def create_vectors(tau_b, tau_g, p_e_b, p_e_g, nu, xi, p_core):
     p_tilde_e : ndarray (2,)  — tax-inclusive energy prices
     p_bundle  : ndarray (2,)  — consumption bundle price index per durable type
     """
-    d         = np.array([1, 1])
-    p_e       = np.array([p_e_b, p_e_g])
-    tau_vec   = np.array([tau_b, tau_g])
+    d         = np.array([1, 1, 1, 1])
+    p_e       = np.array([p_e_b, p_e_b, p_e_g, p_e_g])
+    tau_vec   = np.array([tau_b, tau_b, tau_g, tau_g])
     p_tilde_e = (1 + tau_vec) * p_e
 
     if nu != 1:
@@ -604,8 +618,7 @@ def adj_costs(psi_g):
     adj_matrix : ndarray, shape (2, 2)
     """
     adj_matrix = np.array([
-        [0.0,   0.0  ],   # Brown → Brown: free  |  Green → Brown: free
-        [psi_g, 0.0  ],   # Brown → Green: costs psi_g  |  Green → Green: free
+        0.0,   0.0  , psi_g, 0   
     ])
     return adj_matrix
 
@@ -627,9 +640,9 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):
     Array broadcasting dimensions: (n_d_tilde, n_d, n_e, n_a)
     """
     disp_inc = (
-          (1 + r) * a_grid[np.newaxis, np.newaxis, np.newaxis, :]   # (1, 1, 1, n_a)
-        + z_grid[np.newaxis, np.newaxis, :, np.newaxis]              # (1, 1, n_e, 1)
-        + T[np.newaxis, np.newaxis, :, np.newaxis]                   # (1, 1, n_e, 1)
+          (1 + r) * a_grid[np.newaxis, np.newaxis, :]   # (1, 1, 1, n_a)
+        + z_grid[np.newaxis, :, np.newaxis]              # (1, 1, n_e, 1)
+        + T[np.newaxis, :, np.newaxis]                   # (1, 1, n_e, 1)
         - adj_matrix[..., np.newaxis, np.newaxis]                    # (n_d_tilde, n_d, 1, 1)
     )
     return disp_inc
@@ -640,7 +653,7 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):
 # =============================================================================
 # Combine the four stages and hetinputs into a single staged household block.
 
-hh = StageBlockDurables(
+hh = StageBlock(
     [depreciation_stage, prod_stage, durables_stage, consav_stage],
     name="hh",
     backward_init=hh_init,

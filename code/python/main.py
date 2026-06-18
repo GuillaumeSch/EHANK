@@ -68,7 +68,7 @@ baseline_calibration = {
     # -------------------------------------------------------------------------
     "beta":        0.965,      # Household discount factor
     "gamma":       1 / 0.8,   # Coefficient of relative risk aversion (CRRA)
-    "taste_shock": 1e-3,       # Idiosyncratic taste shock (smooths discrete durable choice)
+    "taste_shock": 1e-1,       # Idiosyncratic taste shock (smooths discrete durable choice)
 
     # Labor supply
     "frisch": 1,               # Frisch elasticity of labor supply
@@ -103,8 +103,8 @@ baseline_calibration = {
     # Green durables: e.g. electric vehicles (run on electricity)
     # -------------------------------------------------------------------------
     "delta_g": 0.05,           # Depreciation rate of green durables (quarterly)
-    "delta_b": 0.00,           # Depreciation rate of brown durables (quarterly)
-    "psi_g":   0.1,            # Switching cost from brown to green durable
+    "delta_b": 0.0,           # Depreciation rate of brown durables (quarterly)
+    "psi_g":   1.5,            # Switching cost from brown to green durable
 
     # -------------------------------------------------------------------------
     # Government
@@ -169,21 +169,24 @@ hh_sol = hh.steady_state(baseline_calibration)
 
 # --- Print steady-state durable shares ---
 print("Steady-state durable shares (partial equilibrium):")
-print(f"  Brown durables (D_B): {np.round(hh_sol['D_B'] * 100, 3)}%")
-print(f"  Green durables (D_G): {np.round(hh_sol['D_G'] * 100, 3)}%")
+print(f"  Brown durables (D_BB): {np.round(hh_sol['D_BB'] * 100, 3)}%")
+print(f"  Green durables (D_BG): {np.round(hh_sol['D_BG'] * 100, 3)}%")
+print(f"  Brown durables (D_GB): {np.round(hh_sol['D_GB'] * 100, 3)}%")
+print(f"  Green durables (D_GG): {np.round(hh_sol['D_GG'] * 100, 3)}%")
+print(f"  Green durables (C): {hh_sol['C']}")
 
 # --- Plot household policy functions ---
 # ie_list: income grid points to display
 # d_list, d_tilde_list: current and target durable state indices
-ss_dict_partial = {"baseline": hh_sol}
-policy_functions_Simple(
-    ss_dict_partial,
-    ie_list=[2],
-    d_list=[1],
-    d_tilde_list=[0, 1],
-    xmax=10,
-    figsize=0.8,
-)
+# ss_dict_partial = {"baseline": hh_sol}
+# policy_functions_Simple(
+#     ss_dict_partial,
+#     ie_list=[2],
+#     d_list=[1],
+#     d_tilde_list=[0, 1],
+#     xmax=10,
+#     figsize=0.8,
+# )
 
 
 # %%
@@ -195,12 +198,12 @@ policy_functions_Simple(
 #   - `hank` : HANK model — adds wage rigidity and monetary policy
 
 ha = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod],
+    [hh, fiscal, mkt_clearing, prod],
     name="Simple HA Model",
 )
 
 hank = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, inflation, taylor_rule],
+    [hh, fiscal, mkt_clearing, prod, nkpc, inflation, taylor_rule],
     name="HANK Model",
 )
 
@@ -243,16 +246,15 @@ print(f"  Government debt (B):   {ss['B']:.4f}")
 print(f"  Lump-sum tax (Tax):    {ss['Tax']:.4f}")
 print(f"  Real interest rate (r):{ss['r']:.4f}")
 print(f"  Discount factor (β):   {ss['beta']:.4f}")
-print(f"  Brown durables (D_B):  {np.round(ss['D_B'] * 100, 3)}%")
-print(f"  Green durables (D_G):  {np.round(ss['D_G'] * 100, 3)}%")
+print(f"  Brown durables (D_B):  {np.round((ss['D_BB'] + ss['D_BG']) * 100, 3)}%")
+print(f"  Green durables (D_G):  {np.round((ss['D_GB']+ss['D_GG']) * 100, 3)}%")
 
 # --- Plot policy functions at general equilibrium SS ---
 ss_dict_ge = {"baseline": ss}
 policy_functions_Simple(
     ss_dict_ge,
-    ie_list=[2],
-    d_list=[0],
-    d_tilde_list=[0, 1],
+    ie_list=[0],
+    d_tilde_list=[0, 1, 2, 3],
     xmax=4,
     figsize=0.8,
     save_path="../../output/figures/policy_functions/policy_functions_ie2.png"
@@ -262,8 +264,7 @@ ss_dict_ge = {"baseline": ss}
 policy_functions_Simple(
     ss_dict_ge,
     ie_list=[4],
-    d_list=[0],
-    d_tilde_list=[0, 1],
+    d_tilde_list=[0, 1, 2, 3],
     xmax=4,
     figsize=0.8,
     save_path="../../output/figures/policy_functions/policy_functions_ie4.png"
@@ -307,9 +308,9 @@ ss_hank = hank.solve_steady_state(
 # Vary psi_g across a grid and re-solve the steady state
 # to see how key aggregate variables respond.
 
-param_grid = {"psi_g": np.linspace(0.06, 0.14, 5)}
+param_grid = {"psi_g": baseline_calibration["psi_g"]*np.linspace(0.8, 1.2, 5)}
 
-cs_outputs = ["D_B", "D_G", "beta","C"]
+cs_outputs = ["D_BB", "D_BG", "D_GB", "D_GG", "beta","C"]
 
 results = comparative_statics_plot(
     ha=hank,
@@ -359,15 +360,15 @@ targets_td  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
 #     r"Nominal Interest Rate: $i$",
 # ]
 outputs = [
-    "C", "Y", "w", "piw","D_B", "D_G", "Tax", "r", "i"
+    "C", "Y", "w", "piw","D_BB", "D_GG", "Tax", "r", "i"
 ]
 names_outputs = [
     r"Consumption: $C$",
     r"Output: $Y$",
     r"Wage: $w$",
     r"Wage Inflation: $\pi_w$",
-    r"Brown Durable Stock: $D_B$",
-    r"Green Durable Stock: $D_G$",
+    r"Brown Durable Stock: $D_BB$",
+    r"Green Durable Stock: $D_GG$",
     r"Lump-Sum Tax: $Tax$",
     r"Interest Rate: $r$",
     r"Nominal Interest Rate: $i$",
