@@ -14,11 +14,11 @@ def mkt_clearing(A, B, N, N_D):
 
 #Compute the resource constraint (equivalent of goods market clearing condition)
 @sj.simple
-def rsrce_cstrt(C, C_CORE, C_E, Y, G, D_T_G, D_G, psi_g, p_e_b, p_e_g, C_E_B, C_E_G):
+def rsrce_cstrt(C, C_CORE, C_E, Y, G, D_GB, psi_g, p_e_b, p_e_g, C_E_B, C_E_G):
     p_E_vec = np.array([p_e_b, p_e_g])
     C_E_vec = np.array([C_E_B, C_E_G])
     AD_NONDURABLES = C_CORE + np.sum(p_E_vec * C_E_vec)
-    AD_DURABLES = (D_T_G - D_G) * psi_g
+    AD_DURABLES = (D_GB) * psi_g
     AD = AD_NONDURABLES + AD_DURABLES + G
     AS = Y
     rsrce_cstrt = AD - AS

@@ -89,10 +89,10 @@ def util_l(V, vphi):
     flow_u = np.array([[-vphi, -vphi],  # E|E and E|N
                        [0    , 0]])     # N|E and N|N
     
-    flow_u = np.array([[0,0,-np.inf,-np.inf],  # BB|BB, BB|BG, BB|GB, BB|GG
-                        [-np.inf,-np.inf,-np.inf,-np.inf],     # BG|BB, BG|BG, BG|GB, BG|GG
-                        [0,0,-np.inf,-np.inf],     # GB|BB, GB|BG, GB|GB, GB|GG
-                        [-np.inf,-np.inf,0,0]])     # GG|BB, GG|BG, GG|GB, GG|GG
+    flow_u = np.array([[0,0,-1e10,-1e10],  # BB|BB, BB|BG, BB|GB, BB|GG
+                        [-1e10,-1e10,-1e10,-1e10],     # BG|BB, BG|BG, BG|GB, BG|GG
+                        [0,0,-1e10,-1e10],     # GB|BB, GB|BG, GB|GB, GB|GG
+                        [-1e10,-1e10,0,0]])     # GG|BB, GG|BG, GG|GB, GG|GG
 
 
     # on (n| n_, z, a)
@@ -372,15 +372,17 @@ def D_demand(c):
     # Build indicator arrays for target durable (d_tilde axis = axis 0)
     # and current durable (d axis = axis 1)
     dd_tilde = [np.zeros(shape, dtype=c.dtype) for _ in range(n_d)]
-    dd       = [np.zeros(shape, dtype=c.dtype) for _ in range(n_d)]
+    #dd       = [np.zeros(shape, dtype=c.dtype) for _ in range(n_d)]
 
     for d in range(n_d):
         dd_tilde[d][d, ...]    = 1   # choosing durable d (target)
 
     # Unpack into named outputs expected by SSJ
     d_BB, d_BG, d_GB, d_GG = dd_tilde[0], dd_tilde[1], dd_tilde[2], dd_tilde[3]
+    d_B = dd_tilde[0] + dd_tilde[1]
+    d_G = dd_tilde[2] + dd_tilde[3]
 
-    return d_BB, d_BG, d_GB, d_GG
+    return d_BB, d_BG, d_GB, d_GG, d_B, d_G
 
 
 def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec):

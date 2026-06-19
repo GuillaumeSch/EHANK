@@ -169,10 +169,12 @@ hh_sol = hh.steady_state(baseline_calibration)
 
 # --- Print steady-state durable shares ---
 print("Steady-state durable shares (partial equilibrium):")
-print(f"  Brown durables (D_BB): {np.round(hh_sol['D_BB'] * 100, 3)}%")
-print(f"  Green durables (D_BG): {np.round(hh_sol['D_BG'] * 100, 3)}%")
-print(f"  Brown durables (D_GB): {np.round(hh_sol['D_GB'] * 100, 3)}%")
-print(f"  Green durables (D_GG): {np.round(hh_sol['D_GG'] * 100, 3)}%")
+# print(f"  Brown durables (D_BB): {np.round(hh_sol['D_BB'] * 100, 3)}%")
+# print(f"  Green durables (D_BG): {np.round(hh_sol['D_BG'] * 100, 3)}%")
+# print(f"  Brown durables (D_GB): {np.round(hh_sol['D_GB'] * 100, 3)}%")
+# print(f"  Green durables (D_GG): {np.round(hh_sol['D_GG'] * 100, 3)}%")
+print(f"  Brown durables (D_B): {np.round(hh_sol['D_B'] * 100, 3)}%")
+print(f"  Green durables (D_G): {np.round(hh_sol['D_G'] * 100, 3)}%")
 print(f"  Green durables (C): {hh_sol['C']}")
 
 # --- Plot household policy functions ---
@@ -198,12 +200,12 @@ print(f"  Green durables (C): {hh_sol['C']}")
 #   - `hank` : HANK model — adds wage rigidity and monetary policy
 
 ha = sj.create_model(
-    [hh, fiscal, mkt_clearing, prod],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod],
     name="Simple HA Model",
 )
 
 hank = sj.create_model(
-    [hh, fiscal, mkt_clearing, prod, nkpc, inflation, taylor_rule],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, inflation, taylor_rule],
     name="HANK Model",
 )
 
@@ -246,8 +248,8 @@ print(f"  Government debt (B):   {ss['B']:.4f}")
 print(f"  Lump-sum tax (Tax):    {ss['Tax']:.4f}")
 print(f"  Real interest rate (r):{ss['r']:.4f}")
 print(f"  Discount factor (β):   {ss['beta']:.4f}")
-print(f"  Brown durables (D_B):  {np.round((ss['D_BB'] + ss['D_BG']) * 100, 3)}%")
-print(f"  Green durables (D_G):  {np.round((ss['D_GB']+ss['D_GG']) * 100, 3)}%")
+print(f"  Brown durables (D_B):  {np.round(ss['D_B'] * 100, 3)}%")
+print(f"  Green durables (D_G):  {np.round(ss['D_G'] * 100, 3)}%")
 
 # --- Plot policy functions at general equilibrium SS ---
 ss_dict_ge = {"baseline": ss}
@@ -310,7 +312,7 @@ ss_hank = hank.solve_steady_state(
 
 param_grid = {"psi_g": baseline_calibration["psi_g"]*np.linspace(0.8, 1.2, 5)}
 
-cs_outputs = ["D_BB", "D_BG", "D_GB", "D_GG", "beta","C"]
+cs_outputs = ["D_B", "D_BB", "D_BG", "D_G", "D_GB", "D_GG", "beta","C"]
 
 results = comparative_statics_plot(
     ha=hank,
@@ -360,18 +362,19 @@ targets_td  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
 #     r"Nominal Interest Rate: $i$",
 # ]
 outputs = [
-    "C", "Y", "w", "piw","D_BB", "D_GG", "Tax", "r", "i"
+    "C", "Y", "w", "piw","D_B", "D_G", "Tax", "r", "i", "rsrce_cstrt"
 ]
 names_outputs = [
     r"Consumption: $C$",
     r"Output: $Y$",
     r"Wage: $w$",
     r"Wage Inflation: $\pi_w$",
-    r"Brown Durable Stock: $D_BB$",
-    r"Green Durable Stock: $D_GG$",
+    r"Brown Durable Stock: $D_B$",
+    r"Green Durable Stock: $D_G$",
     r"Lump-Sum Tax: $Tax$",
     r"Interest Rate: $r$",
     r"Nominal Interest Rate: $i$",
+    r"Good market condition (excess demand)",
 ]
 
 
@@ -448,11 +451,11 @@ show_irfs(
 #
 # Strategy: compute an alternative steady state where psi_g is so large
 # that no household ever switches durable type ("no adoption" equilibrium).
-# We calibrate delta_b so that the share of Brown durables (D_B = 83%)
+# We calibrate delta_b so that the share of Brown durables (D_B = ...)
 # matches the baseline SS, ensuring a fair comparison.
 #
 # Unknowns (4): Tax, beta, N, delta_b
-# Targets  (4): GBC, asset_mkt, labor_mkt, D_B = 0.83
+# Targets  (4): GBC, asset_mkt, labor_mkt, D_B = ...
 # =============================================================================
 
 # --- Step 1: Build starting point from baseline SS ---
@@ -462,7 +465,7 @@ ss_hank_no_adoption = deepcopy(ss_hank)
 ss_hank_no_adoption["psi_g"] = 1e6   # Switching cost → ∞: no household ever switches durable
 
 # --- Step 2: Solve for the counterfactual steady state ---
-# We back out delta_b so that the Brown durable share matches the baseline (83%).
+# We back out delta_b so that the Brown durable share matches the baseline (...).
 # This ensures the two steady states are comparable in terms of durable composition.
 unknowns_ss_no_adoption = {
     "Tax":     ss_hank["Tax"],
@@ -550,12 +553,12 @@ show_irfs(
 
 # --- Step 1: Compute IRFs under the brown energy tax response ---
 # tau_b now absorbs the fiscal adjustment instead of the lump-sum tax.
-unknowns_td_tau_response = ["tau_b", "Y", "N", "w"]
+unknowns_td_tau_response = ["Tax", "Y", "N", "w"]
 
 IRFs_p_e_b_tau_response = plot_linear_irfs(
-    shocks_list=["p_e_b"],
-    e  ={"p_e_b": 1},
-    rho={"p_e_b": 0.80},
+    shocks_list=["p_e_b","tau_b"],
+    e  ={"p_e_b": 1,"tau_b": -1},
+    rho={"p_e_b": 0.80,"tau_b": 0.80},
     unknowns_td=unknowns_td_tau_response,
     targets_td =targets_td,
     ha     =hank,
@@ -734,7 +737,7 @@ show_irfs(
     ["p_e_b"] + outputs,
     titles=["Energy price shock"] + names_outputs,
     labels=[
-        "Baseline (D_B ≈ 83%)",
+        "Baseline (D_B ≈ "+str(np.round(ss_hank['D_B'] * 100, 1))+"%)",
         "Counterfactual (D_B = 70%, greener fleet)",
     ],
     figsize=(12, 9),
