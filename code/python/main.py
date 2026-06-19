@@ -45,7 +45,7 @@ from sequence_jacobian import drawdag
 from HH_Block import hh
 from Model_Blocks import (
     fiscal, mkt_clearing, prod,
-    rsrce_cstrt, nkpc, inflation, taylor_rule
+    rsrce_cstrt, nkpc, nkpc_ss, inflation, taylor_rule
 )
 
 # Custom utility functions (plotting IRFs, policy functions, etc.)
@@ -204,6 +204,12 @@ ha = sj.create_model(
     name="Simple HA Model",
 )
 
+
+hank_ss = sj.create_model(
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc_ss, inflation, taylor_rule],
+    name="HANK Model S.S",
+)
+
 hank = sj.create_model(
     [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, inflation, taylor_rule],
     name="HANK Model",
@@ -296,12 +302,23 @@ targets_ss_hank = {
     "labor_mkt": 0.0,
 }
 
-ss_hank = hank.solve_steady_state(
+# ss_hank = hank.solve_steady_state(
+#     ss,
+#     unknowns_ss_hank,
+#     targets_ss_hank,
+#     solver="hybr",
+# )
+
+calib = hank_ss.solve_steady_state(
     ss,
     unknowns_ss_hank,
     targets_ss_hank,
-    solver="hybr",
+    solver="hybr"
 )
+
+
+ss_hank =  hank.steady_state(calib)
+
 
 # %%
 # =============================================================================
@@ -335,7 +352,7 @@ results = comparative_statics_plot(
 # Unknowns (transition): Tax, Y, N, w  (solved to satisfy the 4 targets)
 # Targets  (transition): asset_mkt, GBC, wnkpc, labor_mkt
 
-unknowns_td = ["Tax", "Y", "N", "w"]
+unknowns_td = ["Tax", "Y", "N", "piw"]
 targets_td  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
 
 # Variables to plot and their LaTeX labels

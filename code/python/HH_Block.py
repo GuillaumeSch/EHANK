@@ -84,11 +84,8 @@ prod_stage = ExogenousMaker(
 # Stage 2: Discrete durable choice — household picks Brown or Green durable
 # The Logit smoother (with scale = taste_shock) avoids a hard discrete kink,
 # making the model differentiable for the sequence-space Jacobian.
-def util_l(V, vphi):
-    # on (n| n_)
-    flow_u = np.array([[-vphi, -vphi],  # E|E and E|N
-                       [0    , 0]])     # N|E and N|N
-    
+def util_l(V):
+    # on (d| d_)
     flow_u = np.array([[0,0,-1e10,-1e10],  # BB|BB, BB|BG, BB|GB, BB|GG
                         [-1e10,-1e10,-1e10,-1e10],     # BG|BB, BG|BG, BG|GB, BG|GG
                         [0,0,-1e10,-1e10],     # GB|BB, GB|BG, GB|GB, GB|GG
