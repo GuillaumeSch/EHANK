@@ -202,7 +202,7 @@ def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma
     # From the Euler equation: u'(c) = beta * Va
     # → c_endo = (beta * Va)^(-1/gamma)
     W = beta * V                                              # Discounted continuation value
-    uc_endo = (beta * Va)                 # Euler equation RHS
+    uc_endo = (beta * p_bundle[..., np.newaxis, np.newaxis] * Va)                 # Euler equation RHS
     c_endo = uc_endo ** (-1 / gamma)                          # Implied consumption (endogenous grid)
 
     # Recover the endogenous asset grid a_endo corresponding to c_endo:
@@ -226,10 +226,10 @@ def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma
     # --- Envelope condition: update Va ---
     uc = np.maximum(1e-8, c) ** (-gamma)   # Marginal utility u'(c)
     uc = make_strictly_decreasing(uc)       # Enforce monotonicity (fix numerical issues)
-    Va = (1 + r) * uc                       # Envelope condition: Va = (1+r) * u'(c)
+    Va = (1 + r) * uc / p_bundle[..., np.newaxis, np.newaxis]                       # Envelope condition: Va = (1+r) * u'(c)
 
     # Productivity-weighted marginal utility (used in wage NKPC)
-    uce = e_grid[np.newaxis, :, np.newaxis] * uc
+    uce = e_grid[np.newaxis, :, np.newaxis] * uc / p_bundle[..., np.newaxis, np.newaxis] 
 
     return V, Va, a, c, uce
 
