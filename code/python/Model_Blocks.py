@@ -14,11 +14,11 @@ def mkt_clearing(A, B, N, N_D):
 
 #Compute the resource constraint (equivalent of goods market clearing condition)
 @sj.simple
-def rsrce_cstrt(C, C_CORE, C_E, Y, G, D_T_G, D_G, psi_g, p_e_b, p_e_g, C_E_B, C_E_G):
+def rsrce_cstrt(C, C_CORE, C_E, Y, G, D_GB, psi_g, p_e_b, p_e_g, C_E_B, C_E_G):
     p_E_vec = np.array([p_e_b, p_e_g])
     C_E_vec = np.array([C_E_B, C_E_G])
     AD_NONDURABLES = C_CORE + np.sum(p_E_vec * C_E_vec)
-    AD_DURABLES = (D_T_G - D_G) * psi_g
+    AD_DURABLES = (D_GB) * psi_g
     AD = AD_NONDURABLES + AD_DURABLES + G
     AS = Y
     rsrce_cstrt = AD - AS
@@ -30,12 +30,29 @@ def prod(Y, Z):
     return N_D
 
 
-@sj.solved(unknowns={"piw": (-0.1, 0.1)}, targets=["piwres"], solver="brentq")
-def nkpc(piw, N, vphi, frisch, markup_ss, gamma, beta, theta_w,w,Y):
+# @sj.solved(unknowns={"piw": (-0.1, 0.1)}, targets=["piwres"], solver="brentq")
+# def nkpc(piw, N, vphi, frisch, markup_ss, gamma, beta, theta_w,w,Y):
+#     kappa_w = (1 - theta_w) * (1 - beta * theta_w)/(theta_w*(1+vphi*(markup_ss/(markup_ss-1))))
+#     piwres = piw - (w - w(-1))
+#     wnkpc = kappa_w * (vphi * (N)**(1/frisch) - 1/markup_ss * w * Y**-gamma) + beta * piw(1) - piw
+#     return wnkpc, piwres
+
+@sj.simple
+def nkpc(piw, N, vphi, frisch, markup_ss, gamma, beta, theta_w, w, Y, C, UCE):
     kappa_w = (1 - theta_w) * (1 - beta * theta_w)/(theta_w*(1+vphi*(markup_ss/(markup_ss-1))))
     piwres = piw - (w - w(-1))
-    wnkpc = kappa_w * (vphi * (N)**(1/frisch) - 1/markup_ss * w * Y**-gamma) + beta * piw(1) - piw
+    # wnkpc = kappa_w * (vphi * (N)**(1/frisch) - 1/markup_ss * w * C**-gamma) + beta * piw(1) - piw
+    wnkpc = kappa_w * (vphi * (N)**(1/frisch) - 1/markup_ss * w * UCE) + beta * piw(1) - piw
     return wnkpc, piwres
+
+@sj.simple
+def nkpc_ss(N, frisch, markup_ss, gamma, w, C, UCE):
+    # vphi =  1/markup_ss * w * C**-gamma / (N)**(1/frisch)
+    # wnkpc = vphi * (N)**(1/frisch) - 1/markup_ss * w * C**-gamma
+    vphi =  1/markup_ss * w * UCE / (N)**(1/frisch)
+    wnkpc = vphi * (N)**(1/frisch) - 1/markup_ss * w * UCE
+    return wnkpc, vphi
+
 
 @sj.simple
 def inflation(piw):

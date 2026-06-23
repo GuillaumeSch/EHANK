@@ -28,10 +28,35 @@ def make_d_grid_simple(delta_g=0.01, delta_b=0.00):
         1: 'green'
     }
     d_markov = np.array([
-        [1-delta_b,    delta_b],
-        [delta_g,  1 - delta_g]
+        [1-delta_b,    delta_b, 1-delta_b,    delta_b],
+        [1-delta_b,    delta_b, 1-delta_b,    delta_b],
+        [delta_g,  1 - delta_g, delta_g,  1 - delta_g],
+        [delta_g,  1 - delta_g, delta_g,  1 - delta_g]
     ])
-    return d_grid, d_markov, mapping
+    
+    #mask = np.kron(np.eye(2), np.ones((2,2)))
+    # mask = np.array([
+    # [1, 1, 0, 0],
+    # [1, 1, 0, 0],
+    # [1, 1, 0, 0],
+    # [1, 1, 0, 0],
+    #     ])
+    
+    # mask = np.array([
+    # [0, 0, 1, 1],
+    # [0, 0, 1, 1],
+    # [0, 0, 1, 1],
+    # [0, 0, 1, 1],
+        # ])
+    
+    mask = np.array([
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+        ])
+    
+    return d_grid, d_markov*mask, mapping
 
 
 def make_d_grid(n_b=3, n_g=3, lifetime_new=16, lifetime_old=32):
