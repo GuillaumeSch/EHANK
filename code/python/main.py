@@ -45,7 +45,7 @@ from sequence_jacobian import drawdag
 from HH_Block import hh
 from Model_Blocks import (
     fiscal, mkt_clearing, prod,
-    rsrce_cstrt, nkpc, nkpc_ss, inflation, taylor_rule
+    rsrce_cstrt, nkpc, nkpc_ss, inflation, taylor_rule, others
 )
 
 # Custom utility functions (plotting IRFs, policy functions, etc.)
@@ -110,7 +110,7 @@ baseline_calibration = {
     # Government
     # -------------------------------------------------------------------------
     "B":   2,                  # Stock of government debt
-    "G":   0.1,                # Government spending (exogenous)
+    "G_ss":0.1,                # Government spending (exogenous)
     "Tax": 0,                  # Lump-sum tax (endogenous at SS to satisfy GBC)
     "tau": 0,                  # Labor income tax rate
 
@@ -127,7 +127,7 @@ baseline_calibration = {
     # Consumption Aggregator
     # C = [xi * C_core^((nu-1)/nu) + (1-xi) * C_energy^((nu-1)/nu)]^(nu/(nu-1))
     # -------------------------------------------------------------------------
-    "xi":        0.70,         # Share of core goods in consumption bundle
+    "xi":        0.80,         # Share of core goods in consumption bundle
     "nu":        0.4,          # Elasticity of substitution between core and energy
     "markup_ss": 1.2,          # Steady-state price markup in goods market
 
@@ -177,18 +177,6 @@ print(f"  Brown durables (D_B): {np.round(hh_sol['D_B'] * 100, 3)}%")
 print(f"  Green durables (D_G): {np.round(hh_sol['D_G'] * 100, 3)}%")
 print(f"  Green durables (C): {hh_sol['C']}")
 
-# --- Plot household policy functions ---
-# ie_list: income grid points to display
-# d_list, d_tilde_list: current and target durable state indices
-# ss_dict_partial = {"baseline": hh_sol}
-# policy_functions_Simple(
-#     ss_dict_partial,
-#     ie_list=[2],
-#     d_list=[1],
-#     d_tilde_list=[0, 1],
-#     xmax=10,
-#     figsize=0.8,
-# )
 
 
 # %%
@@ -206,15 +194,14 @@ ha = sj.create_model(
 
 
 hank_ss = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc_ss, inflation, taylor_rule],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc_ss, inflation, taylor_rule, others],
     name="HANK Model S.S",
 )
 
 hank = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, inflation, taylor_rule],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, inflation, taylor_rule, others],
     name="HANK Model",
 )
-
 
 
 # %%
@@ -257,26 +244,6 @@ print(f"  Discount factor (β):   {ss['beta']:.4f}")
 print(f"  Brown durables (D_B):  {np.round(ss['D_B'] * 100, 3)}%")
 print(f"  Green durables (D_G):  {np.round(ss['D_G'] * 100, 3)}%")
 
-# --- Plot policy functions at general equilibrium SS ---
-ss_dict_ge = {"baseline": ss}
-policy_functions_Simple(
-    ss_dict_ge,
-    ie_list=[0],
-    d_tilde_list=[0, 1, 2, 3],
-    xmax=4,
-    figsize=0.8,
-    save_path="../../output/figures/policy_functions/policy_functions_ie2.png"
-)
-
-ss_dict_ge = {"baseline": ss}
-policy_functions_Simple(
-    ss_dict_ge,
-    ie_list=[4],
-    d_tilde_list=[0, 1, 2, 3],
-    xmax=4,
-    figsize=0.8,
-    save_path="../../output/figures/policy_functions/policy_functions_ie4.png"
-)
 
 
 # %%
@@ -319,6 +286,44 @@ calib = hank_ss.solve_steady_state(
 
 ss_hank =  hank.steady_state(calib)
 
+# --- Plot policy functions at general equilibrium SS ---
+ss_dict_ge = {"baseline": ss_hank}
+
+policy_function_disc(
+    ss_dict_ge,
+    xmax=20,
+    xmin=0,
+    d_tilde_list=[0,2],
+    d_list=[0],
+    ie_list=[2],
+    figsize=0.8,
+    models=['baseline'],
+    title='Durable Adoption Decision: Brown Owners at Median Productivity',
+    save_path="../../output/figures/policy_function_durable_brown_ie2.png"
+)
+
+policy_function_disc(
+    ss_dict_ge,
+    xmax=20,
+    xmin=0,
+    d_tilde_list=[1,3],
+    d_list=[2],
+    ie_list=[2],
+    figsize=0.8,
+    models=['baseline'],
+    title='Durable Adoption Decision: Green Owners at Median Productivity',
+    save_path="../../output/figures/policy_function_durable_green_ie2.png"
+)
+
+policy_function_switch_heatmap(ss_dict_ge, save_path="../../output/figures/policy_function_heatmap.png")
+
+plot_distribution(ss_hank, truncate_at=11, normalize=False, save_path="../../output/figures/stationary_distr.png")
+plot_distribution(ss_hank, lines_dim=1,truncate_at=11, normalize=False, labels=['Very Low','Low','Middle','High','Very High'], title="Wealth Distribution by Productivity Type (Mass in the Economy)",save_path="../../output/figures/stationary_distr_prod.png")
+plot_distribution(ss_hank, lines_dim=0,truncate_at=11, normalize=False, labels=['BB','BG','GB','GG'], title="Wealth Distribution by (collapsed) durable state",save_path="../../output/figures/stationary_distr_durables.png")
+
+
+
+
 
 # %%
 # =============================================================================
@@ -329,16 +334,17 @@ ss_hank =  hank.steady_state(calib)
 
 param_grid = {"psi_g": baseline_calibration["psi_g"]*np.linspace(0.8, 1.2, 5)}
 
-cs_outputs = ["D_B", "D_BB", "D_BG", "D_G", "D_GB", "D_GG", "beta","C"]
+cs_outputs = ["D_B", "D_G"]
 
-results = comparative_statics_plot(
+comparative_statics_plot_shares(
     ha=hank,
     ss_base=ss_hank,
     param_grid=param_grid,
     unknowns_ss=unknowns_ss,
     targets_ss=targets_ss,
     outputs=cs_outputs,
-    plot_deviation=False,
+    x_label="Green Adoption Cost",
+    title="Steady-State Durable Composition Under Varying Adoption Costs",
     save_path="../../output/figures/comp_stat/comp_stat_psig.png"
 )
 
@@ -379,19 +385,17 @@ targets_td  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
 #     r"Nominal Interest Rate: $i$",
 # ]
 outputs = [
-    "C", "Y", "w", "piw","D_B", "D_G", "Tax", "r", "i", "rsrce_cstrt"
+    "C", "Y", "piw","D_B", "D_G", "Tax", "B","G"
 ]
 names_outputs = [
     r"Consumption: $C$",
     r"Output: $Y$",
-    r"Wage: $w$",
     r"Wage Inflation: $\pi_w$",
     r"Brown Durable Stock: $D_B$",
     r"Green Durable Stock: $D_G$",
     r"Lump-Sum Tax: $Tax$",
-    r"Interest Rate: $r$",
-    r"Nominal Interest Rate: $i$",
-    r"Good market condition (excess demand)",
+    r"Public Debt: $B$",
+    r"Government Expenditures: $G$"
 ]
 
 
@@ -408,6 +412,14 @@ IRFs_p_e_b = plot_linear_irfs(
     ss=ss_hank,
     outputs=outputs,
     titles=names_outputs,
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_p_e_b.png"
+)
+show_irfs(
+    [IRFs_p_e_b],
+    ["p_e_b"] + outputs,
+    titles=["Energy price shock"] + names_outputs,
+    labels=["Brown Energy Price Shock"],
     figsize=(12, 9),
     save_path="../../output/figures/IRFs/irfs_p_e_b.png"
 )
@@ -457,6 +469,42 @@ show_irfs(
     save_path="../../output/figures/IRFs/irfs_p_e_b_taub.png"
 )
 
+# %%
+# =============================================================================
+# 8. COUNTERFACTUAL: BROWN ENERGY PRICE SHOCK WITHOUT DURABLE ADOPTION
+# =============================================================================
+
+# --- Step 1: Compute IRFs under the brown energy tax response ---
+unknowns_td_noadoption = ["Tax", "Y", "N", "piw", "psi_g"]
+targets_td_noadoption  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt", "D_B_target"]
+
+IRFs_p_e_b_noadoption = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e  ={"p_e_b": 1},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td_noadoption,
+    targets_td =targets_td_noadoption,
+    ha     =hank,
+    ss     =ss_hank,
+    outputs=outputs,
+    titles =names_outputs,
+    figsize=(12, 9),
+)
+
+# --- Step 2: Compare IRFs across fiscal rules ---
+# Differences across the two IRFs reflect the distributional consequences
+# of targeting brown energy users (via tau_b) vs. all households (via Tax).
+show_irfs(
+    [IRFs_p_e_b, IRFs_p_e_b_noadoption],
+    ["p_e_b"] + ["psi_g"] + outputs,
+    titles=["Energy price shock"] + ["Green Adoption Cost (Not to be shown)"] + names_outputs,
+    labels=[
+        "Baseline",
+        "No Adoption",
+    ],
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_noAdoption.png"
+)
 
 
 # %%
@@ -545,7 +593,7 @@ show_irfs(
         "Counterfactual (no adoption)",
     ],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_noAdoption.png"
+    save_path="../../output/figures/IRFs/irfs_noAdoption_b.png"
 )
 
 # %%
@@ -553,30 +601,16 @@ show_irfs(
 # 9. COUNTERFACTUAL: BROWN ENERGY PRICE SHOCK WITH A BROWN ENERGY TAX RESPONSE
 # =============================================================================
 # Goal: compare two fiscal response rules to an oil price shock.
-#
-#   Baseline     — the government responds via a lump-sum transfer (Tax adjusts).
-#                  All households receive the same transfer regardless of durable type.
-#
-#   Counterfactual — the government instead adjusts the carbon tax on brown energy
-#                  (tau_b adjusts). This is a targeted response: it subsidizes or
-#                  taxes brown energy users specifically, with implications for
-#                  the durable adoption margin.
-#
-# The two experiments share the same steady state (ss_hank) and the same shock
-# (1% rise in p_e_b, AR(1) with rho = 0.80). Only the fiscal closure differs:
-#   Baseline:        unknowns_td = ["Tax",  "Y", "N", "w"]
-#   Counterfactual:  unknowns_td = ["tau_b","Y", "N", "w"]
+
 # =============================================================================
 
 # --- Step 1: Compute IRFs under the brown energy tax response ---
-# tau_b now absorbs the fiscal adjustment instead of the lump-sum tax.
-unknowns_td_tau_response = ["Tax", "Y", "N", "w"]
 
 IRFs_p_e_b_tau_response = plot_linear_irfs(
     shocks_list=["p_e_b","tau_b"],
     e  ={"p_e_b": 1,"tau_b": -1},
     rho={"p_e_b": 0.80,"tau_b": 0.80},
-    unknowns_td=unknowns_td_tau_response,
+    unknowns_td=unknowns_td,
     targets_td =targets_td,
     ha     =hank,
     ss     =ss_hank,
@@ -593,11 +627,50 @@ show_irfs(
     ["p_e_b"] + ["tau_b"] + outputs,
     titles=["Energy price shock"] + ["Brown Energy tax rate"]+ names_outputs,
     labels=[
-        "Baseline (lump-sum fiscal response)",
+        "Baseline",
         "Counterfactual (brown energy tax response)",
     ],
     figsize=(12, 9),
     save_path="../../output/figures/IRFs/irfs_brownSubsidy.png"
+)
+
+# %%
+# =============================================================================
+# 9. COUNTERFACTUAL: BROWN ENERGY PRICE SHOCK WITH A BROWN ENERGY TAX RESPONSE - DEFICIT FINANCED
+# =============================================================================
+# Goal: compare two fiscal response rules to an oil price shock.
+
+# =============================================================================
+unknowns_td_deficit = ["B", "Y", "N", "piw"]
+
+# --- Step 1: Compute IRFs under the brown energy tax response ---
+
+IRFs_p_e_b_tau_response_deficit = plot_linear_irfs(
+    shocks_list=["p_e_b","tau_b"],
+    e  ={"p_e_b": 1,"tau_b": -1},
+    rho={"p_e_b": 0.80,"tau_b": 0.80},
+    unknowns_td=unknowns_td_deficit,
+    targets_td =targets_td,
+    ha     =hank,
+    ss     =ss_hank,
+    outputs=outputs,
+    titles =names_outputs,
+    figsize=(12, 9),
+)
+
+# --- Step 2: Compare IRFs across fiscal rules ---
+# Differences across the two IRFs reflect the distributional consequences
+# of targeting brown energy users (via tau_b) vs. all households (via Tax).
+show_irfs(
+    [IRFs_p_e_b_tau_response, IRFs_p_e_b_tau_response_deficit],
+    ["p_e_b"] + ["tau_b"] + outputs,
+    titles=["Energy price shock"] + ["Brown Energy tax rate"]+ names_outputs,
+    labels=[
+        "Tax-financed",
+        "Deficit-financed",
+    ],
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_brownSubsidy_deficit.png"
 )
 
 # %%
@@ -760,4 +833,8 @@ show_irfs(
     figsize=(12, 9),
     save_path="../../output/figures/IRFs/irfs_ETF2.png"
 )
+# %%
+
+
+
 # %%

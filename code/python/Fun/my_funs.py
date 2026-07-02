@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d, griddata
 import colorsys
 import time
 import math
+import matplotlib.colors as mcolors
 
 
 def policy_functions(
@@ -86,19 +87,17 @@ def policy_functions(
                      for i_, iz in enumerate(ie_list)}
 
     fixed_colors = {
-        0: "#808080",   # None
-        1: "#8B4513",   # New Brown
-        2: "#C4A484",   # Old Brown
-        3: "#228B22",   # New Green
-        4: "#90EE90"    # Old Green
+        0: "#8B4513",   # None
+        1: "#C4A484",   # New Brown
+        2: "#228B22",   # Old Brown
+        3: "#90EE90",   # New Green
     }
 
     fixed_labels = {
-        0: "None",
-        1: "New Brown",
-        2: "Old Brown",
-        3: "New Green",
-        4: "Old Green"
+        0: "Keep Brown",
+        1: "Switch to Brown (from Green)",
+        2: "Switch to Green (from Brown)",
+        3: "Keep Green"
     }
 
     group_colors = {
@@ -139,11 +138,11 @@ def policy_functions(
                         label = f"{model} – {label}"
 
                     # ---- Sum over vintages ---------------------------------
-                    a_sum  = sum(a[model][dt, d, iz, amin_idx:amax_idx]
+                    a_sum  = sum(a[model][dt, iz, amin_idx:amax_idx]
                                  for dt in d_tildes)
-                    da_sum = sum(da[model][dt, d, iz, amin_idx:amax_idx]
+                    da_sum = sum(da[model][dt, iz, amin_idx:amax_idx]
                                  for dt in d_tildes)
-                    c_sum  = sum(c[model][dt, d, iz, amin_idx:amax_idx]
+                    c_sum  = sum(c[model][dt, iz, amin_idx:amax_idx]
                                  for dt in d_tildes)
                     P_sum  = sum(P[model][dt, d, iz, amin_idx:amax_idx]
                                  for dt in d_tildes)
@@ -199,20 +198,24 @@ def policy_functions(
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
     plt.show()
-
-
-def policy_functions_Simple(
+    
+def policy_function_disc(
     ss,
     xmax=10,
     xmin=0,
-    d_tilde_list=[0,1,2,3],
+    d_tilde_list=[0],
+    d_list=[0],
     ie_list=[3],
     figsize=0.6,
     models=['baseline'],
-    plots=['assets','da','cons','disc'],
     vintage_groups=None,
+    title='Durable Adoption Probability',
     save_path=None
 ):
+    """
+    Plot only the discrete-choice (durable adoption probability) policy function.
+    Equivalent to calling policy_functions(..., plots=['disc']).
+    """
 
     import numpy as np
     import matplotlib.pyplot as plt
@@ -226,6 +229,178 @@ def policy_functions_Simple(
     amax_idx = min(amax_idx, len(a_grid))
 
     # ---- 1. Extract policy objects -------------------------------------------
+    P = {}
+    for model in models:
+        hh = ss[model].internals['hh']
+        P[model] = hh['durables']['law_of_motion'].P
+
+    # ---- 2. Figure -------------------------------------------------------------
+    fig, ax = plt.subplots(1, 1, figsize=(6 * figsize, 5 * figsize))
+
+    # ---- 3. Style maps -------------------------------------------------------
+    base_lw = 2.0
+    lw_map = {m: base_lw + 0.8*i for i, m in enumerate(models)}
+
+    linestyles = ['-', '--', '-.', ':']
+    linestyle_map = {iz: linestyles[i_ % len(linestyles)]
+                     for i_, iz in enumerate(ie_list)}
+
+    fixed_colors = {
+        0: "#8B4513",   # None
+        1: "#C4A484",   # New Brown
+        2: "#228B22",   # Old Brown
+        3: "#90EE90",   # New Green
+    }
+
+    fixed_labels = {
+        0: "Keep Brown",
+        1: "Switch to Brown (from Green)",
+        2: "Switch to Green (from Brown)",
+        3: "Keep Green"
+    }
+
+    group_colors = {
+        "None": "#808080",
+        "Brown": "#8B4513",
+        "Green": "#228B22"
+    }
+
+    if len(d_list) > 1:
+        alphas = np.linspace(0.3, 1.0, len(d_list))
+    else:
+        alphas = [1.0]
+    alpha_map = {d: a for d, a in zip(d_list, alphas)}
+
+    single_model = len(models) == 1
+
+    # ---- 4. Define plotting groups -------------------------------------------
+    if vintage_groups is None:
+        plot_groups = {fixed_labels[dt]: [dt] for dt in d_tilde_list}
+        group_color = {fixed_labels[dt]: fixed_colors[dt] for dt in d_tilde_list}
+    else:
+        plot_groups = vintage_groups
+        group_color = group_colors
+
+    # ---- 5. Plot loop ----------------------------------------------------------
+    for model in models:
+        for group_name, d_tildes in plot_groups.items():
+            for d in d_list:
+                for iz in ie_list:
+
+                    lw = lw_map[model]
+                    ls = linestyle_map[iz]
+                    col = group_color[group_name]
+                    alpha = alpha_map[d]
+
+                    label = group_name
+                    if not single_model:
+                        label = f"{model} – {label}"
+
+                    P_sum = sum(P[model][dt, d, iz, amin_idx:amax_idx]
+                                for dt in d_tildes)
+
+                    x = a_grid[amin_idx:amax_idx] / A
+
+                    ax.plot(
+                        x, P_sum, color=col, linestyle=ls,
+                        linewidth=lw, alpha=alpha, label=label
+                    )
+
+    # ---- 6. Formatting -----------------------------------------------------------
+    ax.set_title(title)
+    ax.set_ylabel("Probability")
+    ax.set_xlabel('Ratio of ind. wealth to avg. wealth')
+    ax.set_xlim([xmin, xmax-1])
+
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    ax.legend(by_label.values(), by_label.keys(), frameon=False)
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+
+    plt.show()
+    
+def policy_function_switch_heatmap(
+    ss,
+    d_tilde=2,
+    d=0,
+    xmax=20,
+    xmin=0,
+    ie_list=[0,1,2,3,4],
+    figsize=0.8,
+    model='baseline',
+    save_path=None
+):
+    a_grid = ss['baseline'].internals['hh']['a_grid']
+    A = ss['baseline']['A']
+
+    amin_idx = np.searchsorted(a_grid, xmin * A, side='left')
+    amax_idx = np.searchsorted(a_grid, xmax * A, side='right')
+    amax_idx = min(amax_idx, len(a_grid))
+
+    hh = ss[model].internals['hh']
+    P = hh['durables']['law_of_motion'].P
+
+    x = a_grid[amin_idx:amax_idx] / A
+    Z = np.stack([P[d_tilde, d, iz, amin_idx:amax_idx] for iz in ie_list])
+
+    # ---- Custom Brown (0) -> Green (1) colormap, matching your palette ----
+    brown_green_cmap = mcolors.LinearSegmentedColormap.from_list(
+        'brown_green', ['#8B4513', '#228B22']
+    )
+
+    fig, ax = plt.subplots(1, 1, figsize=(7 * figsize, 5 * figsize))
+
+    im = ax.pcolormesh(x, ie_list, Z, cmap=brown_green_cmap, shading='auto', vmin=0, vmax=1)
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.set_label('Switching Probability')
+
+    ax.set_title('Probability of Switching to Green (from Brown)')
+    ax.set_ylabel('Productivity level')
+    ax.set_xlabel('Ratio of ind. wealth to avg. wealth')
+    ax.set_xlim([xmin, xmax-1])
+    ax.set_yticks(ie_list)
+
+    plt.tight_layout()
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+
+
+def policy_functions_Simple(
+    ss,
+    xmax=10,
+    xmin=0,
+    d_tilde_list=[0, 1, 2, 3],
+    ie_list=[3],
+    figsize=0.6,
+    models=['baseline'],
+    plots=['assets', 'da', 'cons', 'disc'],
+    vintage_groups=None,
+    save_path=None
+):
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # ------------------------------------------------------------
+    # 0. Grids
+    # ------------------------------------------------------------
+    a_grid = ss['baseline'].internals['hh']['a_grid']
+    A = ss['baseline']['A']
+
+    amin_idx = np.searchsorted(a_grid, xmin * A, side='left')
+    amax_idx = np.searchsorted(a_grid, xmax * A, side='right')
+    amax_idx = min(amax_idx, len(a_grid))
+
+    x = a_grid[amin_idx:amax_idx] / A
+
+    # ------------------------------------------------------------
+    # 1. Extract objects
+    # ------------------------------------------------------------
     a, da, c, P = {}, {}, {}, {}
 
     for model in models:
@@ -233,9 +408,11 @@ def policy_functions_Simple(
         a[model]  = hh['consav']['a']
         da[model] = a[model] - a_grid
         c[model]  = hh['consav']['c']
-        P[model]  = hh['durables']['law_of_motion'].P
+        P[model]  = hh['durables']['law_of_motion'].P  # (choice, dt, z, a)
 
-    # ---- 2. Which plots to show ----------------------------------------------
+    # ------------------------------------------------------------
+    # 2. Plot structure
+    # ------------------------------------------------------------
     plot_map = {'assets': 0, 'da': 1, 'cons': 2, 'disc': 3}
     selected = [plot_map[p] for p in plots if p in plot_map]
 
@@ -243,7 +420,7 @@ def policy_functions_Simple(
         0: r'Assets',
         1: r'Savings',
         2: r'Consumption',
-        3: r'Staying Probability'
+        3: r'Durable Choice Policy (Probabilities)'
     }
 
     ylabels = {
@@ -253,7 +430,9 @@ def policy_functions_Simple(
         3: "Probability"
     }
 
-    # ---- 3. Figure -----------------------------------------------------------
+    # ------------------------------------------------------------
+    # 3. Figure
+    # ------------------------------------------------------------
     fig, axes = plt.subplots(
         1,
         len(selected),
@@ -263,56 +442,39 @@ def policy_functions_Simple(
     if len(selected) == 1:
         axes = [axes]
 
-    # ---- 4. Styles -----------------------------------------------------------
+    # ------------------------------------------------------------
+    # 4. Styling
+    # ------------------------------------------------------------
     base_lw = 2.0
-    lw_map = {m: base_lw + 0.8*i for i, m in enumerate(models)}
+    lw_map = {m: base_lw + 0.8 * i for i, m in enumerate(models)}
 
     linestyles = ['-', '--', '-.', ':']
-    linestyle_map = {
-        iz: linestyles[i_ % len(linestyles)]
-        for i_, iz in enumerate(ie_list)
-    }
+    linestyle_map = {iz: linestyles[i % len(linestyles)] for i, iz in enumerate(ie_list)}
 
-    state_labels = {
-        0: "BB",
-        1: "BG",
-        2: "GB",
-        3: "GG"
-    }
-
+    state_labels = {0: "BB", 1: "BG", 2: "GB", 3: "GG"}
     state_colors = {
-        0: "#8B4513",   # BB
-        1: "#CD853F",   # BG
-        2: "#3CB371",   # GB
-        3: "#006400"    # GG
+        0: "#8B4513",
+        1: "#CD853F",
+        2: "#3CB371",
+        3: "#006400"
     }
 
     single_model = len(models) == 1
 
-    # ---- 5. Plot groups ------------------------------------------------------
+    # ------------------------------------------------------------
+    # 5. Group structure (NO averaging anymore, just selection)
+    # ------------------------------------------------------------
     if vintage_groups is None:
-
-        plot_groups = {
-            state_labels[dt]: [dt]
-            for dt in d_tilde_list
-        }
-
-        group_color = {
-            state_labels[dt]: state_colors[dt]
-            for dt in d_tilde_list
-        }
-
+        plot_groups = {state_labels[dt]: [dt] for dt in d_tilde_list}
     else:
-
         plot_groups = vintage_groups
 
-        group_color = {
-            group_name: state_colors[members[0]]
-            for group_name, members in vintage_groups.items()
-        }
-
-    # ---- 6. Plot loops -------------------------------------------------------
+    # ------------------------------------------------------------
+    # 6. Plot loop
+    # ------------------------------------------------------------
     for model in models:
+
+        hhP = P[model]
 
         for group_name, d_tildes in plot_groups.items():
 
@@ -320,120 +482,83 @@ def policy_functions_Simple(
 
                 lw = lw_map[model]
                 ls = linestyle_map[iz]
-                col = group_color[group_name]
 
-                label = group_name
+                label_prefix = group_name if single_model else f"{model} – {group_name}"
 
-                if not single_model:
-                    label = f"{model} – {group_name}"
-
-                # ---- Average across grouped states --------------------------
-
-                a_avg = np.mean(
-                    [a[model][dt, iz, amin_idx:amax_idx]
-                     for dt in d_tildes],
-                    axis=0
-                )
-
-                da_avg = np.mean(
-                    [da[model][dt, iz, amin_idx:amax_idx]
-                     for dt in d_tildes],
-                    axis=0
-                )
-
-                c_avg = np.mean(
-                    [c[model][dt, iz, amin_idx:amax_idx]
-                     for dt in d_tildes],
-                    axis=0
-                )
-
-                # Probability of staying in same state
-                p_avg = np.mean(
-                    [P[model][dt, dt, iz, amin_idx:amax_idx]
-                     for dt in d_tildes],
-                    axis=0
-                )
-
-                x = a_grid[amin_idx:amax_idx] / A
-
+                # ============================================================
+                # PANEL 0: Assets
+                # ============================================================
                 if 0 in selected:
-                    axes[selected.index(0)].plot(
-                        x, a_avg,
-                        color=col,
-                        linestyle=ls,
-                        linewidth=lw,
-                        label=label
+                    ax = axes[selected.index(0)]
+                    a_avg = np.mean(
+                        [a[model][dt, iz, amin_idx:amax_idx] for dt in d_tildes],
+                        axis=0
                     )
+                    ax.plot(x, a_avg, linewidth=lw, label=label_prefix)
 
+                # ============================================================
+                # PANEL 1: Savings
+                # ============================================================
                 if 1 in selected:
-                    axes[selected.index(1)].plot(
-                        x, da_avg,
-                        color=col,
-                        linestyle=ls,
-                        linewidth=lw,
-                        label=label
+                    ax = axes[selected.index(1)]
+                    da_avg = np.mean(
+                        [da[model][dt, iz, amin_idx:amax_idx] for dt in d_tildes],
+                        axis=0
                     )
+                    ax.plot(x, da_avg, linewidth=lw, label=label_prefix)
 
+                # ============================================================
+                # PANEL 2: Consumption
+                # ============================================================
                 if 2 in selected:
-                    axes[selected.index(2)].plot(
-                        x, c_avg,
-                        color=col,
-                        linestyle=ls,
-                        linewidth=lw,
-                        label=label
+                    ax = axes[selected.index(2)]
+                    c_avg = np.mean(
+                        [c[model][dt, iz, amin_idx:amax_idx] for dt in d_tildes],
+                        axis=0
                     )
+                    ax.plot(x, c_avg, linewidth=lw, label=label_prefix)
 
+                # ============================================================
+                # PANEL 3: DISCRETE CHOICE POLICY FUNCTION
+                # ============================================================
                 if 3 in selected:
-                    axes[selected.index(3)].plot(
-                        x, p_avg,
-                        color=col,
-                        linestyle=ls,
-                        linewidth=lw,
-                        label=label
-                    )
 
-    # ---- 7. Formatting -------------------------------------------------------
+                    ax = axes[selected.index(3)]
+
+                    n_choice = hhP.shape[0]  # 4 choices
+
+                    for dt in d_tildes:
+
+                        for choice in range(n_choice):
+
+                            ax.plot(
+                                x,
+                                hhP[choice, dt, iz, amin_idx:amax_idx],
+                                color=state_colors[choice],
+                                linestyle=ls,
+                                linewidth=lw,
+                                label=f"{state_labels[dt]} → {state_labels[choice]}"
+                            )
+
+    # ------------------------------------------------------------
+    # 7. Formatting
+    # ------------------------------------------------------------
     for idx, ax in zip(selected, axes):
-
-        if idx == 0:
-            ax.plot(
-                x,
-                a_grid[amin_idx:amax_idx],
-                color='gray',
-                linestyle=':',
-                linewidth=1.2
-            )
-
-        if idx == 1:
-            ax.axhline(
-                0,
-                color='gray',
-                linestyle=':',
-                linewidth=1.2
-            )
 
         ax.set_title(titles[idx])
         ax.set_ylabel(ylabels[idx])
         ax.set_xlabel('Ratio of ind. wealth to avg. wealth')
-        ax.set_xlim([xmin, xmax-1])
+        ax.set_xlim([xmin, xmax - 1])
 
         handles, labels = ax.get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
 
-        ax.legend(
-            by_label.values(),
-            by_label.keys(),
-            frameon=False
-        )
+        ax.legend(by_label.values(), by_label.keys(), frameon=False)
 
     plt.tight_layout()
 
     if save_path is not None:
-        plt.savefig(
-            save_path,
-            dpi=300,
-            bbox_inches='tight'
-        )
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
     plt.show()
 
@@ -1119,93 +1244,105 @@ def display_calibrated_from_unknowns(ss_dict, unknowns_dict):
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def plot_distribution(
     SS_object,
-    lines_dim=None,       # dimension to split lines (0,1,2), or None
-    truncate_at=None,     # float, ratio of assets to average wealth at which to truncate
-    labels=None,          # list of labels
-    normalize=False,      # normalize each line to sum to 1
-    save_path=None        # str or None, file path to save the figure
+    lines_dim=None,       # 0 or 1 (since 3D now), or None
+    truncate_at=None,
+    labels=None,
+    normalize=False,
+    save_path=None,
+    title="Stationary Distribution"
 ):
     """
-    Plot 4D distribution D along assets (x-axis).
+    Plot 3D distribution D along assets (x-axis).
 
-    Parameters
-    ----------
-    SS_object : object
-        Object containing D at SS_object.internals['hh']['consav']['D']
-        and a_grid at SS_object.internals['hh']['a_grid']
-    lines_dim : int or None
-        Dimension to separate lines (0,1,2) or None for total marginal
-    truncate_at : float or None
-        If specified, all asset levels >= truncate_at * average wealth are combined in last bin
-    labels : list or None
-        List of labels for the lines_dim
-    normalize : bool
-        If True, normalize each line to sum to 1
-    save_path : str or None
-        If provided, save the figure to this path (e.g., "distribution.png")
+    New structure:
+        D[state_12, productivity, assets]
     """
 
     D = np.asarray(SS_object.internals['hh']['consav']['D'])
     a_grid = np.asarray(SS_object.internals['hh']['a_grid'])
     A = SS_object['A']
-    assert D.ndim == 4, "D must be 4D (choice, durable state, productivity, assets)"
 
-    # Determine lines
+    assert D.ndim == 3, "D must be 3D (state_12, productivity, assets)"
+
+    # -----------------------
+    # Build lines
+    # -----------------------
     if lines_dim is None:
-        lines = [D.sum(axis=(0,1,2))]  # marginalize all except assets
+        lines = [D.sum(axis=(0, 1))]  # marginal over all states
         line_labels = ["Total"]
-    else:
-        axes_to_sum = tuple(ax for ax in range(4) if ax not in (3, lines_dim))
-        lines = D.sum(axis=axes_to_sum)
 
-        if lines_dim != 3:
-            lines = [lines[i, :] for i in range(lines.shape[0])]
-        else:
-            lines = [lines[i] for i in range(lines.shape[0])]
+    else:
+        if lines_dim not in (0, 1):
+            raise ValueError("lines_dim must be 0 (state_12) or 1 (productivity)")
+
+        axes_to_sum = tuple(ax for ax in range(3) if ax not in (lines_dim, 2))
+        tmp = D.sum(axis=axes_to_sum)
+
+        lines = [tmp[i] for i in range(tmp.shape[0])]
 
         if labels is None:
             line_labels = [f"{lines_dim}={i}" for i in range(len(lines))]
         else:
             line_labels = labels
-            assert len(line_labels) == len(lines), "Number of labels must match number of lines"
+            assert len(line_labels) == len(lines)
 
-    # Truncate assets if requested
+    # -----------------------
+    # Truncation
+    # -----------------------
     if truncate_at is not None:
         truncate_val = truncate_at * A
         truncate_idx = np.searchsorted(a_grid, truncate_val, side='right') - 1
+
         truncated_lines = []
         for line in lines:
             if truncate_idx < len(line):
-                new_line = np.zeros(truncate_idx+1)
+                new_line = np.zeros(truncate_idx + 1)
                 new_line[:-1] = line[:truncate_idx]
                 new_line[-1] = line[truncate_idx:].sum()
                 truncated_lines.append(new_line)
             else:
                 truncated_lines.append(line)
-        lines = truncated_lines
-        x_axis = a_grid[:truncate_idx+1]/A
-    else:
-        x_axis = a_grid/A
 
-    # Normalize each line
+        lines = truncated_lines
+        x_axis = a_grid[:truncate_idx + 1] / A
+    else:
+        x_axis = a_grid / A
+
+    # -----------------------
+    # Normalize
+    # -----------------------
     if normalize:
         lines = [line / line.sum() for line in lines]
 
+    # -----------------------
     # Plot
-    plt.figure(figsize=(8,5))
-    for line, lbl in zip(lines, line_labels):
-        plt.plot(x_axis, line, label=lbl)
+    # -----------------------
+    plt.figure(figsize=(8, 5))
+
+    # Default color handling
+    if lines_dim == 1:
+        # productivity gradient: low → high
+        cmap = plt.cm.cool  # or plt.cm.plasma for warmer tones
+        n = len(lines)
+        colors = [cmap(i / (n - 1)) if n > 1 else cmap(0.5) for i in range(n)]
+    else:
+        colors = [None] * len(lines)  # matplotlib default cycle
+
+    for line, lbl, c in zip(lines, line_labels, colors):
+        plt.plot(x_axis, line, label=lbl, color=c, linewidth=2)
 
     plt.xlabel("Ratio of ind. wealth to avg. wealth")
     plt.ylabel("%" if normalize else "% (sum = 100)")
+
     if lines_dim is not None:
         plt.legend()
-    plt.title("Stationary Distribution")
+
+    plt.title(title)
     plt.grid(True)
 
-    # Save figure if path is provided
     if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight', dpi=300)
 
@@ -1574,6 +1711,12 @@ def comparative_statics_plot_shares(
             line_colors = ["#808080", "#8B4513", "#228B22"]
         if line_labels is None:
             line_labels = ["None", "Brown", "Green"]
+            
+    if len(outputs) == 2:
+        if line_colors is None:
+            line_colors = ["#8B4513", "#228B22"]
+        if line_labels is None:
+            line_labels = ["Brown", "Green"]
 
 
     # Custom labels if provided
@@ -1602,6 +1745,23 @@ def comparative_statics_plot_shares(
             label="Solve failed"
         )
 
+    # --- Vertical dotted line at baseline calibration value ---
+    baseline_val = ss_base[param]
+
+    if x_values is not None:
+        # Map the baseline parameter value onto the custom x-axis
+        # by finding its position in the original grid.
+        baseline_x = np.interp(baseline_val, grid, x_values)
+    else:
+        baseline_x = baseline_val
+
+    ax.axvline(
+        baseline_x,
+        color='black',
+        linestyle=':',
+        linewidth=1.5,
+        label='Baseline calibration'
+    )
 
     # Labels and title
     ax.set_xlabel(x_label if x_label is not None else param)

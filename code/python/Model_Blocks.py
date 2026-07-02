@@ -2,9 +2,16 @@ import sequence_jacobian as sj
 import numpy as np
 
 @sj.simple
-def fiscal(B, r, G, Tax, T_E):
+def fiscal(B, r, G_ss, Tax, T_E):
+    G = G_ss - 0.10 * (B - B.ss)
     GBC = Tax - ((1 + r) * B(-1) + G - B - T_E)  # total tax burden
-    return GBC
+    return GBC, G
+
+
+@sj.simple
+def others(D_B):
+    D_B_target = D_B - D_B.ss
+    return D_B_target
 
 @sj.simple
 def mkt_clearing(A, B, N, N_D):
