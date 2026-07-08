@@ -448,6 +448,26 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec):
     return c_core, c_E, c_E_b, c_E_g, t_E
 
 
+def compute_weighted_mpc(c, c_core, a, a_grid, r, e_grid):
+    post_return = (1 + r) * a_grid
+
+    mpc = np.empty_like(c)
+    mpc[..., 1:-1] = (c[..., 2:] - c[..., :-2]) / (post_return[2:] - post_return[:-2])
+    mpc[..., 0] = (c[..., 1] - c[..., 0]) / (post_return[1] - post_return[0])
+    mpc[..., -1] = (c[..., -1] - c[..., -2]) / (post_return[-1] - post_return[-2])
+    mpc[a == a_grid[0]] = 1
+    mpc *= e_grid[None, :, None]
+
+    mpc_core = np.empty_like(c_core)
+    mpc_core[..., 1:-1] = (c_core[..., 2:] - c_core[..., :-2]) / (post_return[2:] - post_return[:-2])
+    mpc_core[..., 0] = (c_core[..., 1] - c_core[..., 0]) / (post_return[1] - post_return[0])
+    mpc_core[..., -1] = (c_core[..., -1] - c_core[..., -2]) / (post_return[-1] - post_return[-2])
+    mpc_core[a == a_grid[0]] = 1
+    mpc_core *= e_grid[None, :, None]
+
+    return mpc, mpc_core
+
+
 # Initialize Stage 3 (continuous consumption-savings choice)
 consav_stage = Continuous1D(
     backward=["V", "Va"],

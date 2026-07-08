@@ -45,7 +45,7 @@ from sequence_jacobian import drawdag
 from HH_Block import hh
 from Model_Blocks import (
     fiscal, mkt_clearing, prod,
-    rsrce_cstrt, nkpc, nkpc_ss, inflation, taylor_rule, others
+    rsrce_cstrt, nkpc, nkpc_ss, inflation, taylor_rule, real_rule, others
 )
 
 # Custom utility functions (plotting IRFs, policy functions, etc.)
@@ -127,8 +127,8 @@ baseline_calibration = {
     # Consumption Aggregator
     # C = [xi * C_core^((nu-1)/nu) + (1-xi) * C_energy^((nu-1)/nu)]^(nu/(nu-1))
     # -------------------------------------------------------------------------
-    "xi":        0.80,         # Share of core goods in consumption bundle
-    "nu":        0.4,          # Elasticity of substitution between core and energy
+    "xi":        0.94,         # Share of core goods in consumption bundle
+    "nu":        0.40,          # Elasticity of substitution between core and energy
     "markup_ss": 1.2,          # Steady-state price markup in goods market
 
     # -------------------------------------------------------------------------
@@ -203,6 +203,11 @@ hank = sj.create_model(
     name="HANK Model",
 )
 
+hank_real = sj.create_model(
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, inflation, real_rule, others],
+    name="HANK Model",
+)
+
 
 # %%
 # =============================================================================
@@ -221,11 +226,13 @@ unknowns_ss = {
     "Tax":  baseline_calibration["Tax"],
     "beta": 0.97,
     "N":    baseline_calibration["N"],
+    "psi_g":baseline_calibration["psi_g"]
 }
 targets_ss = {
     "GBC":       0.0,
     "asset_mkt": 0.0,
     "labor_mkt": 0.0,
+    "D_B":       0.95
 }
 
 ss = ha.solve_steady_state(
@@ -259,6 +266,7 @@ print(f"  Green durables (D_G):  {np.round(ss['D_G'] * 100, 3)}%")
 unknowns_ss_hank = {
     "Tax":  ss["Tax"],
     "beta": ss["beta"],
+    "psi_g":ss["psi_g"],
     "vphi": baseline_calibration["vphi"],
     "N":    baseline_calibration["N"],
 }
@@ -267,6 +275,7 @@ targets_ss_hank = {
     "asset_mkt": 0.0,
     "wnkpc":     0.0,   # Wage New Keynesian Phillips Curve: zero at SS
     "labor_mkt": 0.0,
+    "D_B":       0.95
 }
 
 # ss_hank = hank.solve_steady_state(
@@ -285,6 +294,8 @@ calib = hank_ss.solve_steady_state(
 
 
 ss_hank =  hank.steady_state(calib)
+ss_hank_real =  hank_real.steady_state(calib)
+
 
 # --- Plot policy functions at general equilibrium SS ---
 ss_dict_ge = {"baseline": ss_hank}
@@ -331,8 +342,19 @@ plot_distribution(ss_hank, lines_dim=0,truncate_at=11, normalize=False, labels=[
 # =============================================================================
 # Vary psi_g across a grid and re-solve the steady state
 # to see how key aggregate variables respond.
+unknowns_cs = {
+    "Tax":  baseline_calibration["Tax"],
+    "beta": 0.97,
+    "N":    baseline_calibration["N"]
+}
+targets_cs = {
+    "GBC":       0.0,
+    "asset_mkt": 0.0,
+    "labor_mkt": 0.0
+}
 
-param_grid = {"psi_g": baseline_calibration["psi_g"]*np.linspace(0.8, 1.2, 5)}
+
+param_grid = {"psi_g": ss["psi_g"]*np.linspace(0.1, 1.5, 5)}
 
 cs_outputs = ["D_B", "D_G"]
 
@@ -340,8 +362,8 @@ comparative_statics_plot_shares(
     ha=hank,
     ss_base=ss_hank,
     param_grid=param_grid,
-    unknowns_ss=unknowns_ss,
-    targets_ss=targets_ss,
+    unknowns_ss=unknowns_cs,
+    targets_ss=targets_cs,
     outputs=cs_outputs,
     x_label="Green Adoption Cost",
     title="Steady-State Durable Composition Under Varying Adoption Costs",
@@ -385,7 +407,7 @@ targets_td  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
 #     r"Nominal Interest Rate: $i$",
 # ]
 outputs = [
-    "C", "Y", "piw","D_B", "D_G", "Tax", "B","G"
+    "C", "Y", "piw","D_B", "D_G", "Tax", "B"
 ]
 names_outputs = [
     r"Consumption: $C$",
@@ -394,8 +416,7 @@ names_outputs = [
     r"Brown Durable Stock: $D_B$",
     r"Green Durable Stock: $D_G$",
     r"Lump-Sum Tax: $Tax$",
-    r"Public Debt: $B$",
-    r"Government Expenditures: $G$"
+    r"Public Debt: $B$"
 ]
 
 
@@ -404,7 +425,7 @@ names_outputs = [
 # Interpretation: a 1% rise in the consumer price of gasoline, fading at rate 0.80
 IRFs_p_e_b = plot_linear_irfs(
     shocks_list=["p_e_b"],
-    e={"p_e_b": 1},
+    e={"p_e_b": 10},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td=targets_td,
@@ -428,7 +449,7 @@ show_irfs(
 # Interpretation: a 1% increase in the carbon tax on brown energy, fading at rate 0.80
 IRFs_tau_b = plot_linear_irfs(
     shocks_list=["tau_b"],
-    e={"tau_b": 1},
+    e={"tau_b": 10},
     rho={"tau_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td=targets_td,
@@ -480,7 +501,7 @@ targets_td_noadoption  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt", "D_B_target"
 
 IRFs_p_e_b_noadoption = plot_linear_irfs(
     shocks_list=["p_e_b"],
-    e  ={"p_e_b": 1},
+    e  ={"p_e_b": 10},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td_noadoption,
     targets_td =targets_td_noadoption,
@@ -569,7 +590,7 @@ print(f"  Green durables (D_G):     {np.round(ss_hank_no_adoption['D_G'] * 100, 
 # but now evaluated at the no-adoption steady state.
 IRFs_p_e_b_no_adoption = plot_linear_irfs(
     shocks_list=["p_e_b"],
-    e  ={"p_e_b": 1},
+    e  ={"p_e_b": 10},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td =targets_td,
@@ -608,7 +629,7 @@ show_irfs(
 
 IRFs_p_e_b_tau_response = plot_linear_irfs(
     shocks_list=["p_e_b","tau_b"],
-    e  ={"p_e_b": 1,"tau_b": -1},
+    e  ={"p_e_b": 10,"tau_b": -10},
     rho={"p_e_b": 0.80,"tau_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td =targets_td,
@@ -647,7 +668,7 @@ unknowns_td_deficit = ["B", "Y", "N", "piw"]
 
 IRFs_p_e_b_tau_response_deficit = plot_linear_irfs(
     shocks_list=["p_e_b","tau_b"],
-    e  ={"p_e_b": 1,"tau_b": -1},
+    e  ={"p_e_b": 10,"tau_b": -10},
     rho={"p_e_b": 0.80,"tau_b": 0.80},
     unknowns_td=unknowns_td_deficit,
     targets_td =targets_td,
@@ -663,8 +684,8 @@ IRFs_p_e_b_tau_response_deficit = plot_linear_irfs(
 # of targeting brown energy users (via tau_b) vs. all households (via Tax).
 show_irfs(
     [IRFs_p_e_b_tau_response, IRFs_p_e_b_tau_response_deficit],
-    ["p_e_b"] + ["tau_b"] + outputs,
-    titles=["Energy price shock"] + ["Brown Energy tax rate"]+ names_outputs,
+    ["p_e_b"] + ["tau_b"] + outputs + ["G"],
+    titles=["Energy price shock"] + ["Brown Energy tax rate"]+ names_outputs + [r"Government Expenditures: $G$"],
     labels=[
         "Tax-financed",
         "Deficit-financed",
@@ -785,7 +806,7 @@ targets_ss_greener = {
     "GBC":       0.0,
     "asset_mkt": 0.0,
     "labor_mkt": 0.0,
-    "D_B":       0.70,   # 70% Brown share — greener than baseline
+    "D_B":       0.90,   # 70% Brown share — greener than baseline
 }
 
 ss_hank_greener = hank.solve_steady_state(
@@ -796,7 +817,7 @@ ss_hank_greener = hank.solve_steady_state(
 )
 
 # --- Print key steady-state values ---
-print("\nSteady State — Greener Economy (D_B = 70%):")
+print("\nSteady State — Greener Economy (D_B = 90%):")
 print(f"  Government debt (B):      {ss_hank_greener['B']:.4f}")
 print(f"  Lump-sum tax (Tax):       {ss_hank_greener['Tax']:.4f}")
 print(f"  Real interest rate (r):   {ss_hank_greener['r']:.4f}")
@@ -808,7 +829,7 @@ print(f"  Green durables (D_G):     {np.round(ss_hank_greener['D_G'] * 100, 3)}%
 # --- Step 2: Compute IRFs for the brown energy price shock ---
 IRFs_p_e_b_greener = plot_linear_irfs(
     shocks_list=["p_e_b"],
-    e  ={"p_e_b": 1},
+    e  ={"p_e_b": 10},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td =targets_td,
@@ -827,8 +848,8 @@ show_irfs(
     ["p_e_b"] + outputs,
     titles=["Energy price shock"] + names_outputs,
     labels=[
-        "Baseline (D_B ≈ "+str(np.round(ss_hank['D_B'] * 100, 1))+"%)",
-        "Counterfactual (D_B = 70%, greener fleet)",
+        "Baseline (D_B = "+str(np.round(ss_hank['D_B'] * 100, 1))+r"%, $\tau_b$ = "+str(ss_hank['tau_b'])+")",
+        "Counterfactual (D_B = "+str(np.round(ss_hank_greener['D_B'] * 100, 1))+r"%, $\tau_b$ = "+str(np.round(ss_hank_greener['tau_b'],2))+")",
     ],
     figsize=(12, 9),
     save_path="../../output/figures/IRFs/irfs_ETF2.png"
@@ -837,4 +858,193 @@ show_irfs(
 
 
 
+# %%
+# %%
+# =============================================================================
+# 12. COUNTERFACTUAL: POLICY MIX. ACCOMODATIVE MONETARY POLICY
+# =============================================================================
+# Goal: Look at an accomodative monetary policy shock when oil shock.
+
+# =============================================================================
+
+# --- Step 1: Compute IRFs under the brown energy tax response ---
+
+IRFs_p_e_b_i = plot_linear_irfs(
+    shocks_list=["p_e_b","ishock"],
+    e  ={"p_e_b": 10,"ishock": -1},
+    rho={"p_e_b": 0.80,"ishock": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td =targets_td,
+    ha     =hank,
+    ss     =ss_hank,
+    outputs=outputs,
+    titles =names_outputs,
+    figsize=(12, 9),
+)
+
+# --- Step 2: Compare IRFs across fiscal rules ---
+# Differences across the two IRFs reflect the distributional consequences
+# of targeting brown energy users (via tau_b) vs. all households (via Tax).
+show_irfs(
+    [IRFs_p_e_b, IRFs_p_e_b_i],
+    ["p_e_b"] + ["i"] + outputs,
+    titles=["Energy price shock"] + ["Nominal Interest Rate"]+ names_outputs,
+    labels=[
+        "Baseline",
+        "Counterfactual (Accomodative MP shock)",
+    ],
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_accomodativeMP.png"
+)
+
+# %% Taylor Rule vs Real rule to an oil shock
+# =============================================================================
+# 13. COUNTERFACTUAL: Real interest rate rule
+IRFs_i_Taylor = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e={"p_e_b": 1},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=hank,
+    ss=ss_hank,
+    outputs=outputs,
+    titles=names_outputs,
+)
+IRFs_i_Real = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e={"p_e_b": 1},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=hank_real,
+    ss=ss_hank_real,
+    outputs=outputs,
+    titles=names_outputs,
+)
+
+# --- Compare IRFs across shocks ---
+# Overlays the brown energy price shock and the carbon tax shock on the same plots
+
+show_irfs(
+    [IRFs_i_Taylor, IRFs_i_Real],
+    ["p_e_b", "i", "r"] + outputs,
+    titles=["Energy price shock", "Nom. IR","Real IR"] + names_outputs,
+    labels=["Taylor Rule", "Real Rule"],
+    figsize=(12, 9),
+    save_path="../../output/figures/IRFs/irfs_realIRRule.png"
+)
+# %%
+# =============================================================================
+# 14. DECOMPOSITION OF THE OUTPUT RESPONSE TO A BROWN ENERGY PRICE SHOCK
+# =============================================================================
+# Goal: decompose the Y response to the oil price shock into its components
+# via the resource constraint identity (AD = AS = Y), which is satisfied
+# automatically since rsrce_cstrt is not among the targets_td.
+#
+#   Y = C_CORE + (p_e_b * C_E_B) + (p_e_g * C_E_G) + psi_g * D_GB + G
+#
+# Energy spending is further split into brown vs. green to disentangle the
+# direct price/volume effect on gasoline from the substitution effect
+# towards electricity as households switch durables.
+# =============================================================================
+
+outputs_decomp = ["C_CORE", "C_E_B", "C_E_G", "D_GB", "G", "Y", "p_e_b"]
+
+IRFs_decomp = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e={"p_e_b": 10},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=hank,
+    ss=ss_hank,
+    outputs=outputs_decomp,
+    titles=outputs_decomp,
+)
+
+# --- Steady-state levels used to linearize each contribution ---
+p_e_b_ss = ss_hank["p_e_b"]
+p_e_g_ss = ss_hank["p_e_g"]
+C_E_B_ss = ss_hank["C_E_B"]
+psi_g_ss = ss_hank["psi_g"]
+
+# --- Contributions to dY (brown/green energy spending disentangled) ---
+contrib_core          = IRFs_decomp["C_CORE"]
+contrib_energy_brown  = p_e_b_ss * IRFs_decomp["C_E_B"] + C_E_B_ss * IRFs_decomp["p_e_b"]
+contrib_energy_green  = p_e_g_ss * IRFs_decomp["C_E_G"]
+contrib_durable        = psi_g_ss * IRFs_decomp["D_GB"]
+contrib_G              = IRFs_decomp["G"]
+
+contrib_total = (
+    contrib_core + contrib_energy_brown + contrib_energy_green
+    + contrib_durable + contrib_G
+)
+
+# --- Accounting check: sum of contributions should equal the Y IRF ---
+T_plot = 40  # horizon to display
+max_gap = np.max(np.abs(contrib_total[:T_plot] - IRFs_decomp["Y"][:T_plot]))
+print(f"Max gap between sum of contributions and Y IRF: {max_gap:.6e}")
+
+# --- Plot ---
+fig, ax = plt.subplots(figsize=(9, 6))
+
+ax.plot(contrib_core[:T_plot], label="Core consumption", linewidth=2)
+ax.plot(contrib_energy_brown[:T_plot], label="Brown energy spending", linewidth=2, color="saddlebrown")
+ax.plot(contrib_energy_green[:T_plot], label="Green energy spending", linewidth=2, color="seagreen")
+ax.plot(contrib_durable[:T_plot], label="Durable switching cost", linewidth=2)
+ax.plot(contrib_G[:T_plot], label="Government spending", linewidth=2)
+ax.plot(contrib_total[:T_plot], label="Sum of contributions", linewidth=2.5,
+        linestyle="--", color="black")
+ax.plot(IRFs_decomp["Y"][:T_plot], label="Y (direct IRF, check)", linewidth=2.5,
+        linestyle=":", color="red", marker="o", markersize=3)
+
+ax.axhline(0, color="grey", linewidth=0.8)
+ax.set_xlabel("Quarters")
+ax.set_ylabel("Deviation from steady state")
+ax.set_title("Decomposition of the Output Response to a Brown Energy Price Shock")
+ax.legend(frameon=False)
+fig.tight_layout()
+
+save_path = "../../output/figures/IRFs/irfs_Y_decomposition.png"
+fig.savefig(save_path, dpi=200)
+plt.show()
+
+
+
+# %% Decomposition between direct and indirect response of Core Consumption
+# Direct household response
+J_hh = hh.jacobian(ss_hank, inputs=["p_e_b"], T=300)
+
+shock_path = 10 * 0.80 ** np.arange(300)
+
+C_CORE_direct = J_hh["C_CORE"]["p_e_b"] @ shock_path
+
+# GE feedback
+C_CORE_total = IRFs_decomp["C_CORE"]
+C_CORE_GE = C_CORE_total - C_CORE_direct
+
+# Plot
+T_plot = 40
+fig, ax = plt.subplots(figsize=(7, 4))
+
+ax.plot(C_CORE_direct[:T_plot], label="Partial equilibrium", linewidth=2)
+ax.plot(C_CORE_GE[:T_plot], label="GE feedback", linewidth=2)
+ax.plot(C_CORE_total[:T_plot], label="Total", linestyle="--", linewidth=2.5)
+
+ax.axhline(0, linewidth=0.8)
+ax.set_xlabel("Quarters")
+ax.set_ylabel("Deviation from steady state")
+ax.set_title("Core Consumption Response to Energy Price Shock")
+ax.legend(frameon=False)
+
+plt.tight_layout()
+
+plt.savefig(
+    "../../output/figures/IRFs/C_CORE_decomposition.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
 # %%

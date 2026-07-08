@@ -332,38 +332,34 @@ def policy_function_switch_heatmap(
     ie_list=[0,1,2,3,4],
     figsize=0.8,
     model='baseline',
+    vmax_prob=0.20,   # <-- new: max of color scale (was hardcoded to 1)
     save_path=None
 ):
     a_grid = ss['baseline'].internals['hh']['a_grid']
     A = ss['baseline']['A']
-
     amin_idx = np.searchsorted(a_grid, xmin * A, side='left')
     amax_idx = np.searchsorted(a_grid, xmax * A, side='right')
     amax_idx = min(amax_idx, len(a_grid))
-
     hh = ss[model].internals['hh']
     P = hh['durables']['law_of_motion'].P
-
     x = a_grid[amin_idx:amax_idx] / A
     Z = np.stack([P[d_tilde, d, iz, amin_idx:amax_idx] for iz in ie_list])
 
-    # ---- Custom Brown (0) -> Green (1) colormap, matching your palette ----
+    # ---- Custom Brown (0) -> Green (vmax_prob) colormap, matching your palette ----
     brown_green_cmap = mcolors.LinearSegmentedColormap.from_list(
         'brown_green', ['#8B4513', '#228B22']
     )
 
     fig, ax = plt.subplots(1, 1, figsize=(7 * figsize, 5 * figsize))
-
-    im = ax.pcolormesh(x, ie_list, Z, cmap=brown_green_cmap, shading='auto', vmin=0, vmax=1)
-    cbar = fig.colorbar(im, ax=ax)
+    im = ax.pcolormesh(x, ie_list, Z, cmap=brown_green_cmap, shading='auto',
+                        vmin=0, vmax=vmax_prob)
+    cbar = fig.colorbar(im, ax=ax, extend='max')  # extend='max' flags clipped values
     cbar.set_label('Switching Probability')
-
     ax.set_title('Probability of Switching to Green (from Brown)')
     ax.set_ylabel('Productivity level')
     ax.set_xlabel('Ratio of ind. wealth to avg. wealth')
     ax.set_xlim([xmin, xmax-1])
     ax.set_yticks(ie_list)
-
     plt.tight_layout()
     if save_path is not None:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
