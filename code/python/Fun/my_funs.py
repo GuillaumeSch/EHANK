@@ -882,43 +882,19 @@ def analyze_steady_state_3d(param1, values1, param2, values2, cali, hh, variable
 
 
 def show_irfs(irfs_list, variables, labels=None, ylabel=r"PP (dev. from ss)",
-              T_plot=50, figsize=(18, 6), save_path=None, titles=None):
+              T_plot=50, figsize=(18, 6), save_path=None, titles=None, show=False):
     """
     Plot impulse response functions (IRFs) for multiple variables and scenarios.
-
-    Parameters
-    ----------
-    irfs_list : list of dict
-        Each dict contains IRFs for variables.
-    variables : list of str
-        List of variable names to plot.
-    labels : list of str, optional
-        Labels for each IRF scenario.
-    ylabel : str
-        Y-axis label.
-    T_plot : int
-        Number of periods to plot.
-    figsize : tuple
-        Figure size.
-    save_path : str or None
-        If provided, save the figure to this path.
-    titles : list or dict, optional
-        Custom LaTeX titles for each variable subplot.
-        If list, must have same length as `variables`.
-        If dict, keys are variable names.
+    show=False skips plt.show() (e.g. when only exporting to save_path).
     """
-
     if labels is None or len(irfs_list) != len(labels):
         labels = ["Scenario {}".format(i+1) for i in range(len(irfs_list))]
 
     n_var = len(variables)
-    
-    # Dynamically choose rows and columns
     n_cols = min(3, n_var)
     n_rows = math.ceil(n_var / n_cols)
     fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex=True)
-    axes = np.array(axes).reshape(-1)  # Flatten axes array
-    
+    axes = np.array(axes).reshape(-1)
 
     for i, var in enumerate(variables):
         axes[i].axhline(0, color='grey', lw=0.8, ls='--')
@@ -927,14 +903,11 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"PP (dev. from ss)",
         axes[i].spines['right'].set_visible(False)
         for j, irf in enumerate(irfs_list):
             if var in irf:
-                #data = 100 * np.array(irf[var][:T_plot])
                 data = np.array(irf[var][:T_plot])
             else:
                 data = np.zeros(T_plot)
             axes[i].plot(data, label=labels[j])
-            #axes[i].plot(data)
 
-        # Use custom title if provided
         if titles is not None:
             if isinstance(titles, dict) and var in titles:
                 axes[i].set_title(titles[var], usetex=True, fontsize=16)
@@ -951,7 +924,6 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"PP (dev. from ss)",
         if i == 0:
             axes[i].legend()
 
-    # Remove empty subplots
     for k in range(n_var, len(axes)):
         fig.delaxes(axes[k])
 
@@ -960,43 +932,48 @@ def show_irfs(irfs_list, variables, labels=None, ylabel=r"PP (dev. from ss)",
     if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight', dpi=300)
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
 
 
 def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs,
                      T_plot=50, rho=None, e=None, T=300,
                      figsize=(18, 6), ylabel=r"PP (dev. from ss)",
-                     labels=None, save_path=None, titles=None):
-
-    # Default values if not provided
+                     labels=None, save_path=None, titles=None,
+                     show=True, plot=True):
+    """
+    show=False: solve and save/export without displaying (fast in notebooks/loops).
+    plot=False: skip figure generation entirely, just return irfs (fastest, for
+    calibration loops or numeric checks where no figure is needed at all).
+    """
     if rho is None:
         rho = {shock: 0.8 for shock in shocks_list}
     if e is None:
         e = {shock: 0.01 for shock in shocks_list}
 
-    # Build shocks dictionary with time series
     shocks = {
         shock: e[shock] * rho[shock]**np.arange(T)
         for shock in shocks_list
     }
 
-    # Solve the system
     irfs = ha.solve_impulse_linear(ss, unknowns_td, targets_td, shocks)
 
-    # Add shocks to outputs
+    if not plot:
+        return irfs
+
     outputs_plot = list(shocks_list) + list(outputs)
 
-    # Add titles if provided
     if titles is not None:
         titles_plot = [f"Shock: {shock}" for shock in shocks_list] + list(titles)
     else:
         titles_plot = None
 
-    # Default label
     if labels is None:
         labels = [" + ".join(shocks_list)]
 
-    # Plot
     show_irfs(
         [irfs],
         outputs_plot,
@@ -1005,9 +982,9 @@ def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs,
         T_plot=T_plot,
         figsize=figsize,
         save_path=save_path,
-        titles=titles_plot
+        titles=titles_plot,
+        show=show,
     )
-    
     return irfs
 
 
@@ -2052,3 +2029,44 @@ def compare_ss_table(s1, s2, round_digits=2):
         for r in rows:
             print(r)
     #return rows
+    
+    
+def compare_irfs_by_parameter(param_name, param_values, shocks_list, unknowns_td, targets_td,
+                               ha, ss, outputs, hank_ss=None, unknowns_ss=None, targets_ss=None,
+                               calibration=None, resolve_ss=False, solver="hybr",
+                               T_plot=50, rho=None, e=None, T=300,
+                               figsize=(18, 6), ylabel=r"PP (dev. from ss)",
+                               save_path=None, titles=None, show=True, plot=True, label_fmt=None):
+    if rho is None:
+        rho = {shock: 0.8 for shock in shocks_list}
+    if e is None:
+        e = {shock: 0.01 for shock in shocks_list}
+
+    shocks = {shock: e[shock] * rho[shock]**np.arange(T) for shock in shocks_list}
+
+    irfs_list, labels = [], []
+    for val in param_values:
+        if resolve_ss:
+            calib_mod = {**calibration, param_name: val}
+            calib_solved = hank_ss.solve_steady_state(
+                calib_mod, unknowns_ss, targets_ss, solver=solver
+            )
+            ss_mod = ha.steady_state(calib_solved)
+        else:
+            ss_mod = ss.copy()
+            ss_mod[param_name] = val
+
+        irfs_list.append(ha.solve_impulse_linear(ss_mod, unknowns_td, targets_td, shocks))
+        labels.append(label_fmt(val) if label_fmt else rf"${param_name} = {val}$")
+
+    if not plot:
+        return irfs_list
+
+    outputs_plot = list(shocks_list) + list(outputs)
+    titles_plot = [f"Shock: {s}" for s in shocks_list] + list(titles) if titles is not None else None
+
+    show_irfs(
+        irfs_list, outputs_plot, labels=labels, ylabel=ylabel, T_plot=T_plot,
+        figsize=figsize, save_path=save_path, titles=titles_plot, show=show,
+    )
+    return irfs_list

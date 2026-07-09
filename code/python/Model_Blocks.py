@@ -2,9 +2,9 @@ import sequence_jacobian as sj
 import numpy as np
 
 @sj.simple
-def fiscal(B, r, G_ss, Tax, T_E):
-    G = G_ss - 0.10 * (B - B.ss)
-    GBC = Tax - ((1 + r) * B(-1) + G - B - T_E)  # total tax burden
+def fiscal(B, r, G_ss, kappa_g, Tax, T_E):
+    G = G_ss - kappa_g * (B - B.ss)
+    GBC = Tax - ((1 + r) * B(-1) + G - B - T_E)
     return GBC, G
 
 @sj.simple
@@ -48,20 +48,45 @@ def nkpc_ss(N, frisch, markup_ss, gamma, w, C, UCE):
     return wnkpc, vphi
 
 @sj.simple
-def inflation(piw):
-    pi = piw
-    return pi
+def core_inflation(piw):
+    pi_core = piw
+    return pi_core
 
 @sj.simple
-def monetary_taylor(pi, ishock, rss, phi_pi, p_e_b):
-    i = rss + phi_pi * pi + ishock + 0.01*(p_e_b-p_e_b.ss)/p_e_b.ss
-    r_ante = i - pi(1)
+def headline_inflation(piw, p_e_b, p_e_g, omega_core, omega_eb, omega_eg):
+    """
+    Aggregate (headline) consumer price inflation.
+
+    omega_core/eb/eg are FIXED steady-state nominal expenditure shares,
+    computed once outside the model (see main.py) and passed in as plain
+    calibration constants — NOT recomputed from hh outputs each period.
+    This is required to avoid a cyclic dependency (hh -> Taylor_rule ->
+    headline_inflation -> hh), since C_CORE/C_E_B/C_E_G are genuine
+    outputs of hh, while omega_* only need their steady-state value
+    (first-order-exact Laspeyres weights, see derivation in previous notes).
+    """
+    pi_core = piw
+    pi_e_b  = (p_e_b - p_e_b(-1)) / p_e_b(-1)
+    pi_e_g  = (p_e_g - p_e_g(-1)) / p_e_g(-1)
+    pi_headline = omega_core * pi_core + omega_eb * pi_e_b + omega_eg * pi_e_g
+    return pi_headline
+
+@sj.simple
+def monetary_taylor(pi_core, ishock, rss, phi_pi):
+    i = rss + phi_pi * pi_core + ishock
+    r_ante = i - pi_core(1)
     return r_ante, i
 
+@sj.solved(unknowns={"i": (-0.2, 0.2)}, targets=["taylor_resid"])
+def monetary_taylor_headline(i, pi_headline, ishock, rss, phi_pi, rho_i):
+    taylor_resid = i - (rho_i * i(-1) + (1 - rho_i) * (rss + phi_pi * pi_headline) + ishock)
+    r_ante = i - pi_headline(1)
+    return r_ante, taylor_resid
+
 @sj.simple
-def monetary_real(pi, ishock, rss):
-    i = rss + pi(1) + ishock
-    r_ante = i - pi(1)
+def monetary_real(pi_core, ishock, rss):
+    i = rss + pi_core(1) + ishock
+    r_ante = i - pi_core(1)
     return r_ante, i
 
 @sj.simple
@@ -70,5 +95,6 @@ def ex_post_rate(r_ante):
     return r
 
 taylor_rule = sj.combine([monetary_taylor,ex_post_rate], name="Taylor_rule")
+taylor_rule_headline = sj.combine([monetary_taylor_headline,ex_post_rate], name="Taylor_rule_headline")
 real_rule = sj.combine([monetary_real,ex_post_rate], name="Real_rule")
 

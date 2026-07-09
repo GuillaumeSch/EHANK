@@ -45,7 +45,7 @@ from sequence_jacobian import drawdag
 from HH_Block import hh
 from Model_Blocks import (
     fiscal, mkt_clearing, prod,
-    rsrce_cstrt, nkpc, nkpc_ss, inflation, taylor_rule, real_rule, others
+    rsrce_cstrt, nkpc, nkpc_ss, core_inflation, headline_inflation, taylor_rule, taylor_rule_headline, real_rule, others
 )
 
 # Custom utility functions (plotting IRFs, policy functions, etc.)
@@ -111,6 +111,7 @@ baseline_calibration = {
     # -------------------------------------------------------------------------
     "B":   2,                  # Stock of government debt
     "G_ss":0.1,                # Government spending (exogenous)
+    "kappa_g":0.10,            # Response of gov. exp. to debt deviation
     "Tax": 0,                  # Lump-sum tax (endogenous at SS to satisfy GBC)
     "tau": 0,                  # Labor income tax rate
 
@@ -141,7 +142,8 @@ baseline_calibration = {
     # i_t = rss + phi_pi * pi_t + ishock_t
     # -------------------------------------------------------------------------
     "rss":    0.05 / 4,        # Steady-state nominal interest rate
-    "phi_pi": 1.5,             # Taylor rule coefficient on inflation
+    "phi_pi": 1.2,             # Taylor rule coefficient on inflation
+    "rho_i": 0.0,              # Persistence in Taylor Rule
     "ishock": 0,               # Monetary policy shock (0 at steady state)
 
     # -------------------------------------------------------------------------
@@ -156,6 +158,7 @@ baseline_calibration = {
     "w": 1,                    # Wage (fixed when analyzing HH block in isolation)
 }
 
+plot_all = False
 
 # %%
 # =============================================================================
@@ -194,17 +197,22 @@ ha = sj.create_model(
 
 
 hank_ss = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc_ss, inflation, taylor_rule, others],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc_ss, core_inflation, taylor_rule, others],
     name="HANK Model S.S",
 )
 
 hank = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, inflation, taylor_rule, others],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, taylor_rule, others],
     name="HANK Model",
 )
 
+hank_headline = sj.create_model(
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, headline_inflation, taylor_rule_headline, others],
+    name="HANK Model Headline",
+)
+
 hank_real = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, inflation, real_rule, others],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, real_rule, others],
     name="HANK Model",
 )
 
@@ -295,6 +303,18 @@ calib = hank_ss.solve_steady_state(
 
 ss_hank =  hank.steady_state(calib)
 ss_hank_real =  hank_real.steady_state(calib)
+
+# --- Compute fixed headline-inflation weights from the SS you already solved ---
+nom_C_ss = ss_hank["p_core"] * ss_hank["C_CORE"] \
+         + ss_hank["p_e_b"]  * ss_hank["C_E_B"] \
+         + ss_hank["p_e_g"]  * ss_hank["C_E_G"]
+
+calib["omega_core"] = ss_hank["p_core"] * ss_hank["C_CORE"] / nom_C_ss
+calib["omega_eb"]   = ss_hank["p_e_b"]  * ss_hank["C_E_B"]  / nom_C_ss
+calib["omega_eg"]   = ss_hank["p_e_g"]  * ss_hank["C_E_G"]  / nom_C_ss
+
+ss_hank_headline =  hank_headline.steady_state(calib)
+
 
 
 # --- Plot policy functions at general equilibrium SS ---
@@ -434,7 +454,8 @@ IRFs_p_e_b = plot_linear_irfs(
     outputs=outputs,
     titles=names_outputs,
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_p_e_b.png"
+    save_path="../../output/figures/IRFs/irfs_p_e_b.png",
+    plot=plot_all
 )
 show_irfs(
     [IRFs_p_e_b],
@@ -458,7 +479,8 @@ IRFs_tau_b = plot_linear_irfs(
     outputs=outputs,
     titles=names_outputs,
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_tau_b.png"
+    save_path="../../output/figures/IRFs/irfs_tau_b.png",
+    plot=plot_all
 )
 
 # --- Shock 3: Monetary policy shock (interest rate shock) ---
@@ -474,7 +496,8 @@ IRFs_i = plot_linear_irfs(
     outputs=outputs,
     titles=names_outputs,
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_i.png"
+    save_path="../../output/figures/IRFs/irfs_i.png",
+    plot=plot_all
 )
 
 # --- Compare IRFs across shocks ---
@@ -487,7 +510,8 @@ show_irfs(
     titles=["Energy price shock", "Carbon tax shock"] + names_outputs,
     labels=["Brown Energy Price Shock", "Carbon Tax Shock"],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_p_e_b_taub.png"
+    save_path="../../output/figures/IRFs/irfs_p_e_b_taub.png",
+    
 )
 
 # %%
@@ -510,6 +534,7 @@ IRFs_p_e_b_noadoption = plot_linear_irfs(
     outputs=outputs,
     titles =names_outputs,
     figsize=(12, 9),
+    plot=plot_all
 )
 
 # --- Step 2: Compare IRFs across fiscal rules ---
@@ -524,7 +549,8 @@ show_irfs(
         "No Adoption",
     ],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_noAdoption.png"
+    save_path="../../output/figures/IRFs/irfs_noAdoption.png",
+    
 )
 
 
@@ -599,6 +625,7 @@ IRFs_p_e_b_no_adoption = plot_linear_irfs(
     outputs=outputs,
     titles =names_outputs,
     figsize=(12, 9),
+    plot=plot_all
 )
 
 # %%
@@ -614,7 +641,8 @@ show_irfs(
         "Counterfactual (no adoption)",
     ],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_noAdoption_b.png"
+    save_path="../../output/figures/IRFs/irfs_noAdoption_b.png",
+    
 )
 
 # %%
@@ -638,6 +666,7 @@ IRFs_p_e_b_tau_response = plot_linear_irfs(
     outputs=outputs,
     titles =names_outputs,
     figsize=(12, 9),
+    plot=plot_all
 )
 
 # --- Step 2: Compare IRFs across fiscal rules ---
@@ -652,7 +681,8 @@ show_irfs(
         "Counterfactual (brown energy tax response)",
     ],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_brownSubsidy.png"
+    save_path="../../output/figures/IRFs/irfs_brownSubsidy.png",
+    
 )
 
 # %%
@@ -677,6 +707,7 @@ IRFs_p_e_b_tau_response_deficit = plot_linear_irfs(
     outputs=outputs,
     titles =names_outputs,
     figsize=(12, 9),
+    plot=plot_all
 )
 
 # --- Step 2: Compare IRFs across fiscal rules ---
@@ -691,7 +722,8 @@ show_irfs(
         "Deficit-financed",
     ],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_brownSubsidy_deficit.png"
+    save_path="../../output/figures/IRFs/irfs_brownSubsidy_deficit.png",
+    
 )
 
 # %%
@@ -760,6 +792,7 @@ IRFs_p_e_b_carbontax = plot_linear_irfs(
     outputs=outputs,
     titles =names_outputs,
     figsize=(12, 9),
+    plot=plot_all
 )
 
 # --- Step 4: Compare IRFs ---
@@ -774,7 +807,8 @@ show_irfs(
         "Counterfactual (τ_b = 0.05, same D_B)",
     ],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_ETF.png"
+    save_path="../../output/figures/IRFs/irfs_ETF.png",
+    
 )
 
 
@@ -838,6 +872,7 @@ IRFs_p_e_b_greener = plot_linear_irfs(
     outputs=outputs,
     titles =names_outputs,
     figsize=(12, 9),
+    plot=plot_all
 )
 
 # --- Step 3: Compare IRFs ---
@@ -852,7 +887,8 @@ show_irfs(
         "Counterfactual (D_B = "+str(np.round(ss_hank_greener['D_B'] * 100, 1))+r"%, $\tau_b$ = "+str(np.round(ss_hank_greener['tau_b'],2))+")",
     ],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_ETF2.png"
+    save_path="../../output/figures/IRFs/irfs_ETF2.png",
+    
 )
 # %%
 
@@ -880,6 +916,7 @@ IRFs_p_e_b_i = plot_linear_irfs(
     outputs=outputs,
     titles =names_outputs,
     figsize=(12, 9),
+    plot=plot_all
 )
 
 # --- Step 2: Compare IRFs across fiscal rules ---
@@ -894,7 +931,8 @@ show_irfs(
         "Counterfactual (Accomodative MP shock)",
     ],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_accomodativeMP.png"
+    save_path="../../output/figures/IRFs/irfs_accomodativeMP.png",
+    
 )
 
 # %% Taylor Rule vs Real rule to an oil shock
@@ -910,6 +948,7 @@ IRFs_i_Taylor = plot_linear_irfs(
     ss=ss_hank,
     outputs=outputs,
     titles=names_outputs,
+    plot=plot_all
 )
 IRFs_i_Real = plot_linear_irfs(
     shocks_list=["p_e_b"],
@@ -921,6 +960,7 @@ IRFs_i_Real = plot_linear_irfs(
     ss=ss_hank_real,
     outputs=outputs,
     titles=names_outputs,
+    plot=plot_all
 )
 
 # --- Compare IRFs across shocks ---
@@ -932,7 +972,8 @@ show_irfs(
     titles=["Energy price shock", "Nom. IR","Real IR"] + names_outputs,
     labels=["Taylor Rule", "Real Rule"],
     figsize=(12, 9),
-    save_path="../../output/figures/IRFs/irfs_realIRRule.png"
+    save_path="../../output/figures/IRFs/irfs_realIRRule.png",
+    
 )
 # %%
 # =============================================================================
@@ -961,6 +1002,7 @@ IRFs_decomp = plot_linear_irfs(
     ss=ss_hank,
     outputs=outputs_decomp,
     titles=outputs_decomp,
+    plot=plot_all
 )
 
 # --- Steady-state levels used to linearize each contribution ---
@@ -1047,4 +1089,65 @@ plt.savefig(
 )
 
 plt.show()
+# %% Compare core and headline inflation
+
+
+
+IRFs_p_e_b = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e={"p_e_b": 10},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=hank,
+    ss=ss_hank,
+    outputs=outputs,
+    titles=names_outputs,
+    figsize=(12, 9),
+    plot=plot_all
+)
+
+IRFs_p_e_b_headline = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e={"p_e_b": 10},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=hank_headline,
+    ss=ss_hank_headline,
+    outputs=outputs,
+    titles=names_outputs,
+    figsize=(12, 9),
+    plot=plot_all
+)
+
+show_irfs(
+    [IRFs_p_e_b, IRFs_p_e_b_headline],
+    ["p_e_b","pi_core","pi_headline","i","r"] + outputs,
+    titles=["Energy price shock", "pi_core", "pi_headline", "Nom. IR", "Real IR"] + names_outputs,
+    labels=["Taylor Rule (core)","Taylor Rule (headline)"],
+    figsize=(12, 9),
+    show=True,
+    save_path="../../output/figures/IRFs/irfs_headline.png",
+)
+# %%
+irfs_rho_i = compare_irfs_by_parameter(
+    param_name="rho_i",
+    param_values=[0.0, 0.8],
+    shocks_list=["p_e_b"],
+    e={"p_e_b": 10},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=hank_headline,
+    ss=ss_hank_headline,
+    outputs=["pi_core","pi_headline","i","r"] + outputs,
+    titles=["pi_core", "pi_headline", "Nom. IR", "Real IR"] + names_outputs,
+    figsize=(12, 9),
+    resolve_ss=False,
+    plot=True,
+    save_path="../../output/figures/IRFs/irfs_rho_i.png",
+)
+
+
 # %%
