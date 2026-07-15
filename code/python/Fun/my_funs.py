@@ -987,6 +987,75 @@ def plot_linear_irfs(shocks_list, unknowns_td, targets_td, ha, ss, outputs,
     )
     return irfs
 
+def irf_variant_comparison(ha, ss, baseline_irfs, shocks_list, unknowns_td, targets_td,
+                            outputs, titles, e=None, rho=None, extra_vars=None,
+                            labels=("Baseline", "Counterfactual"), figsize=(12, 9),
+                            save_path=None, plot=False):
+    """
+    Compute IRFs at a given steady state under an alternate shock/unknowns_td
+    configuration, and overlay them against an already-computed baseline IRF dict.
+
+    Use this when the counterfactual only changes the *shock* or the *transition
+    unknowns/targets* (e.g. a different fiscal financing rule), not the steady state.
+
+    extra_vars : list of (varname, title) tuples to display alongside `outputs`
+        (e.g. [("tau_b", "Brown Energy tax rate")]).
+    """
+    irfs_cf = plot_linear_irfs(
+        shocks_list=shocks_list, e=e, rho=rho,
+        unknowns_td=unknowns_td, targets_td=targets_td,
+        ha=ha, ss=ss, outputs=outputs, titles=titles,
+        figsize=figsize, plot=plot,
+    )
+
+    extra_vars = extra_vars or []
+    show_vars = list(shocks_list) + [v for v, _ in extra_vars] + list(outputs)
+    show_titles = (
+        [f"Shock: {s}" for s in shocks_list]
+        + [t for _, t in extra_vars]
+        + list(titles)
+    )
+
+    show_irfs(
+        [baseline_irfs, irfs_cf], show_vars, titles=show_titles,
+        labels=list(labels), figsize=figsize, save_path=save_path,
+    )
+    return irfs_cf
+
+
+def ss_counterfactual_comparison(ha, ss_start, unknowns_ss, targets_ss, baseline_irfs,
+                                  shocks_list, unknowns_td, targets_td, outputs, titles,
+                                  e=None, rho=None, labels=("Baseline", "Counterfactual"),
+                                  figsize=(12, 9), save_path=None, plot=False,
+                                  print_summary=None, solver="hybr"):
+    """
+    Solve an alternative steady state (unknowns/targets on top of ss_start),
+    compute IRFs there, and overlay against a baseline IRF dict.
+
+    print_summary : optional callable(ss_cf) -> None, for a console printout
+        of the counterfactual steady state (kept out of this function so each
+        counterfactual can report whichever variables are relevant).
+
+    Returns (ss_cf, irfs_cf).
+    """
+    ss_cf = ha.solve_steady_state(ss_start, unknowns_ss, targets_ss, solver=solver)
+
+    if print_summary is not None:
+        print_summary(ss_cf)
+
+    irfs_cf = plot_linear_irfs(
+        shocks_list=shocks_list, e=e, rho=rho,
+        unknowns_td=unknowns_td, targets_td=targets_td,
+        ha=ha, ss=ss_cf, outputs=outputs, titles=titles,
+        figsize=figsize, plot=plot,
+    )
+
+    show_irfs(
+        [baseline_irfs, irfs_cf], list(shocks_list) + list(outputs),
+        titles=[f"Shock: {s}" for s in shocks_list] + list(titles),
+        labels=list(labels), figsize=figsize, save_path=save_path,
+    )
+    return ss_cf, irfs_cf
 
 def evaluate_param_changes(param_name, values_list, ha, cali,
                            ss_vars=['goods_mkt', 'asset_mkt', 'Tax', 'r', 'beta', 'G', 'B', 'N', 'Y', 'Z']):
@@ -2044,29 +2113,52 @@ def compare_irfs_by_parameter(param_name, param_values, shocks_list, unknowns_td
 
     shocks = {shock: e[shock] * rho[shock]**np.arange(T) for shock in shocks_list}
 
-    irfs_list, labels = [], []
+    irfs_list, ss_list, labels = [], [], []
+
     for val in param_values:
         if resolve_ss:
             calib_mod = {**calibration, param_name: val}
+
             calib_solved = hank_ss.solve_steady_state(
                 calib_mod, unknowns_ss, targets_ss, solver=solver
             )
-            ss_mod = ha.steady_state(calib_solved)
+
+            #ss_mod = ha.steady_state(calib_solved)
+            ss_mod = calib_solved
+
         else:
             ss_mod = ss.copy()
             ss_mod[param_name] = val
 
-        irfs_list.append(ha.solve_impulse_linear(ss_mod, unknowns_td, targets_td, shocks))
-        labels.append(label_fmt(val) if label_fmt else rf"${param_name} = {val}$")
+        ss_list.append(ss_mod)
 
-    if not plot:
-        return irfs_list
+        irfs = ha.solve_impulse_linear(
+            ss_mod, unknowns_td, targets_td, shocks
+        )
 
-    outputs_plot = list(shocks_list) + list(outputs)
-    titles_plot = [f"Shock: {s}" for s in shocks_list] + list(titles) if titles is not None else None
+        irfs_list.append(irfs)
 
-    show_irfs(
-        irfs_list, outputs_plot, labels=labels, ylabel=ylabel, T_plot=T_plot,
-        figsize=figsize, save_path=save_path, titles=titles_plot, show=show,
-    )
-    return irfs_list
+        labels.append(
+            label_fmt(val) if label_fmt else rf"${param_name} = {val}$"
+        )
+
+    if plot:
+        outputs_plot = list(shocks_list) + list(outputs)
+        titles_plot = (
+            [f"Shock: {s}" for s in shocks_list] + list(titles)
+            if titles is not None else None
+        )
+
+        show_irfs(
+            irfs_list,
+            outputs_plot,
+            labels=labels,
+            ylabel=ylabel,
+            T_plot=T_plot,
+            figsize=figsize,
+            save_path=save_path,
+            titles=titles_plot,
+            show=show,
+        )
+
+    return irfs_list, ss_list

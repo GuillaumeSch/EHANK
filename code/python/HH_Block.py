@@ -81,6 +81,11 @@ prod_stage = ExogenousMaker(
     markov_name="e_markov", index=1, name="prod"
 )
 
+beta_stage = ExogenousMaker(
+    markov_name="beta_markov", index=2, name="beta_type"
+)
+
+
 # Stage 2: Discrete durable choice — household picks Brown or Green durable
 # The Logit smoother (with scale = taste_shock) avoids a hard discrete kink,
 # making the model differentiable for the sequence-space Jacobian.
@@ -94,7 +99,7 @@ def util_l(V):
 
     # on (n| n_, z, a)
     shape = np.zeros((4, 4,) + V.shape[1:])
-    flow_u = flow_u[..., np.newaxis, np.newaxis] + shape
+    flow_u = flow_u[..., np.newaxis, np.newaxis, np.newaxis] + shape
 
     return flow_u
 
@@ -140,7 +145,8 @@ def util(c, gamma):
 # Stage 3: Continuous Consumption-Savings Choice (DC-EGM)
 # =============================================================================
 
-def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma, p_bundle):
+def dcegm(V, Va, a_grid, e_grid, beta_grid, disp_inc, adj_matrix,
+          z_grid, r, T, gamma, p_bundle):
     """
     One backward iteration step using the Discrete-Choice Endogenous Grid
     Method (DC-EGM).
@@ -149,23 +155,26 @@ def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma
     to end-of-period assets a'), this function solves for the optimal consumption
     c and savings a' on the exogenous asset grid.
 
-    State space dimensions: (n_d_tilde, n_d, n_e, n_a)
+    State space dimensions: (n_d_tilde, n_d, n_e, n_beta, n_a)
         n_d_tilde : number of discrete durable choices available (Brown, Green)
         n_d       : current durable type held by the household
         n_e       : productivity grid points
+        n_beta    : discount-factor types
         n_a       : asset grid points
 
     Parameters
     ----------
-    V : ndarray, shape (n_d, n_e, n_a)
+    V : ndarray
         Continuation value function (beginning of next period).
-    Va : ndarray, shape (n_d, n_e, n_a)
+    Va : ndarray
         Derivative of V with respect to end-of-period assets a'.
     a_grid : ndarray, shape (n_a,)
         Exogenous asset grid (common savings grid).
     e_grid : ndarray, shape (n_e,)
         Productivity grid points.
-    disp_inc : ndarray, shape (n_d_tilde, n_d, n_e, n_a)
+    beta_grid : ndarray, shape (n_beta,)
+        Discount-factor types.
+    disp_inc : ndarray
         Disposable income = (1+r)*a + w*e + T - adj_cost.
     adj_matrix : ndarray, shape (n_d_tilde, n_d)
         Switching cost from current durable d to new durable d_tilde.
@@ -175,8 +184,6 @@ def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma
         Real interest rate.
     T : ndarray, shape (n_e,)
         Net lump-sum transfers (dividends minus taxes), by productivity.
-    beta : float
-        Household discount factor.
     gamma : float
         CRRA coefficient.
     p_bundle : ndarray, shape (n_d_tilde,)
@@ -184,52 +191,45 @@ def dcegm(V, Va, a_grid, e_grid, disp_inc, adj_matrix, z_grid, r, T, beta, gamma
 
     Returns
     -------
-    V : ndarray, shape (n_d_tilde, n_d, n_e, n_a)
-        Updated value function on the exogenous grid.
-    Va : ndarray, shape (n_d_tilde, n_d, n_e, n_a)
-        Updated marginal value of assets (envelope condition).
-    a : ndarray, shape (n_d_tilde, n_d, n_e, n_a)
-        Optimal end-of-period asset choice a'.
-    c : ndarray, shape (n_d_tilde, n_d, n_e, n_a)
-        Optimal consumption bundle quantity c.
-    uce : ndarray, shape (n_d_tilde, n_d, n_e, n_a)
-        Marginal utility of consumption scaled by productivity (used for
-        wage setting block).
+    V, Va, a, c, uce : ndarrays on the full state grid.
+        uce is marginal utility of consumption scaled by productivity
+        (used for wage setting block).
     """
     n_d = adj_matrix.shape[0]
+    beta_b = beta_grid[np.newaxis, np.newaxis, :, np.newaxis]  # broadcast over (d_tilde, e, ., a)
 
     # --- Endogenous grid step (EGM) ---
     # From the Euler equation: u'(c) = beta * Va
     # → c_endo = (beta * Va)^(-1/gamma)
-    W = beta * V                                              # Discounted continuation value
-    uc_endo = (beta * p_bundle[..., np.newaxis, np.newaxis] * Va)                 # Euler equation RHS
-    c_endo = uc_endo ** (-1 / gamma)                          # Implied consumption (endogenous grid)
+    W = beta_b * V                                              # Discounted continuation value
+    uc_endo = beta_b * p_bundle[..., np.newaxis, np.newaxis, np.newaxis] * Va   # Euler equation RHS
+    c_endo = uc_endo ** (-1 / gamma)                            # Implied consumption (endogenous grid)
 
     # Recover the endogenous asset grid a_endo corresponding to c_endo:
     # budget constraint: (1+r)*a_endo + z + T - adj_cost = p_bundle * c_endo + a'
     a_endo = (
-        p_bundle[..., np.newaxis, np.newaxis] * c_endo
-        + a_grid[np.newaxis, np.newaxis, :]
-        + adj_matrix[..., np.newaxis, np.newaxis]
-        - z_grid[np.newaxis, :, np.newaxis]
-        - T[np.newaxis, :, np.newaxis]
+        p_bundle[..., np.newaxis, np.newaxis, np.newaxis] * c_endo
+        + a_grid[np.newaxis, np.newaxis, np.newaxis, :]
+        + adj_matrix[..., np.newaxis, np.newaxis, np.newaxis]
+        - z_grid[np.newaxis, :, np.newaxis, np.newaxis]
+        - T[np.newaxis, :, np.newaxis, np.newaxis]
     ) / (1 + r)
 
     # --- Upper envelope ---
     # Because the endogenous grid is non-monotone (due to discrete choice kinks),
     # we use the upper envelope to select the globally optimal solution.
-    d_type   = np.arange(n_d)[:, None, None] * np.ones_like(a_endo)
-    p_c_type = p_bundle[:, None, None]        * np.ones_like(a_endo)
+    d_type   = np.arange(n_d)[:, None, None, None] * np.ones_like(a_endo)
+    p_c_type = p_bundle[:, None, None, None]        * np.ones_like(a_endo)
 
     V, c, a = upperenv(W, a_endo, disp_inc, a_grid, d_type, p_c_type, gamma)
 
     # --- Envelope condition: update Va ---
     uc = np.maximum(1e-8, c) ** (-gamma)   # Marginal utility u'(c)
     uc = make_strictly_decreasing(uc)       # Enforce monotonicity (fix numerical issues)
-    Va = (1 + r) * uc / p_bundle[..., np.newaxis, np.newaxis]                       # Envelope condition: Va = (1+r) * u'(c)
+    Va = (1 + r) * uc / p_bundle[..., np.newaxis, np.newaxis, np.newaxis]   # Envelope condition: Va = (1+r) * u'(c)
 
     # Productivity-weighted marginal utility (used in wage NKPC)
-    uce = e_grid[np.newaxis, :, np.newaxis] * uc / p_bundle[..., np.newaxis, np.newaxis] 
+    uce = e_grid[np.newaxis, :, np.newaxis, np.newaxis] * uc / p_bundle[..., np.newaxis, np.newaxis, np.newaxis]
 
     return V, Va, a, c, uce
 
@@ -395,7 +395,7 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec):
 
     Parameters
     ----------
-    c : ndarray, shape (n_d_tilde, n_d, n_e, n_a)
+    c : ndarray, shape (n_d_tilde, n_d, n_e, n_beta, n_a)
         Total consumption bundle quantity.
     p_core : float
         Price of core nondurable goods (numéraire = 1).
@@ -418,24 +418,24 @@ def decomposition_consu_bundle(c, p_core, p_bundle, p_e, nu, xi, tau_vec):
     c_E_g  : ndarray  — energy consumption of Green-durable households
     t_E    : ndarray  — energy tax revenue paid by each household
     """
-    # Broadcast p_bundle along (n_d, n_e, n_a) dimensions
-    p_bun = p_bundle[..., np.newaxis, np.newaxis]
-    p_en  = p_e[...,     np.newaxis, np.newaxis]
-    tau   = tau_vec[..., np.newaxis, np.newaxis]
+    # Broadcast p_bundle along (n_d, n_e, n_beta, n_a) dimensions
+    p_bun = p_bundle[..., np.newaxis, np.newaxis, np.newaxis]
+    p_en  = p_e[...,     np.newaxis, np.newaxis, np.newaxis]
+    tau   = tau_vec[..., np.newaxis, np.newaxis, np.newaxis]
 
     # Core consumption (same CES formula for all durable types)
     c_core = xi * (p_core / p_bun) ** (-nu) * c
 
     # Energy consumption (zero if energy price is zero, e.g. no energy good)
     c_E = np.where(
-        p_e[..., np.newaxis, np.newaxis] == 0,
+        p_e[..., np.newaxis, np.newaxis, np.newaxis] == 0,
         0.0,
         (1 - xi) * ((1 + tau) * p_en / p_bun) ** (-nu) * c,
     )
 
     # Split energy consumption by durable type
-    # Brown-durable households (axis 0, index 0) use brown energy
-    # Green-durable households (axis 0, index 1) use green energy
+    # Brown-durable households (axis 0, index 0/1) use brown energy
+    # Green-durable households (axis 0, index 2/3) use green energy
     c_E_b, c_E_g = np.zeros_like(c_E), np.zeros_like(c_E)
     c_E_b[0, ...] = c_E[0, ...]
     c_E_b[1, ...] = c_E[1, ...]
@@ -456,14 +456,14 @@ def compute_weighted_mpc(c, c_core, a, a_grid, r, e_grid):
     mpc[..., 0] = (c[..., 1] - c[..., 0]) / (post_return[1] - post_return[0])
     mpc[..., -1] = (c[..., -1] - c[..., -2]) / (post_return[-1] - post_return[-2])
     mpc[a == a_grid[0]] = 1
-    mpc *= e_grid[None, :, None]
+    mpc *= e_grid[None, :, None, None]
 
     mpc_core = np.empty_like(c_core)
     mpc_core[..., 1:-1] = (c_core[..., 2:] - c_core[..., :-2]) / (post_return[2:] - post_return[:-2])
     mpc_core[..., 0] = (c_core[..., 1] - c_core[..., 0]) / (post_return[1] - post_return[0])
     mpc_core[..., -1] = (c_core[..., -1] - c_core[..., -2]) / (post_return[-1] - post_return[-2])
     mpc_core[a == a_grid[0]] = 1
-    mpc_core *= e_grid[None, :, None]
+    mpc_core *= e_grid[None, :, None, None]
 
     return mpc, mpc_core
 
@@ -475,6 +475,14 @@ consav_stage = Continuous1D(
     f=dcegm,
     name="consav",
     hetoutputs=[D_demand, decomposition_consu_bundle],
+)
+
+consav_stage_ss = Continuous1D(
+    backward=["V", "Va"],
+    policy="a",
+    f=dcegm,
+    name="consav",
+    hetoutputs=[D_demand, decomposition_consu_bundle, compute_weighted_mpc],
 )
 
 
@@ -519,7 +527,8 @@ def hh_init(disp_inc, a_grid, gamma):
     return V, Va
 
 
-def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, delta_g, delta_b):
+def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, delta_g, delta_b,
+                beta_bar, beta_spread, n_beta):
     """
     Construct the state-space grids.
 
@@ -532,17 +541,36 @@ def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, delta_g, delta_b):
         Bounds and grid size for the asset grid (log-spaced).
     delta_g : float
         Depreciation rate of green durables (governs the durable Markov chain).
+    beta_bar : float
+        Mean household discount factor.
+    beta_spread : float
+        Half-width of the discount-factor grid around beta_bar.
+    n_beta : int
+        Number of discount-factor types.
 
     Returns
     -------
     e_grid, e_dist, e_markov : productivity grid, stationary distribution, transition matrix
     a_grid                   : asset grid
     d_grid, d_markov, d_grid_name : durable grid, depreciation transition, names
+    beta_grid, beta_dist, beta_markov : discount-factor types, population shares, transition
     """
     e_grid, e_dist, e_markov = grids.markov_rouwenhorst(rho_e, sd_e, n_e)
     a_grid = grids.agrid(max_a, n_a, min_a)
     d_grid, d_markov, d_grid_name = make_d_grid_simple(delta_g, delta_b)
-    return e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name
+
+    # Ex-ante (permanent) discount-factor heterogeneity, à la Carroll, Slacalek,
+    # Tokuoka & White (2017): fixed types, no switching (identity transition).
+    # Each type converges to its own stationary wealth distribution thanks to
+    # idiosyncratic income risk (standard Bewley-Aiyagari argument), so fixing
+    # beta permanently does not produce a degenerate long-run distribution.
+    beta_grid = beta_bar + beta_spread * np.linspace(-1, 1, n_beta)
+    beta_dist = np.ones(n_beta) / n_beta
+    lambda_switch = 0.02   # e.g. probability of a fresh redraw each quarter
+    beta_markov = (1 - lambda_switch) * np.eye(n_beta) + lambda_switch * np.outer(np.ones(n_beta), beta_dist)
+    #beta_markov = np.eye(n_beta)
+
+    return e_grid, e_dist, e_markov, a_grid, d_grid, d_markov, d_grid_name, beta_grid, beta_dist, beta_markov
 
 
 def income_grid(e_grid, w, N):
@@ -642,27 +670,17 @@ def adj_costs(psi_g):
     return adj_matrix
 
 
-def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):
+def disp_inc_f(a_grid, z_grid, T, r, adj_matrix, beta_grid):
     """
-    Compute disposable income on the full (n_d_tilde, n_d, n_e, n_a) grid.
-
-    Disposable income is what the household has available to split between
-    consumption and savings, after paying (or receiving) the durable
-    switching cost:
-
-        disp_inc(d_tilde, d, e, a) =
-            (1 + r) * a          [asset income]
-            + z(e)               [labor income]
-            + T(e)               [lump-sum transfers]
-            - adj_cost(d_tilde, d) [durable switching cost]
-
-    Array broadcasting dimensions: (n_d_tilde, n_d, n_e, n_a)
+    Disposable income = (1+r)*a + z(e) + T(e) - adj_cost(d_tilde,d).
+    Shape: (n_d_tilde, n_e, n_beta, n_a).
     """
     disp_inc = (
-          (1 + r) * a_grid[np.newaxis, np.newaxis, :]   # (1, 1, 1, n_a)
-        + z_grid[np.newaxis, :, np.newaxis]              # (1, 1, n_e, 1)
-        + T[np.newaxis, :, np.newaxis]                   # (1, 1, n_e, 1)
-        - adj_matrix[..., np.newaxis, np.newaxis]                    # (n_d_tilde, n_d, 1, 1)
+          (1 + r) * a_grid[np.newaxis, np.newaxis, np.newaxis, :]
+        + z_grid[np.newaxis, :, np.newaxis, np.newaxis]
+        + T[np.newaxis, :, np.newaxis, np.newaxis]
+        - adj_matrix[..., np.newaxis, np.newaxis, np.newaxis]
+        + 0.0 * beta_grid[np.newaxis, np.newaxis, :, np.newaxis]  # forces the beta axis to materialize at its true size
     )
     return disp_inc
 
@@ -673,7 +691,14 @@ def disp_inc_f(a_grid, z_grid, T, r, adj_matrix):
 # Combine the four stages and hetinputs into a single staged household block.
 
 hh = StageBlock(
-    [depreciation_stage, prod_stage, durables_stage, consav_stage],
+    [depreciation_stage, prod_stage, beta_stage, durables_stage, consav_stage],
+    name="hh",
+    backward_init=hh_init,
+    hetinputs=[make_grids, income_grid, transfers, adj_costs, disp_inc_f, create_vectors],
+)
+
+hh_ss = StageBlock(
+    [depreciation_stage, prod_stage, beta_stage, durables_stage, consav_stage_ss],
     name="hh",
     backward_init=hh_init,
     hetinputs=[make_grids, income_grid, transfers, adj_costs, disp_inc_f, create_vectors],

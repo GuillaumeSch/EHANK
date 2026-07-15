@@ -36,9 +36,9 @@ def prod(Y, Z):
     return N_D
 
 @sj.simple
-def nkpc(piw, N, vphi, frisch, markup_ss, gamma, beta, theta_w, w, Y, C, UCE):
-    kappa_w = (1 - theta_w) * (1 - beta * theta_w)/(theta_w*(1+vphi*(markup_ss/(markup_ss-1))))
-    wnkpc = kappa_w * (vphi * (N)**(1/frisch) - 1/markup_ss * w * UCE) + beta * piw(1) - piw
+def nkpc(piw, N, vphi, frisch, markup_ss, gamma, beta_bar, theta_w, w, Y, C, UCE):
+    kappa_w = (1 - theta_w) * (1 - beta_bar * theta_w)/(theta_w*(1+vphi*(markup_ss/(markup_ss-1))))
+    wnkpc = kappa_w * (vphi * (N)**(1/frisch) - 1/markup_ss * w * UCE) + beta_bar * piw(1) - piw
     return wnkpc
 
 @sj.simple
@@ -78,9 +78,9 @@ def monetary_taylor(pi_core, ishock, rss, phi_pi):
     return r_ante, i
 
 @sj.solved(unknowns={"i": (-0.2, 0.2)}, targets=["taylor_resid"])
-def monetary_taylor_headline(i, pi_headline, ishock, rss, phi_pi, rho_i):
+def monetary_taylor_headline(i, pi_headline, pi_core, ishock, rss, phi_pi, rho_i):
     taylor_resid = i - (rho_i * i(-1) + (1 - rho_i) * (rss + phi_pi * pi_headline) + ishock)
-    r_ante = i - pi_headline(1)
+    r_ante = i - pi_core(1)
     return r_ante, taylor_resid
 
 @sj.simple
