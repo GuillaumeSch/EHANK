@@ -59,7 +59,8 @@ from HH_Block import hh, hh_ss
 from Model_Blocks import (
     fiscal, mkt_clearing, prod,
     rsrce_cstrt, nkpc, nkpc_ss, core_inflation, headline_inflation,
-    taylor_rule, taylor_rule_headline, real_rule, others
+    taylor_rule_headline, real_rule, others,
+    rsrce_cstrt_leak_E
 )
 from Fun.my_funs import *  # noqa: F401,F403 — plotting / IRF / steady-state helpers
 
@@ -85,7 +86,7 @@ baseline_calibration = {
     # Preferences
     # -------------------------------------------------------------------------
     "beta_bar":    0.965,      # Household discount factor (population mean)
-    "beta_spread": 0.02,       # Dispersion of beta across the 3 discount-factor types
+    "beta_spread": 0.00,       # Dispersion of beta across the 3 discount-factor types
     "n_beta":      3,
     "gamma":       1 / 0.8,    # Coefficient of relative risk aversion (CRRA)
     "taste_shock": 1e-1,       # Idiosyncratic taste shock (smooths discrete durable choice)
@@ -134,6 +135,7 @@ baseline_calibration = {
     "kappa_g": 0.10,            # Response of gov. exp. to debt deviation (Leeper, Plante & Traum, 2010)
     "Tax":     0,                # Lump-sum tax (endogenous at SS to satisfy GBC)
     "tau":     0,                # Labor income tax rate
+    "leakage_E": 0,
 
     # -------------------------------------------------------------------------
     # Energy Prices and Policy
@@ -163,7 +165,7 @@ baseline_calibration = {
     # -------------------------------------------------------------------------
     "rss":    0.05 / 4,        # Steady-state nominal interest rate
     "phi_pi": 1.2,             # Taylor rule coefficient on inflation
-    "rho_i":  0.0,             # Persistence in Taylor Rule
+    "rho_i":  0.8,             # Persistence in Taylor Rule
     "ishock": 0,               # Monetary policy shock (0 at steady state)
 
     # -------------------------------------------------------------------------
@@ -211,12 +213,12 @@ ha = sj.create_model(
 )
 
 hank_ss = sj.create_model(
-    [hh_ss, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc_ss, core_inflation, taylor_rule, others],
+    [hh_ss, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc_ss, others],
     name="HANK Model S.S",
 )
 
 hank = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, taylor_rule, others],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, headline_inflation, taylor_rule_headline, others],
     name="HANK Model",
 )
 
@@ -227,8 +229,13 @@ hank_headline = sj.create_model(
 )
 
 hank_real = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, real_rule, others],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, headline_inflation, real_rule, others],
     name="HANK Model Real Rule",
+)
+
+hank_leak = sj.create_model(
+    [hh, fiscal, mkt_clearing, rsrce_cstrt_leak_E, prod, nkpc, core_inflation, headline_inflation, real_rule, others],
+    name="HANK Model Leakage",
 )
 
 
@@ -293,49 +300,50 @@ targets_ss_hank = {
 
 calib = hank_ss.solve_steady_state(ss, unknowns_ss_hank, targets_ss_hank, solver="hybr")
 
-ss_hank = hank.steady_state(calib)
-ss_hank_real = hank_real.steady_state(calib)
-
 # --- Fixed headline-inflation weights, computed once from the solved SS to
 #     avoid a cyclic DAG dependency (household aggregate -> upstream block) ---
 nom_C_ss = (
-    ss_hank["p_core"] * ss_hank["C_CORE"]
-    + ss_hank["p_e_b"] * ss_hank["C_E_B"]
-    + ss_hank["p_e_g"] * ss_hank["C_E_G"]
+    calib["p_core"] * calib["C_CORE"]
+    + calib["p_e_b"] * calib["C_E_B"]
+    + calib["p_e_g"] * calib["C_E_G"]
 )
-calib["omega_core"] = ss_hank["p_core"] * ss_hank["C_CORE"] / nom_C_ss
-calib["omega_eb"] = ss_hank["p_e_b"] * ss_hank["C_E_B"] / nom_C_ss
-calib["omega_eg"] = ss_hank["p_e_g"] * ss_hank["C_E_G"] / nom_C_ss
+calib["omega_core"] = calib["p_core"] * calib["C_CORE"] / nom_C_ss
+calib["omega_eb"] = calib["p_e_b"] * calib["C_E_B"] / nom_C_ss
+calib["omega_eg"] = calib["p_e_g"] * calib["C_E_G"] / nom_C_ss
 
+ss_hank = hank.steady_state(calib)
 ss_hank_headline = hank_headline.steady_state(calib)
+ss_hank_real = hank_real.steady_state(calib)
+ss_hank_leakage = hank_leak.steady_state(calib)
+
 
 # --- Policy functions and stationary distribution at the GE steady state ---
 ss_dict_ge = {"baseline": ss_hank}
 
-policy_function_disc(
-    ss_dict_ge, xmax=20, xmin=0, d_tilde_list=[0, 2], d_list=[0], ie_list=[2],
-    figsize=0.8, models=["baseline"],
-    title="Durable Adoption Decision: Brown Owners at Median Productivity",
-    save_path=f"{FIG_DIR}/policy_function_durable_brown_ie2.png",
-)
-policy_function_disc(
-    ss_dict_ge, xmax=20, xmin=0, d_tilde_list=[1, 3], d_list=[2], ie_list=[2],
-    figsize=0.8, models=["baseline"],
-    title="Durable Adoption Decision: Green Owners at Median Productivity",
-    save_path=f"{FIG_DIR}/policy_function_durable_green_ie2.png",
-)
-policy_function_switch_heatmap(ss_dict_ge, save_path=f"{FIG_DIR}/policy_function_heatmap.png")
+# policy_function_disc(
+#     ss_dict_ge, xmax=20, xmin=0, d_tilde_list=[0, 2], d_list=[0], ie_list=[2],
+#     figsize=0.8, models=["baseline"],
+#     title="Durable Adoption Decision: Brown Owners at Median Productivity",
+#     save_path=f"{FIG_DIR}/policy_function_durable_brown_ie2.png",
+# )
+# policy_function_disc(
+#     ss_dict_ge, xmax=20, xmin=0, d_tilde_list=[1, 3], d_list=[2], ie_list=[2],
+#     figsize=0.8, models=["baseline"],
+#     title="Durable Adoption Decision: Green Owners at Median Productivity",
+#     save_path=f"{FIG_DIR}/policy_function_durable_green_ie2.png",
+# )
+# policy_function_switch_heatmap(ss_dict_ge, save_path=f"{FIG_DIR}/policy_function_heatmap.png")
 
-plot_distribution(ss_hank, truncate_at=11, normalize=False,
-                   save_path=f"{FIG_DIR}/stationary_distr.png")
-plot_distribution(ss_hank, lines_dim=1, truncate_at=11, normalize=False,
-                   labels=["Very Low", "Low", "Middle", "High", "Very High"],
-                   title="Wealth Distribution by Productivity Type (Mass in the Economy)",
-                   save_path=f"{FIG_DIR}/stationary_distr_prod.png")
-plot_distribution(ss_hank, lines_dim=0, truncate_at=11, normalize=False,
-                   labels=["BB", "BG", "GB", "GG"],
-                   title="Wealth Distribution by (collapsed) durable state",
-                   save_path=f"{FIG_DIR}/stationary_distr_durables.png")
+# plot_distribution(ss_hank, truncate_at=11, normalize=False,
+#                    save_path=f"{FIG_DIR}/stationary_distr.png")
+# plot_distribution(ss_hank, lines_dim=1, truncate_at=11, normalize=False,
+#                    labels=["Very Low", "Low", "Middle", "High", "Very High"],
+#                    title="Wealth Distribution by Productivity Type (Mass in the Economy)",
+#                    save_path=f"{FIG_DIR}/stationary_distr_prod.png")
+# plot_distribution(ss_hank, lines_dim=0, truncate_at=11, normalize=False,
+#                    labels=["BB", "BG", "GB", "GG"],
+#                    title="Wealth Distribution by (collapsed) durable state",
+#                    save_path=f"{FIG_DIR}/stationary_distr_durables.png")
 
 
 # %%
@@ -376,7 +384,7 @@ comparative_statics_plot_shares(
 # Unknowns (transition): Tax, Y, N, piw
 # Targets  (transition): asset_mkt, GBC, wnkpc, labor_mkt
 
-unknowns_td = ["B", "Y", "N", "piw"]
+unknowns_td = ["Tax", "Y", "N", "piw"]
 targets_td = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
 
 outputs = ["C", "Y", "piw", "D_B", "D_G", "Tax", "B"]
@@ -394,7 +402,7 @@ names_outputs = [
 IRFs_p_e_b = plot_linear_irfs(
     shocks_list=["p_e_b"], e={"p_e_b": 10}, rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td, targets_td=targets_td,
-    ha=hank, ss=ss_hank, outputs=outputs, titles=names_outputs,
+    ha=hank_real, ss=ss_hank_real, outputs=outputs, titles=names_outputs,
     figsize=(12, 9), save_path=f"{IRF_DIR}/irfs_p_e_b.png", plot=True,
 )
 
@@ -782,3 +790,27 @@ results_beta_spread = compare_irfs_by_parameter(
     figsize=(12, 9), resolve_ss=True, plot=True,
     save_path=f"{IRF_DIR}/irfs_beta_het.png",
 )
+
+
+#%%
+unknowns_td_leak = ["Tax", "Y", "N", "piw"]
+targets_td_leak = ["rsrce_cstrt", "GBC", "wnkpc", "labor_mkt"]
+
+outputs = ["C", "C_CORE", "AD","Y", "piw", "Tax", "B", "rsrce_cstrt", "asset_mkt","pi_headline","C_E_B"]
+
+
+ss_hank_real['leakage_E'] = 0
+
+# %%
+results_leakage = compare_irfs_by_parameter(
+    param_name="leakage_E", param_values=[0,0.1,1],
+    shocks_list=["p_e_b"], e={"p_e_b": 10}, rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td_leak, targets_td=targets_td_leak,
+    ha=hank_leak, ss=ss_hank_real,
+    hank_ss=hank_leak, unknowns_ss=unknowns_ss, targets_ss=targets_ss,
+    calibration=baseline_calibration,
+    outputs=outputs,
+    figsize=(12, 9), resolve_ss=False, plot=True,
+    save_path=f"{IRF_DIR}/irfs_leakage.png",
+)
+# %%
