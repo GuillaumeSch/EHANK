@@ -31,39 +31,10 @@ def rsrce_cstrt(C_CORE, Y, G, D_GB, psi_g, p_e_b, p_e_g, C_E_B, C_E_G):
     return rsrce_cstrt, AD, AD_NONDURABLES, AD_DURABLES, AS
 
 @sj.simple
-def rsrce_cstrt_leak(C, C_CORE, C_E, Y, G, D_GB, psi_g, p_e_b, p_e_g, C_E_B, C_E_G, leakage):
-    p_E_vec = np.array([p_e_b, p_e_g])
-    C_E_vec = np.array([C_E_B, C_E_G])
-    AD_NONDURABLES = C_CORE + np.sum(p_E_vec * C_E_vec)
-    AD_DURABLES = D_GB * psi_g
-    AD = AD_NONDURABLES + AD_DURABLES + G
-    AS = Y
-
-    # Leakage total
-    #rsrce_cstrt = (AS - AS.ss) - (1 - leakage) * (AD - AD.ss)
-    
-    # Brown Leakage
-    brown_leakage = leakage * p_e_b * (C_E_B - C_E_B.ss)
-    rsrce_cstrt = (AS - AS.ss) - (AD - AD.ss) - brown_leakage
-
-    
-    return rsrce_cstrt, AD, AD_NONDURABLES, AD_DURABLES, AS
-
-@sj.simple
 def rsrce_cstrt_leak_E(C_CORE, Y, G, D_GB, psi_g, p_e_b, p_e_g, C_E_B, C_E_G, leakage_E):
-    # Boris's baseline identity is Y - C = p_E*E (balanced trade every period):
-    # the energy import bill must be financed by extra domestic production/exports.
-    # leakage_E relaxes this: the DEVIATION of the energy bill from its SS level
-    # is (partially) excluded from the domestic resource constraint, i.e. financed
-    # by a temporary current account imbalance instead of extra domestic output.
-    # leakage_E=0 nests the current baseline exactly (no SS re-solve needed).
     p_E_vec = np.array([p_e_b, p_e_g])
     C_E_vec = np.array([C_E_B, C_E_G])
     energy_bill = np.sum(p_E_vec * C_E_vec)
-
-    # .ss must be read off the raw inputs (p_e_b.ss, C_E_B.ss, ...) BEFORE any
-    # np.array()/np.sum() packaging — intermediate variables like energy_bill
-    # don't carry a .ss attribute, only the function's own input arguments do.
     energy_bill_ss = p_e_b.ss * C_E_B.ss + p_e_g.ss * C_E_G.ss
 
     AD_NONDURABLES = C_CORE + energy_bill - leakage_E * (energy_bill - energy_bill_ss)
