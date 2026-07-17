@@ -13,10 +13,15 @@ def others(D_B):
     return D_B_target
 
 @sj.simple
-def mkt_clearing(A, B, N, N_D, Tax_NFA):
-    asset_mkt = A - B + Tax_NFA
+def mkt_clearing(A, B, N, N_D, NFA):
+    asset_mkt = A - B + NFA
     labor_mkt = N - N_D
     return asset_mkt, labor_mkt
+
+@sj.solved(unknowns={'NFA': (-10, 10)}, targets=['NFA_res'])
+def NFA_block(NFA, r, NFA_Tax, A, B):
+    NFA_res = NFA - (NFA(-1) * (1+r.ss) +(A - B) - NFA_Tax)
+    return NFA_res
 
 # @sj.solved for nfa
 # def nfa(A, B, r_star, Tax_NFA):

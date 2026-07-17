@@ -60,7 +60,7 @@ from Model_Blocks import (
     fiscal, mkt_clearing, prod,
     rsrce_cstrt, nkpc, nkpc_ss, core_inflation, headline_inflation,
     taylor_rule_headline, real_rule, others,
-    rsrce_cstrt_leak_E
+    rsrce_cstrt_leak_E, NFA_block
 )
 from Fun.my_funs import *  # noqa: F401,F403 — plotting / IRF / steady-state helpers
 
@@ -134,7 +134,8 @@ baseline_calibration = {
     "G_ss":    0.1,             # Government spending (exogenous)
     "kappa_g": 0.10,            # Response of gov. exp. to debt deviation (Leeper, Plante & Traum, 2010)
     "Tax":     0,                # Lump-sum tax (endogenous at SS to satisfy GBC)
-    "Tax_NFA": 0,                # Lump-sum tax to repay NFA (shock)
+    "NFA_Tax": 0,                # Lump-sum tax to repay NFA (shock)
+    "NFA":     0,
     "tau":     0,                # Labor income tax rate
     "leakage_E": 0,
 
@@ -235,7 +236,7 @@ hank_real = sj.create_model(
 )
 
 hank_leak = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt_leak_E, prod, nkpc, core_inflation, headline_inflation, real_rule, others],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt_leak_E, prod, nkpc, core_inflation, headline_inflation, real_rule, others, NFA_block],
     name="HANK Model Leakage",
 )
 
@@ -794,17 +795,17 @@ results_beta_spread = compare_irfs_by_parameter(
 
 
 #%%
-unknowns_td_leak = ["Tax_NFA", "Tax", "Y", "N", "piw"]
-targets_td_leak = ["asset_mkt", "rsrce_cstrt", "GBC", "wnkpc", "labor_mkt"]
+unknowns_td_leak = ["NFA_Tax","Tax", "Y", "N", "piw"]
+targets_td_leak = ["asset_mkt","rsrce_cstrt", "GBC", "wnkpc", "labor_mkt"]
 
-outputs = ["C", "C_CORE", "AD","Y", "piw", "Tax", "Tax_NFA", "B", "rsrce_cstrt", "asset_mkt","pi_headline","C_E_B"]
+outputs = ["C", "C_CORE", "AD","Y", "piw", "Tax", "NFA", "B", "rsrce_cstrt", "asset_mkt","pi_headline","C_E_B"]
 
 
 ss_hank_real['leakage_E'] = 0
 
 # %%
 results_leakage = compare_irfs_by_parameter(
-    param_name="leakage_E", param_values=[0, 0.5, 0.8, 1],
+    param_name="leakage_E", param_values=[0, 0.8, 1],
     shocks_list=["p_e_b"], e={"p_e_b": 10}, rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td_leak, targets_td=targets_td_leak,
     ha=hank_leak, ss=ss_hank_real,
