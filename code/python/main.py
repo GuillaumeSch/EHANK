@@ -134,6 +134,7 @@ baseline_calibration = {
     "G_ss":    0.1,             # Government spending (exogenous)
     "kappa_g": 0.10,            # Response of gov. exp. to debt deviation (Leeper, Plante & Traum, 2010)
     "Tax":     0,                # Lump-sum tax (endogenous at SS to satisfy GBC)
+    "Tax_NFA": 0,                # Lump-sum tax to repay NFA (shock)
     "tau":     0,                # Labor income tax rate
     "leakage_E": 0,
 
@@ -793,24 +794,23 @@ results_beta_spread = compare_irfs_by_parameter(
 
 
 #%%
-unknowns_td_leak = ["Tax", "Y", "N", "piw"]
-targets_td_leak = ["rsrce_cstrt", "GBC", "wnkpc", "labor_mkt"]
+unknowns_td_leak = ["Tax_NFA", "Tax", "Y", "N", "piw"]
+targets_td_leak = ["asset_mkt", "rsrce_cstrt", "GBC", "wnkpc", "labor_mkt"]
 
-outputs = ["C", "C_CORE", "AD","Y", "piw", "Tax", "B", "rsrce_cstrt", "asset_mkt","pi_headline","C_E_B"]
+outputs = ["C", "C_CORE", "AD","Y", "piw", "Tax", "Tax_NFA", "B", "rsrce_cstrt", "asset_mkt","pi_headline","C_E_B"]
 
 
 ss_hank_real['leakage_E'] = 0
 
 # %%
 results_leakage = compare_irfs_by_parameter(
-    param_name="leakage_E", param_values=[0,0.1,1],
+    param_name="leakage_E", param_values=[0, 0.5, 0.8, 1],
     shocks_list=["p_e_b"], e={"p_e_b": 10}, rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td_leak, targets_td=targets_td_leak,
     ha=hank_leak, ss=ss_hank_real,
     hank_ss=hank_leak, unknowns_ss=unknowns_ss, targets_ss=targets_ss,
     calibration=baseline_calibration,
     outputs=outputs,
-    figsize=(12, 9), resolve_ss=False, plot=True,
-    save_path=f"{IRF_DIR}/irfs_leakage.png",
+    figsize=(12, 9), resolve_ss=False, plot=True
 )
 # %%

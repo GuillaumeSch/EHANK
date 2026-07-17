@@ -617,7 +617,7 @@ def create_vectors(tau_b, tau_g, p_e_b, p_e_g, nu, xi, p_core):
     return tau_vec, p_e, d, p_tilde_e, p_bundle
 
 
-def transfers(e_dist, Div, Tax, e_grid):
+def transfers(e_dist, Div, Tax, e_grid, Tax_NFA):
     """
     Compute net lump-sum transfers to households by productivity type.
 
@@ -640,7 +640,7 @@ def transfers(e_dist, Div, Tax, e_grid):
     tax_rule = np.ones_like(e_grid)
 
     div = Div / np.sum(e_dist * div_rule) * div_rule
-    tax = Tax / np.sum(e_dist * tax_rule) * tax_rule
+    tax = (Tax-Tax_NFA) / np.sum(e_dist * tax_rule) * tax_rule
     
     T = div - tax
 

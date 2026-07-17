@@ -13,10 +13,15 @@ def others(D_B):
     return D_B_target
 
 @sj.simple
-def mkt_clearing(A, B, N, N_D):
-    asset_mkt = A - B
+def mkt_clearing(A, B, N, N_D, Tax_NFA):
+    asset_mkt = A - B + Tax_NFA
     labor_mkt = N - N_D
     return asset_mkt, labor_mkt
+
+# @sj.solved for nfa
+# def nfa(A, B, r_star, Tax_NFA):
+#     nfa = A - B + (1+r_star)*nfa(-1) - Tax_NFA #Tax_NFA is an exogenous
+#     return asset_mkt
 
 #Compute the resource constraint
 @sj.simple
