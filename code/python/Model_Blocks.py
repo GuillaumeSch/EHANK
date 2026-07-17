@@ -8,15 +8,17 @@ def fiscal(B, r, G_ss, kappa_g, Tax, T_E):
     return GBC, G
 
 @sj.simple
-def others(D_B):
+def others(D_B, tau_b, p_e_b):
     D_B_target = D_B - D_B.ss
-    return D_B_target
+    p_e_b_net = (1+tau_b)*p_e_b
+    return D_B_target, p_e_b_net
 
 @sj.simple
-def mkt_clearing(A, B, N, N_D):
+def mkt_clearing(A, B, N, N_D, C_E_B, C_E_B_S):
     asset_mkt = A - B
     labor_mkt = N - N_D
-    return asset_mkt, labor_mkt
+    brown_energy_mkt = C_E_B - C_E_B_S
+    return asset_mkt, labor_mkt, brown_energy_mkt
 
 #Compute the resource constraint.
 @sj.simple
