@@ -18,7 +18,7 @@ def mkt_clearing(A, B, N, N_D):
     labor_mkt = N - N_D
     return asset_mkt, labor_mkt
 
-#Compute the resource constraint
+#Compute the resource constraint.
 @sj.simple
 def rsrce_cstrt(C, C_CORE, C_E, Y, G, D_GB, psi_g, p_e_b, p_e_g, C_E_B, C_E_G):
     p_E_vec = np.array([p_e_b, p_e_g])
@@ -68,7 +68,7 @@ def headline_inflation(piw, p_e_b, p_e_g, omega_core, omega_eb, omega_eg):
     pi_core = piw
     pi_e_b  = (p_e_b - p_e_b(-1)) / p_e_b(-1)
     pi_e_g  = (p_e_g - p_e_g(-1)) / p_e_g(-1)
-    pi_headline = omega_core * pi_core + omega_eb * pi_e_b + omega_eg * pi_e_g
+    pi_headline = pi_core + omega_eb * pi_e_b + omega_eg * pi_e_g
     return pi_headline
 
 @sj.simple
@@ -76,12 +76,6 @@ def monetary_taylor(pi_core, ishock, rss, phi_pi):
     i = rss + phi_pi * pi_core + ishock
     r_ante = i - pi_core(1)
     return r_ante, i
-
-@sj.solved(unknowns={"i": (-0.2, 0.2)}, targets=["taylor_resid"])
-def monetary_taylor_headline(i, pi_headline, ishock, rss, phi_pi, rho_i):
-    taylor_resid = i - (rho_i * i(-1) + (1 - rho_i) * (rss + phi_pi * pi_headline) + ishock)
-    r_ante = i - pi_headline(1)
-    return r_ante, taylor_resid
 
 @sj.simple
 def monetary_real(pi_core, ishock, rss):
@@ -95,6 +89,5 @@ def ex_post_rate(r_ante):
     return r
 
 taylor_rule = sj.combine([monetary_taylor,ex_post_rate], name="Taylor_rule")
-taylor_rule_headline = sj.combine([monetary_taylor_headline,ex_post_rate], name="Taylor_rule_headline")
 real_rule = sj.combine([monetary_real,ex_post_rate], name="Real_rule")
 

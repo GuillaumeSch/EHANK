@@ -45,7 +45,7 @@ from sequence_jacobian import drawdag
 from HH_Block import hh
 from Model_Blocks import (
     fiscal, mkt_clearing, prod,
-    rsrce_cstrt, nkpc, nkpc_ss, core_inflation, headline_inflation, taylor_rule, taylor_rule_headline, real_rule, others
+    rsrce_cstrt, nkpc, nkpc_ss, core_inflation, headline_inflation, taylor_rule, real_rule, others
 )
 
 # Custom utility functions (plotting IRFs, policy functions, etc.)
@@ -202,18 +202,13 @@ hank_ss = sj.create_model(
 )
 
 hank = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, taylor_rule, others],
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, headline_inflation,taylor_rule, others],
     name="HANK Model",
-)
-
-hank_headline = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, headline_inflation, taylor_rule_headline, others],
-    name="HANK Model Headline",
 )
 
 hank_real = sj.create_model(
-    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, real_rule, others],
-    name="HANK Model",
+    [hh, fiscal, mkt_clearing, rsrce_cstrt, prod, nkpc, core_inflation, headline_inflation, real_rule, others],
+    name="HANK Model - Real Rule",
 )
 
 
@@ -301,21 +296,18 @@ calib = hank_ss.solve_steady_state(
 )
 
 
+# --- Compute fixed headline-inflation weights from the SS you already solved ---
+nom_C_ss = calib["p_core"] * calib["C_CORE"] \
+         + calib["p_e_b"]  * calib["C_E_B"] \
+         + calib["p_e_g"]  * calib["C_E_G"]
+
+calib["omega_core"] = calib["p_core"] * calib["C_CORE"] / nom_C_ss
+calib["omega_eb"]   = calib["p_e_b"]  * calib["C_E_B"]  / nom_C_ss
+calib["omega_eg"]   = calib["p_e_g"]  * calib["C_E_G"]  / nom_C_ss
+
+
 ss_hank =  hank.steady_state(calib)
 ss_hank_real =  hank_real.steady_state(calib)
-
-# --- Compute fixed headline-inflation weights from the SS you already solved ---
-nom_C_ss = ss_hank["p_core"] * ss_hank["C_CORE"] \
-         + ss_hank["p_e_b"]  * ss_hank["C_E_B"] \
-         + ss_hank["p_e_g"]  * ss_hank["C_E_G"]
-
-calib["omega_core"] = ss_hank["p_core"] * ss_hank["C_CORE"] / nom_C_ss
-calib["omega_eb"]   = ss_hank["p_e_b"]  * ss_hank["C_E_B"]  / nom_C_ss
-calib["omega_eg"]   = ss_hank["p_e_g"]  * ss_hank["C_E_G"]  / nom_C_ss
-
-ss_hank_headline =  hank_headline.steady_state(calib)
-
-
 
 # --- Plot policy functions at general equilibrium SS ---
 ss_dict_ge = {"baseline": ss_hank}
@@ -1093,60 +1085,34 @@ plt.show()
 
 
 
+unknowns_td = ["Tax", "Y", "N", "piw"]
+targets_td  = ["asset_mkt", "GBC", "wnkpc", "labor_mkt"]
+outputs = [
+    "C", "Y", "piw","D_B", "D_G", "Tax", "B"
+]
+names_outputs = [
+    r"Consumption: $C$",
+    r"Output: $Y$",
+    r"Wage Inflation: $\pi_w$",
+    r"Brown Durable Stock: $D_B$",
+    r"Green Durable Stock: $D_G$",
+    r"Lump-Sum Tax: $Tax$",
+    r"Public Debt: $B$"
+]
+
+
 IRFs_p_e_b = plot_linear_irfs(
     shocks_list=["p_e_b"],
     e={"p_e_b": 10},
     rho={"p_e_b": 0.80},
     unknowns_td=unknowns_td,
     targets_td=targets_td,
-    ha=hank,
-    ss=ss_hank,
+    ha=hank_real,
+    ss=ss_hank_real,
     outputs=outputs,
     titles=names_outputs,
     figsize=(12, 9),
-    plot=plot_all
-)
-
-IRFs_p_e_b_headline = plot_linear_irfs(
-    shocks_list=["p_e_b"],
-    e={"p_e_b": 10},
-    rho={"p_e_b": 0.80},
-    unknowns_td=unknowns_td,
-    targets_td=targets_td,
-    ha=hank_headline,
-    ss=ss_hank_headline,
-    outputs=outputs,
-    titles=names_outputs,
-    figsize=(12, 9),
-    plot=plot_all
-)
-
-show_irfs(
-    [IRFs_p_e_b, IRFs_p_e_b_headline],
-    ["p_e_b","pi_core","pi_headline","i","r"] + outputs,
-    titles=["Energy price shock", "pi_core", "pi_headline", "Nom. IR", "Real IR"] + names_outputs,
-    labels=["Taylor Rule (core)","Taylor Rule (headline)"],
-    figsize=(12, 9),
-    show=True,
-    save_path="../../output/figures/IRFs/irfs_headline.png",
-)
-# %%
-irfs_rho_i = compare_irfs_by_parameter(
-    param_name="rho_i",
-    param_values=[0.0, 0.8],
-    shocks_list=["p_e_b"],
-    e={"p_e_b": 10},
-    rho={"p_e_b": 0.80},
-    unknowns_td=unknowns_td,
-    targets_td=targets_td,
-    ha=hank_headline,
-    ss=ss_hank_headline,
-    outputs=["pi_core","pi_headline","i","r"] + outputs,
-    titles=["pi_core", "pi_headline", "Nom. IR", "Real IR"] + names_outputs,
-    figsize=(12, 9),
-    resolve_ss=False,
-    plot=True,
-    save_path="../../output/figures/IRFs/irfs_rho_i.png",
+    plot=True
 )
 
 
