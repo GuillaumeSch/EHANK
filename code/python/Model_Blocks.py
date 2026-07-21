@@ -17,7 +17,7 @@ def others(D_B, tau_b, p_e_b):
 def mkt_clearing(A, B, N, N_D, C_E_B, C_E_B_S):
     asset_mkt = A - B
     labor_mkt = N - N_D
-    brown_energy_mkt = C_E_B - C_E_B_S
+    brown_energy_mkt = (C_E_B-C_E_B_S) - (C_E_B-C_E_B_S.ss)*(1-0.2)
     return asset_mkt, labor_mkt, brown_energy_mkt
 
 #Compute the resource constraint.

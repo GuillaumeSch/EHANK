@@ -642,7 +642,7 @@ show_irfs(
     ],
     figsize=(12, 9),
     save_path="../../output/figures/IRFs/irfs_brownSubsidy.png",
-    
+    show=True
 )
 
 # %%

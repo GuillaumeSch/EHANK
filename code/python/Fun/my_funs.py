@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from numba import njit
 from IPython.display import display, Math
 from copy import deepcopy
 from scipy.interpolate import interp1d, griddata
@@ -653,36 +654,25 @@ def ppplot(array, discrete_choice=1, prod_type=0, a_min=0, a_max=199):
     plt.show()
     
     
-def make_strictly_decreasing(uc):
-    uc_fixed = uc.copy()
-    shape = uc.shape
-    ndim = uc.ndim
+@njit
+def make_strictly_decreasing(x):
+    """Enforce a strictly-decreasing sequence along the last axis.
 
-    # Iterate over all indices except the last one
-    it = np.nditer(uc[..., 0], flags=['multi_index'])
-    while not it.finished:
-        idx = it.multi_index  # Tuple of all dimensions except the last
-        row = uc[idx]  # This is a 1D array (the last axis)
+    Marginal utility u'(c) must be decreasing in end-of-period assets for the
+    EGM inversion / upper envelope to be well behaved. Where the raw array
+    violates monotonicity (numerical noise near kinks), values are lowered to
+    the minimum needed to restore strict monotonicity, leaving the rest intact.
+    """
+    out = x.copy()
+    flat = out.reshape((-1, x.shape[-1]))
+    n, m = flat.shape
+    eps = 1e-12
+    for i in range(n):
+        for j in range(1, m):
+            if flat[i, j] >= flat[i, j - 1]:
+                flat[i, j] = flat[i, j - 1] - eps
+    return flat.reshape(x.shape)
 
-        # Fix infinite values at the start
-        if np.isinf(row[0]):
-            first_finite = np.argmax(~np.isinf(row))
-            if first_finite > 0:
-                decrement = 1.0
-                for k in range(first_finite - 1, -1, -1):
-                    row[k] = row[k + 1] + decrement
-
-        # Make strictly decreasing
-        for k in range(1, row.shape[0]):
-            if row[k] >= row[k - 1]:
-                row[k] = row[k - 1] - 1e-8
-
-        # Assign back to uc_fixed
-        uc_fixed[idx] = row
-
-        it.iternext()
-
-    return uc_fixed
 
 def make_strictly_increasing(uc):
     uc_fixed = uc.copy()
