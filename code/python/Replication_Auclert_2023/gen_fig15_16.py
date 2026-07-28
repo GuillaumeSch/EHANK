@@ -1,3 +1,4 @@
+# %%
 """
 Reproduce Fig. 15 (output, consumption, gov. debt) and Fig. 16 (household energy price,
 wage inflation, CPI inflation) with the single-beta fiscal model.
@@ -102,7 +103,7 @@ for name in order:
           f"{100*r['B'].max():6.2f} {100*4*r['pi_w'].max():7.2f}% {100*4*r['pi_hh'].max():8.2f}%")
 
 # ---- Fig. 15 ----
-H = 16
+H = 300
 colors = {'nothing': 'k', 'subsidy': 'C0', 'targeted': 'C1', 'untargeted': 'C2'}
 fig, ax = plt.subplots(1, 3, figsize=(13, 4))
 for name in order:
@@ -132,3 +133,5 @@ print("Saved fig16_fiscal_singlebeta.png")
 with open('results_fig1516.pkl', 'wb') as f:
     pickle.dump(dict(irf=irf, T=T), f)
 print("Saved results_fig1516.pkl")
+
+# %%

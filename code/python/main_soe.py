@@ -9,6 +9,8 @@ import sequence_jacobian as sj
 from HH_Block import hh
 from blocks_soe import (prod, labor_market, exports, goods_market, external,
                         fiscal, nkpc, nkpc_ss, core_inflation, real_rule)
+from Fun.my_funs import *
+
 
 # %%# ---------------------------------------------------------------------------
 # Calibration
@@ -134,7 +136,7 @@ for k in ['D_B', 'D_G', 'D_GB']:
 # Figure: IRFs to +10% brown-energy price shock
 # ---------------------------------------------------------------------------
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 H = 40
@@ -146,8 +148,9 @@ series = {
     r'Brown energy $C_E^b$':       100 * irf['C_E_B'][:H],
     r'Trade balance $TB$':         100 * irf['TB'][:H],
     r'Net foreign assets $nfa$':   100 * irf['nfa'][:H],
+    r'$X$':   100 * irf['X'][:H],
 }
-fig, ax = plt.subplots(2, 3, figsize=(13, 7))
+fig, ax = plt.subplots(3, 3, figsize=(13, 7))
 for a, (ttl, y) in zip(ax.flat, series.items()):
     a.plot(q, y, lw=2, color='C0')
     a.axhline(0, color='gray', lw=0.6)
@@ -159,3 +162,44 @@ fig.suptitle(r'SOE E-HANK: response to a $+10\%$ brown-energy world-price shock 
 fig.tight_layout()
 fig.savefig('irf_soe_brown_energy.png', dpi=130)
 print("\nSaved irf_soe_brown_energy.png")
+
+# %%
+
+
+
+
+
+
+
+
+unknowns_td = U
+targets_td  = TG
+outputs = [
+    "p_e_b","C", "Y", "piw","D_B", "D_G", "Tax", "B"
+]
+names_outputs = [
+    r"Brown Energy Price: $p_e^b$",
+    r"Consumption: $C$",
+    r"Output: $Y$",
+    r"Wage Inflation: $\pi_w$",
+    r"Brown Durable Stock: $D_B$",
+    r"Green Durable Stock: $D_G$",
+    r"Lump-Sum Tax: $Tax$",
+    r"Public Debt: $B$"
+]
+
+
+IRFs_p_e_b = plot_linear_irfs(
+    shocks_list=["p_e_b"],
+    e={"p_e_b": 1},
+    rho={"p_e_b": 0.80},
+    unknowns_td=unknowns_td,
+    targets_td=targets_td,
+    ha=model,
+    ss=ss,
+    outputs=outputs,
+    titles=names_outputs,
+    figsize=(12, 9),
+    plot=True
+)
+# %%
