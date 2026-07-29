@@ -70,7 +70,7 @@ def shock_price(size=1.0, half_life=16, T=T):
     return {'PEstar_shock': size * rho ** np.arange(T)}
 
 
-def shock_supply(ss, drop=0.1, quarters=6, T=T):
+def shock_supply(ss, drop=0.2, quarters=6, T=T):
     """Brown energy SUPPLY shock (Bayer et al.). Requires E_supply_elasticity
     finite. Energy availability falls by `drop` for `quarters` periods and
     then returns; the world price clears the market endogenously."""

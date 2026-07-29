@@ -125,13 +125,10 @@ print("E0  baseline: price vs supply shock")
 p_ad = get('price_none_adoption', shock_kind='price', policy='none', model_variant='adoption')[1]
 s_ad = get('supply_none_adoption', shock_kind='supply', policy='none', model_variant='adoption')[1]
 
-figure('fig0_price_shock.png',
+figure('fig0_shock.png',
        [('Price Shock', p_ad, '-'), ('Supply Shock', s_ad, '-')],
-       MACRO, 'E0a. Brown energy PRICE shock (ARS-style, elastic supply)')
+       MACRO, 'E0a. Brown energy PRICE shock vs SUPPLY shock')
 
-figure('fig0_supply_shock.png',
-       [('adoption open', s_ad, '-')],
-       MACRO, 'E0b. Brown energy SUPPLY shock, -20% for 6q (Bayer-style, fixed quantity)')
 
 # =============================================================================
 print("E1  baseline: price vs supply shock, adoption on/off")
