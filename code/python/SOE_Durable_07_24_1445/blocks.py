@@ -73,13 +73,34 @@ def switching_imports(psi_g, D_SWITCH):
 def energy_gap(pE_B_P, pE_G_P, CE_DUR_G):
     """Balance-of-payments counterpart of adopters' cheaper energy.      [NEW]
 
-    MODELING CHOICE: this books the green energy saving as a real reduction in
-    the national import bill, not merely a domestic transfer. Without it the
-    windfall accruing to adopters has no external counterpart and asset market
-    clearing fails. Documented in docs/model.tex.
+    MODELING CHOICE (booking='import'): this books the green energy saving as a
+    real reduction in the national import bill, not merely a domestic transfer.
+    Without it the windfall accruing to adopters has no external counterpart and
+    asset market clearing fails. Documented in docs/model.tex.
     """
     energy_gap_agg = (pE_B_P - pE_G_P) * CE_DUR_G
     return energy_gap_agg
+
+
+@sj.simple
+def green_sector(pE_G_P, CE_DUR_G, psi_g, D_SWITCH, Tgreen):
+    """Domestic green sector, booking='domestic' (unifies Tasks 1 and 2). [NEW]
+
+    Green energy (near-zero marginal cost) AND green-durable installation are
+    produced DOMESTICALLY at zero profit and rebated to households lump-sum as
+    Tgreen. Tgreen is a model unknown; Tgreen_res closes it. The unknown/target
+    pair breaks the income->hh->income cycle (Newton solves the fixed point),
+    and the zero markup means no phantom dividend, so assets_clearing holds.
+
+    One flow of domestic value added: green energy supply pE_G_P*CE_DUR_G plus
+    green installation psi_g*D_SWITCH. Households still pay both privately (the
+    green energy price through p_rel, the switching cost through Tswitch); only
+    the balance-of-payments counterpart moves from imports to a domestic rebate.
+    MC=0 makes the domestic value added an UPPER BOUND; the robust result is the
+    sign reversal of the adoption channel relative to import booking.
+    """
+    Tgreen_res = Tgreen - (pE_G_P * CE_DUR_G + psi_g * D_SWITCH)
+    return Tgreen_res
 
 
 # =============================================================================
@@ -204,6 +225,20 @@ def importProfits(JF, JE, pF_P, pE_P, Q, PFstar, PEstar, cF, cE, prodE, rante):
     return JF_res, jF, JE_res, jE, DF, DE
 
 
+@sj.solved(unknowns={'JF': 0., 'JE': 0}, targets=['JF_res', 'JE_res'], solver="broyden_custom")
+def importProfits_dom(JF, JE, pF_P, pE_P, Q, PFstar, PEstar, cF, CE_DUR_B, prodE, rante):
+    """Importer margin, booking='domestic': only BROWN energy (CE_DUR_B) is
+    imported, so the retail margin is levied on brown energy alone. Green
+    energy is a domestic sector (see green_sector)."""
+    DF = (pF_P - Q * PFstar) * cF
+    JF_res = DF + JF(1) / (1 + rante) - JF
+    jF = JF(1) / (1 + rante)
+    DE = (pE_P - Q * PEstar) * (CE_DUR_B + prodE)
+    JE_res = DE + JE(1) / (1 + rante) - JE
+    jE = JE(1) / (1 + rante)
+    return JF_res, jF, JE_res, jE, DF, DE
+
+
 @sj.simple
 def revaluation(r, j, J, jF, JF, zetaF, jE, JE, zetaE, j_Esupply, J_Esupply, zetaEsupply):
     r_res = (J + zetaF * JF + zetaE * JE + zetaEsupply * J_Esupply) / (j(-1) + zetaF * jF(-1) + zetaE * jE(-1) + zetaEsupply * j_Esupply(-1)) - 1 - r
@@ -255,6 +290,24 @@ def CA(nfa, Q, pHstar, cHstar, PFstar, cF, PEstar, cE, prodE, rante, r, A_cpi,
     imports_pc = imports / imports.ss
     exports_pc = exports / exports.ss
     netexports = Q * (pHstar * cHstar - PFstar * cF - PEstar * (cE + prodE - zetaEsupply * E_supply)) - imports_dur + energy_gap_agg
+    revaluation_term = (r - rante(-1)) * A_cpi(-1) - (rdom - rante(-1)) * Adom(-1)
+    nfares = netexports + revaluation_term + (1 + rante(-1)) * nfa(-1) - nfa
+    nx_gdp = netexports / y
+    return nfares, netexports, revaluation_term, exports, imports, nx_gdp, imports_pc, exports_pc
+
+
+@sj.solved(unknowns={'nfa': (-2, 2)}, targets=['nfares'], solver="brentq")
+def CA_dom(nfa, Q, pHstar, cHstar, PFstar, cF, PEstar, CE_DUR_B, prodE, rante, r,
+           A_cpi, rdom, Adom, zetaEsupply, E_supply, y):
+    """ARS balance of payments, booking='domestic'. Green energy is a domestic
+    industry and the switching cost is domestic value added, so neither is
+    imported: only BROWN energy (CE_DUR_B) enters the import bill, and there is
+    no brown-reference energy gap and no switching import."""
+    exports = Q * (pHstar * cHstar + PEstar * zetaEsupply * E_supply)
+    imports = Q * (PFstar * cF + PEstar * (CE_DUR_B + prodE))
+    imports_pc = imports / imports.ss
+    exports_pc = exports / exports.ss
+    netexports = Q * (pHstar * cHstar - PFstar * cF - PEstar * (CE_DUR_B + prodE - zetaEsupply * E_supply))
     revaluation_term = (r - rante(-1)) * A_cpi(-1) - (rdom - rante(-1)) * Adom(-1)
     nfares = netexports + revaluation_term + (1 + rante(-1)) * nfa(-1) - nfa
     nx_gdp = netexports / y
@@ -343,20 +396,39 @@ def mon_policy(ishock, rstar, pi, phi_pi, phi_pie, rho_i, inom, phi_piw, w, P, i
 
 
 @sj.solved(unknowns={'B': (-1, 1)}, targets=['B_res'])
-def fiscal(B, rante, btw_n, psiB, tauY, epsT, insE, pE_P, cE, tauE, bb):
+def fiscal(B, rante, btw_n, psiB, tauY, epsT, insE, pE_P, cE, CE_DUR_B, tauE, bb,
+           subsidy_brown_only):
     """Government budget. Two energy-crisis instruments:
 
-      Subsidy   = tauE * (pE_P - pE_P.ss) * cE      price cap, cost scales
-                                                    with ACTUAL consumption
-      Ttargeted = insE * (pE_P - pE_P.ss) * cE.ss   Slutsky transfer, cost
-                                                    scales with PRE-CRISIS
-                                                    consumption
-    Both are debt-financed and repaid through the distortionary labour tax
-    tauY via the psiB feedback rule.
+      Subsidy   = tauE * (pE_P - pE_P.ss) * base_S     price cap, cost scales
+                                                       with ACTUAL consumption
+      Ttargeted = insE * (pE_P - pE_P.ss) * CE_DUR_B.ss Slutsky transfer, cost
+                                                       scales with PRE-CRISIS
+                                                       BROWN consumption
+
+    Only the BROWN price is capped (green households pay the fixed pE_G_P and
+    are untouched), so the Slutsky transfer is ALWAYS brown-only: it is a
+    lump sum whose incidence is set on the household side (durable-state-
+    specific, zero in green states), so it balances under either booking.
+
+    The subsidy works through PRICES and the import system, so its base is
+    booking-dependent (subsidy_brown_only, set by make_calibration):
+      import   base_S = cE (total). Green energy is imported at the market
+               price the cap references, so the green part of the subsidy has
+               an import-side counterpart and assets clear.
+      domestic base_S = CE_DUR_B (brown only). Green energy is a domestic
+               industry with no import content, so a total-energy subsidy
+               would over-pay by the green mass and leak into a permanent nfa
+               drift; only brown clears. Same brown/total distinction as the
+               exact Slutsky transfer, and the ~0.16%-of-GDP green-import
+               content that makes the two bookings genuinely non-equivalent.
+    Both instruments are debt-financed and repaid through the distortionary
+    labour tax tauY via the psiB feedback rule.
     """
     Tuntargeted = epsT
-    Ttargeted = insE * (pE_P - pE_P.ss) * cE.ss
-    Subsidy = tauE * (pE_P - pE_P.ss) * cE
+    Ttargeted = insE * (pE_P - pE_P.ss) * CE_DUR_B.ss
+    base_S = CE_DUR_B if subsidy_brown_only else cE
+    Subsidy = tauE * (pE_P - pE_P.ss) * base_S
     spending = Tuntargeted + Ttargeted + Subsidy
     taxation = tauY * btw_n
     B_res = (1 + rante(-1)) * B(-1) + spending - taxation - B
@@ -393,6 +465,26 @@ def eqm_cond(y, cH, cHstar, A_cpi, gdp, nfa, j, jF, jE, B, cE, prodE, PEstar,
         E_clearing = PEstar - PEstar_shock
     else:
         E_clearing = (cE + prodE) - E_supply
+    PEstar_diff = PEstar - PEstar_shock
+    gdp_t = gdp - 1
+    D_GREEN_res = D_GREEN - D_GREEN_ss_target
+    return goods_clearing, assets_clearing, E_clearing, PEstar_diff, gdp_t, D_GREEN_res
+
+
+@sj.simple
+def eqm_cond_dom(y, cH, cHstar, A_cpi, gdp, nfa, j, jF, jE, B, CE_DUR_B, prodE, PEstar,
+                 PEstar_shock, E_supply_elasticity, E_supply, zetaEsupply, j_Esupply,
+                 D_GREEN, D_GREEN_ss_target):
+    """Market clearing, booking='domestic'. Identical to eqm_cond except that
+    only BROWN (imported) energy clears against the fixed world supply under the
+    supply-shock closure: green adopters leave the fossil market, directly
+    relaxing the world price -- the scarcity-relief channel made explicit."""
+    goods_clearing = cH + cHstar - y
+    assets_clearing = A_cpi - nfa - j - jF - jE - B - zetaEsupply * j_Esupply
+    if E_supply_elasticity == np.inf:
+        E_clearing = PEstar - PEstar_shock
+    else:
+        E_clearing = (CE_DUR_B + prodE) - E_supply
     PEstar_diff = PEstar - PEstar_shock
     gdp_t = gdp - 1
     D_GREEN_res = D_GREEN - D_GREEN_ss_target

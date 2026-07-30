@@ -3,11 +3,10 @@
 
 Motivation. The baseline price shock is size = 1.0, i.e. the world energy
 price doubles on impact. The LINEARISED response of D_GREEN peaks at about
-+0.32 in levels, from a steady state of 0.05: the green share would go from
-5% to 37%, a factor of 7.4. D_GREEN is a share bounded in [0,1] and the logit
-is sharp (taste_shock = 1e-2), so this is a first-order approximation
-evaluated very far from the point of approximation -- and it is the paper's
-central channel.
++0.092 in levels, from a steady state of 0.05: the green share would go from
+5% to ~14%, a factor of ~2.8. D_GREEN is a share bounded in [0,1] and the logit
+is sharp (taste_shock = 0.05), so this is a first-order approximation evaluated
+far from the point of approximation -- and it is the paper's central channel.
 
 Two cheap checks:
 
@@ -19,9 +18,16 @@ Two cheap checks:
   (B) NONLINEAR. Solve the full nonlinear transition at each size and compare
       D_GREEN against size * (linear response at size 1). The ratio
       nonlinear/linear as a function of size is the curvature of the adoption
-      margin. If it falls well below 1 at size = 1, the headline number
-      overstates adoption and the baseline shock should be reduced (or the
-      channel solved nonlinearly).
+      margin.
+
+MEASURED RESULT (this machine, SSJ 1.0.0). The margin is strongly CONVEX and
+the ratio is ABOVE 1, rising with size: NL/L = 1.16, 1.33, 1.67 at sizes
+0.125, 0.25, 0.50 -- so linearisation UNDERSTATES adoption, increasingly with
+size. At the baseline size = 1.0 the nonlinear solve does NOT converge (>30
+backward iterations). The headline linear numbers are therefore first-order in
+a region where the nonlinear problem is not even well-behaved; the baseline
+shock should be reduced (0.25-0.5 still doubles-ish the price at its peak and
+converges) or the headline experiments solved nonlinearly.
 
 Runtime warning: solve_impulse_nonlinear is much slower than the linear
 solve. Start with SIZES = [0.25, 1.0] if time is short.

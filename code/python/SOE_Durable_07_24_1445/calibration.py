@@ -99,53 +99,75 @@ def _derived(c):
               'pH_PHF': 1, 'pHstar': 1, 'pF_PHF': 1, 'pE_B_P': 1, 'pHF_P': 1,
               'dividend_X': 0, 'vphi': 1, 'rante': c['r'],
               'beta_RA': 1 / (1 + c['r']), 'C': 1, 'A': 1, 'w': 1,
-              'PEstar_shock': 1, 'PEstar': 1, 'inom_t': 0, 'union_wedge': 0})
+              'PEstar_shock': 1, 'PEstar': 1, 'inom_t': 0, 'union_wedge': 0,
+              'Tgreen': 0.0})
 
-    # Per-household steady-state energy consumption grid. Zeros switch the
-    # Slutsky transfer OFF; `set_energy_grids` fills it from a solved steady
-    # state when the transfer experiment needs it.
+    # Per-household steady-state BROWN energy grid (n_e, n_a), collapsed over
+    # the durable axis. Zeros switch the Slutsky transfer OFF; `set_energy_grids`
+    # fills it from a solved steady state when the transfer experiment needs it.
     for i in range(3):
         c[f'cE_ss_grid_{i}'] = np.zeros((c['n_e'], c['n_a']))
     return c
 
 
-def make_calibration(numeraire='core', **overrides):
-    """Build a calibration. `numeraire` must match build_model's.
+def make_calibration(numeraire='core', booking='import', **overrides):
+    """Build a calibration. `numeraire` and `booking` must match build_model's.
 
     Under 'cpi' the price of the unit of account is a CONSTANT p_num = 1 and
     is supplied here rather than produced by a block: a block returning a
     literal 1 would have an identically-zero Jacobian row and hit SSJ's
     SimpleSparse empty-operator crash. Under 'core' p_num = pH_P is a genuine
     block output and must be absent from the calibration.
+
+    Tgreen (the domestic green-sector rebate) is symmetric: under the 'import'
+    booking there is no green sector, so Tgreen is the fixed constant 0 the
+    household reads; under 'domestic' it is a genuine block output / model
+    unknown produced by green_sector and must be absent from the calibration.
     """
     c = dict(BASE)
     c.update(DURABLE)
     c.update(POLICY)
     c.update(overrides)
     c = _derived(c)
+    c['subsidy_brown_only'] = 1.0 if booking == 'domestic' else 0.0
     if numeraire == 'cpi':
         c['p_num'] = 1.0
     else:
         c.pop('p_num', None)
+    if booking == 'domestic':
+        c.pop('Tgreen', None)
     return c
 
 
 def set_energy_grids(calib, ss):
-    """Fill cE_ss_grid_i with each household's steady-state energy demand.
+    """Fill cE_ss_grid_i with each household's steady-state BROWN energy demand,
+    collapsed (mass-weighted) over the durable axis to (n_e, n_a).
 
-    Required for the Slutsky transfer (insE > 0): the transfer is indexed to
-    PRE-CRISIS household-level energy consumption, exactly as in Bayer et al.
-    Uses the durable block's own CES energy demand rather than a homothetic
-    rescaling of c, so it is consistent with hh_outputs_dur.
+    Required for the Slutsky transfer (insE > 0): the transfer is a LUMP SUM
+    indexed to PRE-CRISIS energy use, as in Bayer et al. Two properties are
+    imposed together:
+
+      (i)  BROWN only. Only the brown price rises (pE_G_P fixed at pass_g = 0),
+           so green energy must not be in the compensation base; cE_dur_b is
+           already zero in the green durable states.
+      (ii) Collapsed over the durable axis and then broadcast identically to
+           every durable state in hh_income. This is what makes it a genuine
+           lump sum: a household that switches brown->green during the crisis
+           (state GB) keeps the SAME transfer, so the transfer does NOT tax the
+           switching margin. Indexing it to the CURRENT durable state instead
+           (zero for green states) would make switching forfeit the transfer
+           and would spuriously shut down the adoption channel.
+
+    The mass-weighting is by TOTAL durable mass, so the aggregate of the
+    broadcast grid over the stationary distribution equals CE_DUR_B.ss exactly
+    (verified) -- matching the government's Ttargeted and keeping assets_clearing
+    at machine zero.
     """
     out = dict(calib)
     for i in range(3):
-        cE = (ss.internals[f'hh_{i}']['consav']['cE_dur_b']
-              + ss.internals[f'hh_{i}']['consav']['cE_dur_g'])
-        # collapse the durable axis (mass-weighted) to the (e, a) grid the
-        # ARS fiscal block expects
-        D = ss.internals[f'hh_{i}']['consav']['D']
+        cE_b = np.asarray(ss.internals[f'hh_{i}']['consav']['cE_dur_b'])  # (4,e,a)
+        D = np.asarray(ss.internals[f'hh_{i}']['consav']['D'])
         w = D.sum(axis=0, keepdims=True)
         w = np.where(w > 0, w, 1.0)
-        out[f'cE_ss_grid_{i}'] = (cE * D).sum(axis=0) / w[0]
+        out[f'cE_ss_grid_{i}'] = (cE_b * D).sum(axis=0) / w[0]            # (e,a)
     return out

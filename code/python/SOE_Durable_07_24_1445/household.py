@@ -150,21 +150,33 @@ def energy_price_bundle(pE_B_P, pE_G_P, alpha_E, eta_E, p_num):
 
 def hh_income(e_grid, atw_n_num, r_num, p_num, pE_B_P, cbarE, scale_w, markup_ss,
               a_grid, n, frisch, ghh_prefs, epsT, cE_ss_grid, insE, pE_P,
-              pE_P_ss, psi_g):
+              pE_P_ss, psi_g, Tgreen):
     """ARS income plus the switching cost, expressed in units of account.
 
     The energy-price gap does NOT enter here as an income transfer -- it is
-    priced exactly through p_rel_num(d) in consav's budget constraint. Tf, Tfiscal
-    and Tswitch are CPI-denominated by construction and are converted by
+    priced exactly through p_rel_num(d) in consav's budget constraint. Tf, Tfiscal,
+    Tswitch and Tgreen are CPI-denominated by construction and are converted by
     dividing by p_num.
+
+    Tgreen is the domestic green-sector rebate (booking='domestic'): the
+    competitive green sector supplies green energy and installs green durables
+    at zero profit and rebates the proceeds lump-sum. It is 0 under the
+    import booking (green energy imported, switching cost booked as import).
+    Households still PAY the switching cost (Tswitch) and the green energy
+    price (via p_rel) in both bookings; only the BoP counterpart differs.
     """
     atw_n = atw_n_num * p_num
     Tf = - pE_B_P * cbarE * (atw_n * markup_ss) * scale_w - pE_B_P * cbarE * (1 - scale_w)
+    # Slutsky transfer: lump sum indexed to pre-crisis BROWN energy (cE_ss_grid,
+    # collapsed over the durable axis). Added to the (e,a) cash-on-hand BEFORE
+    # the durable broadcast, so it is identical across durable states -- a
+    # household that switches to green keeps the same transfer and the switching
+    # margin is undistorted. epsT is the untargeted lump sum.
     Tfiscal = epsT + insE * (pE_P - pE_P_ss) * cE_ss_grid
     Tswitch = - psi_g * PAYS_SWITCH
 
     coh = ((1 + r_num) * a_grid + atw_n_num * e_grid[:, np.newaxis]
-           + (Tf + Tfiscal) / p_num)
+           + (Tf + Tfiscal + Tgreen) / p_num)
     coh = coh[np.newaxis, ...] + (Tswitch / p_num)[:, np.newaxis, np.newaxis]
 
     n_ss = 1

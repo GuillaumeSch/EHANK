@@ -26,6 +26,7 @@ from model import build_model, run
 from deflator import true_inflation
 
 NUMERAIRE = 'core'          # 'core' = domestic good (default), 'cpi' = ARS
+BOOKING = 'import'          # 'import' baseline, or 'domestic' (green sector)
 
 # The cache is keyed only by tag string, not by model/calibration content
 # (see get() below), so it goes stale silently on any change to model.py,
@@ -35,14 +36,16 @@ NUMERAIRE = 'core'          # 'core' = domestic good (default), 'cpi' = ARS
 CLEAR_CACHE = True
 
 OUT = 'output'
-CDIR = f'cache_{NUMERAIRE}'
+CDIR = f'cache_{NUMERAIRE}_{BOOKING}'
 if CLEAR_CACHE:
     shutil.rmtree(CDIR, ignore_errors=True)
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(CDIR, exist_ok=True)
-H = 40
+H = 24                       # matches the paper's "cumulative sums over 24
+                              # quarters" convention (Table~tab:summary caption)
 CACHE = {}
-MODEL = build_model(NUMERAIRE)
+MODEL = build_model(NUMERAIRE, booking=BOOKING)
+import latex_tables as LT
 
 # pi, pE_B_P, pE_G_P and D_GREEN are needed by the deflator diagnostic.
 KEEP = ['y', 'C', 'cE', 'pi', 'pi_ann', 'D_GREEN', 'D_SWITCH', 'pE_P', 'n',
@@ -50,12 +53,18 @@ KEEP = ['y', 'C', 'cE', 'pi', 'pi_ann', 'D_GREEN', 'D_SWITCH', 'pE_P', 'n',
         'B', 'tauY', 'pE_B_P', 'pE_G_P']
 SSKEEP = ['alpha_E', 'eta_E', 'pE_B_P', 'pE_G_P', 'D_GREEN', 'eis', 'psi_g'] + \
          [f'beta_{i}' for i in range(3)]
-NORM = {'y', 'gdp'}
 
 
 def get(tag, **kw):
     """Solve one experiment, caching (steady-state scalars, IRF) to disk so
-    the matrix can be run in resumable chunks."""
+    the matrix can be run in resumable chunks.
+
+    IRFs are stored as RAW level deviations from steady state (the 100x is
+    applied only at report time, in pc()/cum()), matching the Section 4
+    convention and tab:dose / tab:signmap. No per-series normalisation by the
+    steady state: dividing y (and gdp) by its own ss -- and, under the
+    no_adoption variant, by a DIFFERENT ss -- made the adoption contribution
+    basis-inconsistent across the paper's tables (summary vs signmap)."""
     f = f'{CDIR}/{tag}.pkl'
     if tag in CACHE:
         return CACHE[tag]
@@ -63,9 +72,8 @@ def get(tag, **kw):
         CACHE[tag] = pickle.load(open(f, 'rb'))
         return CACHE[tag]
     print(f"  solving {tag} ...", flush=True)
-    ss, irf = run(MODEL, numeraire=NUMERAIRE, **kw)
-    irf_kept = {k: np.asarray(irf[k])[:60] / (float(ss[k]) if k in NORM else 1.0)
-                for k in KEEP if k in irf}
+    ss, irf = run(MODEL, numeraire=NUMERAIRE, booking=BOOKING, **kw)
+    irf_kept = {k: np.asarray(irf[k])[:60] for k in KEEP if k in irf}
     d = ({k: float(ss[k]) for k in SSKEEP}, irf_kept)
     pickle.dump(d, open(f, 'wb'))
     CACHE[tag] = d
@@ -87,7 +95,7 @@ def panel(ax, series, k, title, ylab=None):
     ax.tick_params(labelsize=8)
 
 
-def figure(fname, series, keys, suptitle, ncol=4):
+def figure(fname, series, keys, suptitle, ncol=3):
     nrow = int(np.ceil(len(keys) / ncol))
     fig, axes = plt.subplots(nrow, ncol, figsize=(4 * ncol, 3.1 * nrow))
     for ax, (k, t) in zip(np.atleast_1d(axes).flat, keys):
@@ -110,11 +118,11 @@ MACRO = [('y', r'Output $y$'), ('C', r'Consumption $C$'), ('cE', r'Energy $c_E$'
          #('D_SWITCH', r'Switchers $D^{sw}$'),
          ('spending', r'Fiscal spending $G$'), ('nx_gdp', r'Net exports / GDP'),
          ('PEstar', r'World energy price $P^{E*}$'), ('E_supply', r'World energy supply $E^*$'),
-         ('r_ann', r'Interest rate (ann.)'), 
+         #('r_ann', r'Interest rate (ann.)'), 
          #('w', r'Wage $w$'),
          #('piH_ann', r'Domestic-good inflation (ann.)'), 
-         ('B', r'Bond holdings $B$'),
-         ('tauY', r'Tax revenue / GDP $\tau^Y$'),
+         #('B', r'Bond holdings $B$'),
+         #('tauY', r'Tax revenue / GDP $\tau^Y$'),
             
          ]
 
@@ -145,7 +153,7 @@ figure('fig1_price_shock.png',
 
 figure('fig1_supply_shock.png',
        [('adoption open', s_ad, '-'), ('adoption shut', s_no, '--')],
-       MACRO, 'E1b. Brown energy SUPPLY shock, -20% for 6q (Bayer-style, fixed quantity)')
+       MACRO, 'E1b. Brown energy SUPPLY shock, -10% for 6q (Bayer-style, fixed quantity)')
 
 # =============================================================================
 print("E2/E3  fiscal policy and its interaction with adoption")
@@ -236,7 +244,17 @@ for r in rows:
                  f"{r['fiscal']:8.3f} {r['adopt_y']:9.3f}")
 table = '\n'.join(lines)
 print('\n' + table)
-open(f'{OUT}/summary_table_{NUMERAIRE}.txt', 'w').write(table + '\n')
+open(f'{OUT}/summary_table_{NUMERAIRE}_{BOOKING}.txt', 'w').write(table + '\n')
+
+tex_rows = [dict(shock=r['shock'], policy=r['policy'], y0=r['y0'], ycum=r['y_cum'],
+                 pi0=r['pi0'], dG_peak=r['dG_peak'], fiscal=r['fiscal'],
+                 adopt_y=r['adopt_y'])
+           for r in rows]
+tex_path = LT.summary_table(f'{OUT}/tab_summary_{NUMERAIRE}_{BOOKING}.tex',
+                            tex_rows, H, NUMERAIRE, BOOKING,
+                            label=('tab:summary' if BOOKING == 'import'
+                                  else f'tab:summary_{BOOKING}'))
+print(f"  -> {tex_path}")
 
 
 # =============================================================================
@@ -259,7 +277,7 @@ for shock in ['price', 'supply']:
                       f"{100 * g:10.4f} {100 * m:9.3f} {g / max(m, 1e-16):8.2%}")
 table2 = '\n'.join(lines2)
 print('\n' + table2)
-open(f'{OUT}/deflator_table_{NUMERAIRE}.txt', 'w').write(table2 + '\n')
+open(f'{OUT}/deflator_table_{NUMERAIRE}_{BOOKING}.txt', 'w').write(table2 + '\n')
 
 fig, axes = plt.subplots(1, 2, figsize=(11, 3.6))
 for ax, shock in zip(axes, ['price', 'supply']):
@@ -273,7 +291,7 @@ fig.suptitle(r'E8. Measurement gap from anchoring the CPI on $P^E_B$ alone')
 fig.tight_layout(); fig.savefig(f'{OUT}/fig8_deflator_gap.png', dpi=140); plt.close(fig)
 print(f"  -> {OUT}/fig8_deflator_gap.png")
 
-pickle.dump({k: v for k, v in CACHE.items()}, open(f'{OUT}/irfs_{NUMERAIRE}.pkl', 'wb'))
+pickle.dump({k: v for k, v in CACHE.items()}, open(f'{OUT}/irfs_{NUMERAIRE}_{BOOKING}.pkl', 'wb'))
 print(f"\nDone. Figures + tables + irfs_{NUMERAIRE}.pkl in {OUT}/")
 
 # %%

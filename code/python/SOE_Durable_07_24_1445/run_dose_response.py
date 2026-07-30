@@ -18,13 +18,16 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from model import (build_model, solve_ss, shock_price, shock_supply,
-                         UNKNOWNS_TD, TARGETS_TD, MODELS, MONETARY, ENERGY_CLOSURE)
+                         td_unknowns_targets, _calibrate_supply, ss_unknowns_targets,
+                         MODELS, MONETARY, ENERGY_CLOSURE)
 from calibration import make_calibration, set_energy_grids
 from welfare import cev, cev_table
 import blocks as B
+import latex_tables as LT
 
 # See run_experiments.py: caches are tagged by numeraire on purpose.
 NUMERAIRE = 'core'
+BOOKING = 'import'          # 'import' baseline, or 'domestic' (green sector)
 
 # See run_experiments.py: cache is keyed by tag only, goes stale silently
 # on model/calibration changes. Wipe on every run; set False to resume a
@@ -32,22 +35,23 @@ NUMERAIRE = 'core'
 CLEAR_CACHE = True
 
 OUT, H = 'output', 24
-CDIR = f'cache_dose_{NUMERAIRE}'
+CDIR = f'cache_dose_{NUMERAIRE}_{BOOKING}'
 if CLEAR_CACHE:
     shutil.rmtree(CDIR, ignore_errors=True)
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(CDIR, exist_ok=True)
-MODEL = build_model(NUMERAIRE)
+MODEL = build_model(NUMERAIRE, booking=BOOKING)
+UNKNOWNS_TD, TARGETS_TD = td_unknowns_targets(BOOKING)
 TAU_GRID = [0.0, 0.25, 0.50, 0.75, 1.0]
 
 
 def base_ss(variant='adoption', closure='elastic'):
     ov = dict(ENERGY_CLOSURE[closure]); ov.update(MODELS[variant])
-    calib = make_calibration(NUMERAIRE, **ov)
+    calib = make_calibration(NUMERAIRE, booking=BOOKING, **ov)
+    u, t = ss_unknowns_targets(BOOKING)
     if closure == 'inelastic':
-        c0 = dict(calib); c0['E_supply_elasticity'] = np.inf
-        calib['E_supply_shock'] = float(solve_ss(MODEL, c0)['cE'])
-    ss = solve_ss(MODEL, calib)
+        calib['E_supply_shock'] = _calibrate_supply(MODEL, calib, u, t, BOOKING)
+    ss = solve_ss(MODEL, calib, unknowns=u, targets=t, booking=BOOKING)
     return ss, calib
 
 
@@ -69,7 +73,7 @@ def irf_with(ss, shk, tauE=0.0, insE=0.0, calib=None):
         return irf, ss
     c = set_energy_grids(calib, ss)
     c['insE'], c['tauE'] = insE, tauE
-    ss2 = solve_ss(MODEL, c)
+    ss2 = solve_ss(MODEL, c, booking=BOOKING)
     irf = MODEL.solve_impulse_linear(ss2, UNKNOWNS_TD, TARGETS_TD, shk)
     B.test_targets(irf)
     return irf, ss2
@@ -128,7 +132,26 @@ for closure, shock_name in [('elastic', 'price'), ('inelastic', 'supply')]:
         fisc=cum(irf_tr['spending']), cev=100 * m_tr, cE=cum(irf_tr['cE']),
         pi0=100 * float(np.asarray(irf_tr['pi_ann'])[0])), cev_table=tbl)
 
+    if shock_name == 'price':
+        # Distributional CEV table (matches the paper's existing table): no
+        # policy, cap at 0.5 and 1.0, transfer, relabelled for display.
+        cev_irfs = {'no policy': irfs['cap 0.00'],
+                   r'cap $\tau^E=0.5$': irfs['cap 0.50'],
+                   r'cap $\tau^E=1$': irfs['cap 1.00'],
+                   'transfer': irfs['transfer']}
+        cev_path = LT.cev_table_tex(
+            f'{OUT}/tab_cev_{NUMERAIRE}_{BOOKING}.tex', ss, cev_irfs,
+            labels=list(cev_irfs), scenario_note='price shock',
+            label=('tab:cev' if BOOKING == 'import' else f'tab:cev_{BOOKING}'))
+        print(f"  -> {cev_path}")
+
 pickle.dump(results, open(f'{OUT}/dose_response.pkl', 'wb'))
+
+tex_path = LT.dose_response_table(
+    f'{OUT}/tab_dose_{NUMERAIRE}_{BOOKING}.tex', results, TAU_GRID,
+    label=('tab:dose' if BOOKING == 'import' else f'tab:dose_{BOOKING}'))
+print(f"  -> {tex_path}")
+
 
 # =============================================================================
 # FIGURE: dose-response
