@@ -5,7 +5,6 @@ BOOKING TOGGLE (`booking`)
 The green adoption margin's balance-of-payments treatment is a modelling
 choice with a first-order effect on the adoption channel's OUTPUT sign, so
 both are kept selectable and reportable:
-
     'import'    (baseline) the switching cost psi_g*D_SWITCH is booked as an
                 import; green energy is imported at the world brown price and
                 the saving (pE_B_P-pE_G_P)*CE_DUR_G is booked as an import
