@@ -90,8 +90,9 @@ def summary_table(path, rows, H, numeraire, booking, label='tab:summary'):
                     'brown energy imported)' if booking == 'domestic' else '')
     caption = (f"Cumulative sums over {H} quarters{booking_note}. The last "
               r"column is the contribution of the adoption margin: the "
-              r"difference between the model with the margin open and the "
-              r"same model with it shut.")
+              r"difference between the full model and a common-steady-state "
+              r"counterfactual in which the adoption choice does not respond "
+              r"to the shock (Section~\ref{sec:model}).")
     return write_table(path, 'llrrrrrr', header, body, caption, label,
                        midrule_after=mid)
 
@@ -112,7 +113,8 @@ def booking_signmap_table(path, rows, H, label='tab:signmap'):
     ]
     caption = (r'Adoption channel contribution to cumulative output '
               f'($\\Delta_{{{H}}}$), import vs.\\ domestic booking '
-              r'(Section~\ref{sec:bop}). \emph{None} policy.')
+              r'(Section~\ref{sec:bop}), against the common-steady-state '
+              r'counterfactual of Section~\ref{sec:model}. \emph{None} policy.')
     return write_table(path, 'lcc', header, body, caption, label, small=True)
 
 

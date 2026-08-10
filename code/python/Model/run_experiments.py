@@ -48,9 +48,9 @@ MODEL = build_model(NUMERAIRE, booking=BOOKING)
 import latex_tables as LT
 
 # pi, pE_B_P, pE_G_P and D_GREEN are needed by the deflator diagnostic.
-KEEP = ['y', 'C', 'cE', 'pi', 'pi_ann', 'D_GREEN', 'D_SWITCH', 'pE_P', 'n',
+KEEP = ['y', 'C', 'cE', 'CE_DUR_B', 'pi', 'pi_ann', 'D_GREEN', 'D_SWITCH', 'pE_P', 'n',
         'spending', 'nx_gdp', 'PEstar', 'E_supply', 'r_ann', 'w', 'piH_ann',
-        'B', 'tauY', 'pE_B_P', 'pE_G_P']
+        'B', 'tauY', 'pE_B_P', 'pE_G_P', 'assets_clearing', 'goods_clearing', 'E_clearing', 'nfares']
 SSKEEP = ['alpha_E', 'eta_E', 'pE_B_P', 'pE_G_P', 'D_GREEN', 'eis', 'psi_g'] + \
          [f'beta_{i}' for i in range(3)]
 
@@ -61,10 +61,15 @@ def get(tag, **kw):
 
     IRFs are stored as RAW level deviations from steady state (the 100x is
     applied only at report time, in pc()/cum()), matching the Section 4
-    convention and tab:dose / tab:signmap. No per-series normalisation by the
-    steady state: dividing y (and gdp) by its own ss -- and, under the
-    no_adoption variant, by a DIFFERENT ss -- made the adoption contribution
-    basis-inconsistent across the paper's tables (summary vs signmap)."""
+    convention and tab:dose / tab:signmap.
+
+    model_variant='no_adoption' is the COMMON-STEADY-STATE counterfactual (see
+    model.frozen_model / frozen_adoption.py): 'adoption' and 'no_adoption' share
+    a bit-identical steady state and differ only in the transition (the
+    adoption choice does not respond to the shock under 'no_adoption'). Raw
+    level deviations (no per-series normalisation by the steady state) are kept
+    throughout for consistency with the paper's other tables (summary vs
+    signmap)."""
     f = f'{CDIR}/{tag}.pkl'
     if tag in CACHE:
         return CACHE[tag]
@@ -110,7 +115,7 @@ def figure(fname, series, keys, suptitle, ncol=3):
     print(f"  -> {OUT}/{fname}")
 
 
-MACRO = [('y', r'Output $y$'), ('C', r'Consumption $C$'), ('cE', r'Energy $c_E$'),
+MACRO = [('y', r'Output $y$'), ('C', r'Consumption $C$'), ('CE_DUR_B', r'Brown Energy $c^E_B$'),
          #('pi_ann', r'CPI inflation (ann.)'),
          # ('n', r'Hours $n$'),
          ('pE_B_P', r'Brown energy price $P^E_B/P$'),
@@ -123,7 +128,7 @@ MACRO = [('y', r'Output $y$'), ('C', r'Consumption $C$'), ('cE', r'Energy $c_E$'
          #('piH_ann', r'Domestic-good inflation (ann.)'), 
          #('B', r'Bond holdings $B$'),
          #('tauY', r'Tax revenue / GDP $\tau^Y$'),
-            
+        #('assets_clearing', r'assets_clearing'), ('goods_clearing', r'goods_clearing'), ('nfares', r'nfares'),
          ]
 
 # =============================================================================
@@ -148,11 +153,11 @@ s_ad = get('supply_none_adoption', shock_kind='supply', policy='none', model_var
 s_no = get('supply_none_no_adoption', shock_kind='supply', policy='none', model_variant='no_adoption')[1]
 
 figure('fig1_price_shock.png',
-       [('adoption open', p_ad, '-'), ('adoption shut', p_no, '--')],
+       [('adoption open', p_ad, '-'), ('adoption frozen (common SS)', p_no, '--')],
        MACRO, 'E1a. Brown energy PRICE shock (ARS-style, elastic supply)')
 
 figure('fig1_supply_shock.png',
-       [('adoption open', s_ad, '-'), ('adoption shut', s_no, '--')],
+       [('adoption open', s_ad, '-'), ('adoption frozen (common SS)', s_no, '--')],
        MACRO, 'E1b. Brown energy SUPPLY shock, -10% for 6q (Bayer-style, fixed quantity)')
 
 # =============================================================================
@@ -169,17 +174,18 @@ for shock in ['price', 'supply']:
 for shock, nm in [('price', 'PRICE'), ('supply', 'SUPPLY')]:
     figure(f'fig2_policy_{shock}.png',
            [('no policy', pol[(shock, 'none', 'adoption')], '-'),
-            ('price cap (subsidy)', pol[(shock, 'subsidy', 'adoption')], '--'),
+            ('price cap', pol[(shock, 'subsidy', 'adoption')], '--'),
             ('Slutsky transfer', pol[(shock, 'transfer', 'adoption')], ':')],
            MACRO, f'E2. Fiscal response to the {nm} shock (adoption margin open)')
 
 # The paper's headline: policy x adoption interaction
+PLABEL = {'none': 'no policy', 'subsidy': 'price cap', 'transfer': 'Slutsky transfer'}
 fig, axes = plt.subplots(2, 3, figsize=(13, 7))
 for j, (shock, nm) in enumerate([('price', 'PRICE'), ('supply', 'SUPPLY')]):
     for i, k in enumerate(['D_GREEN', 'y', 'C']):
         ax = axes[j, i]
         for p, sty in [('none', '-'), ('subsidy', '--'), ('transfer', ':')]:
-            ax.plot(pc(pol[(shock, p, 'adoption')], k), lw=2, ls=sty, label=p)
+            ax.plot(pc(pol[(shock, p, 'adoption')], k), lw=2, ls=sty, label=PLABEL[p])
         ax.axhline(0, color='k', lw=0.5)
         ax.set_title(f'{nm}: {k}', fontsize=10)
         ax.set_xlabel('quarters', fontsize=8)

@@ -43,6 +43,48 @@ def _labor_disutility_dev(ss, irf):
     return vphi * n_ss ** (1 / frisch) * dn
 
 
+def cev_total(base_ss, pre_ss, irf, eis=None, T=None):
+    """Total CEV of a full scenario relative to a COMMON reference base_ss.
+
+    A scenario = sit permanently at pre_ss (its pre-crisis steady state), then
+    experience the transition in irf. Its welfare relative to base_ss is
+
+        dW_i = (UTIL_i^pre - UTIL_i^base - dv_lvl_i)/(1-beta_i)
+               + sum_t beta_i^t (UTIL_i^irf_t - dv_t)
+
+    The first term is the STANDING gap between pre_ss and base_ss (0 when the
+    scenario starts from base_ss, e.g. the ex-post cap); the second is the
+    crisis transition (identical to `cev`'s integrand). dv is the shared labour
+    disutility v(n): its standing level difference dv_lvl and its transition
+    deviation dv_t both enter, so a scenario that runs the economy hotter in
+    steady state or in the crisis is not counted as a free lunch.
+
+    Returns (chi_mean, chi_by_type) relative to base_ss. Use this -- not `cev`
+    -- to compare the ex-ante ETS (pre_ss = ETS SS) against the ex-post cap
+    (pre_ss = base_ss) on one axis.
+    """
+    eis = float(base_ss['eis']) if eis is None else eis
+    vphi = float(base_ss['vphi']); frisch = float(base_ss['frisch'])
+    n_base = float(base_ss['n'])
+    dv_lvl = vphi * n_base ** (1 / frisch) * (float(pre_ss['n']) - n_base)
+    dv = _labor_disutility_dev(pre_ss, irf)
+    chis = []
+    for i in range(N_BETA):
+        b = float(base_ss[f'beta_{i}'])
+        u_base = float(base_ss[f'UTIL_{i}'])
+        standing = (float(pre_ss[f'UTIL_{i}']) - u_base - dv_lvl) / (1 - b)
+        du = np.asarray(irf[f'UTIL_{i}']) - dv
+        T_ = len(du) if T is None else min(T, len(du))
+        dW = standing + float(np.sum(b ** np.arange(T_) * du[:T_]))
+        if eis == 1:
+            chis.append(np.exp((1 - b) * dW) - 1)
+        else:
+            p = 1 - 1 / eis
+            chis.append((1 + dW * (1 - b) * p / u_base) ** (1 / p) - 1)
+    chis = np.array(chis)
+    return float(chis.mean()), chis
+
+
 def cev(ss, irf, eis=None, T=None):
     """CEV of the scenario in `irf`, per beta type and averaged.
 

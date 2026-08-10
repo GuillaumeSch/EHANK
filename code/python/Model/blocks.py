@@ -43,18 +43,24 @@ def hh_outputs_dur(CE_DUR_B, CE_DUR_G, CHF_DUR, pH_PHF, pF_PHF, eta, alpha_F,
 
 
 @sj.simple
-def green_energy_price(pE_B_P, pE_g_ratio, pass_g):
+def green_energy_price(pE_B_P, pE_P, pE_g_ratio, pass_g, tau_g):
     """GREEN energy price P_G^E, with explicit pass-through.             [NEW]
 
     pass_g = 0 : green price fixed in real terms (adopters fully insulated)
-    pass_g = 1 : green price moves one-for-one with the brown/aggregate index
+    pass_g = 1 : green price moves one-for-one with the brown price
 
-    Note this reads P_B^E, the BROWN price households actually pay, which is
-    net of any energy subsidy tauE. A price cap therefore compresses the
-    brown-green gap and blunts the adoption incentive -- the policy
+    Anchored on the PRE-tax wholesale SS price pE_P.ss (NOT the carbon-taxed
+    brown price pE_B_P.ss), with its own low carbon tax tau_g. This decouples
+    the green price from the brown carbon tax tau_b: raising tau_b widens the
+    brown-green gap and lifts adoption, instead of taxing both legs equally.
+    The effective SS ratio is pE_G_P.ss/pE_B_P.ss = pE_g_ratio*(1+tau_g)/(1+tau_b);
+    at tau_b=tau_g=0 it is pE_g_ratio and the block is bit-identical to before.
+
+    The pass-through still references pE_B_P, the (capped) brown price, so a
+    price cap compresses the brown-green gap and blunts adoption -- the policy
     interaction this paper is about.
     """
-    pE_G_P = pE_g_ratio * pE_B_P.ss * (pE_B_P / pE_B_P.ss) ** pass_g
+    pE_G_P = pE_g_ratio * pE_P.ss * (1 + tau_g) * (pE_B_P / pE_B_P.ss) ** pass_g
     return pE_G_P
 
 
@@ -70,15 +76,20 @@ def switching_imports(psi_g, D_SWITCH):
 
 
 @sj.simple
-def energy_gap(pE_B_P, pE_G_P, CE_DUR_G):
+def energy_gap(pE_B_pretax_P, pE_G_P, tau_g, CE_DUR_G):
     """Balance-of-payments counterpart of adopters' cheaper energy.      [NEW]
 
     MODELING CHOICE (booking='import'): this books the green energy saving as a
     real reduction in the national import bill, not merely a domestic transfer.
     Without it the windfall accruing to adopters has no external counterpart and
     asset market clearing fails. Documented in docs/model.tex.
+
+    Uses PRE-carbon-tax prices on both legs: the carbon tax is a domestic wedge
+    (rebated in carbon_sector), so it must not enter the import bill. At
+    tau_b=tau_g=0 these equal pE_B_P and pE_G_P, leaving baseline/cap untouched.
     """
-    energy_gap_agg = (pE_B_P - pE_G_P) * CE_DUR_G
+    pE_G_pretax_P = pE_G_P / (1 + tau_g)
+    energy_gap_agg = (pE_B_pretax_P - pE_G_pretax_P) * CE_DUR_G
     return energy_gap_agg
 
 
@@ -101,6 +112,8 @@ def green_sector(pE_G_P, CE_DUR_G, psi_g, D_SWITCH, Tgreen):
     """
     Tgreen_res = Tgreen - (pE_G_P * CE_DUR_G + psi_g * D_SWITCH)
     return Tgreen_res
+
+
 
 
 # =============================================================================
@@ -183,21 +196,21 @@ def foreignPrices(piF, PF, P, Q, PFstar, rante, theta_F):
 
 
 @sj.solved(unknowns={'piE': 0., 'PE': 1.}, targets=['piE_res', 'PEres'], solver="broyden_custom")
-def energyPrices(piE, PE, P, Q, PEstar, rante, theta_E, tauE):
-    """Sticky retail energy price, plus the SUBSIDY / PRICE CAP.
+def energyPrices(piE, PE, P, Q, PEstar, rante, theta_E, tauE, tau_b):
+    """Sticky retail energy price, the SUBSIDY / PRICE CAP, and the CARBON TAX.
 
     Produces the BROWN household energy price P_B^E:
 
-        pE_B_P = (1-tauE)*pE_P + tauE*pE_P.ss
+        pE_B_P = [(1-tauE)*pE_P + tauE*pE_P.ss] * (1 + tau_b)
 
-    pE_P is the wholesale/retail market price; pE_B_P is what a brown
-    household actually pays. The GREEN price P_G^E comes from
-    `green_energy_price`.
+    pE_P is the wholesale/retail market price; pE_B_P is what a brown household
+    actually pays, gross of the carbon tax tau_b. The GREEN price P_G^E comes
+    from `green_energy_price` and is anchored on the PRE-tax base so tau_b does
+    not leak into it. tau_b = 0 recovers the no-ETS price exactly.
 
-    tauE = 0 : households pay the market price.
-    tauE = 1 : the household price is pinned at its pre-crisis level -- the
-               full price cap of Bayer et al. and the French tariff shield of
-               Langot et al.
+    tauE = 0 : households pay the market price (+ carbon tax).
+    tauE = 1 : the pre-carbon-tax household price is pinned at its pre-crisis
+               level -- the full price cap of Bayer et al. / Langot et al.
     """
     PEres = (1 + piE) * PE(-1) - PE
     pE_P = PE / P
@@ -206,49 +219,47 @@ def energyPrices(piE, PE, P, Q, PEstar, rante, theta_E, tauE):
     piE_term = Q * PEstar / pE_P - 1
     piE_res = kappa_E * piE_term + beta_E * piE(1) * (1 + piE(1)) - piE * (1 + piE)
     pE_P_ss = pE_P.ss
-    pE_B_P = (1 - tauE) * pE_P + tauE * pE_P.ss
+    # Pre-carbon-tax consumer brown price: what the BoP / import blocks must use,
+    # since the carbon tax tau_b is a DOMESTIC wedge (rebated via carbon_sector),
+    # not a change in the world price at which energy is imported. Equals pE_B_P
+    # exactly when tau_b = 0, so baseline and cap experiments are untouched.
+    pE_B_pretax_P = (1 - tauE) * pE_P + tauE * pE_P.ss
+    pE_B_P = pE_B_pretax_P * (1 + tau_b)
     pE_B = pE_B_P * P
-    return piE_res, PEres, pE_P, pE_P_ss, pE_B_P, pE_B
+    return piE_res, PEres, pE_P, pE_P_ss, pE_B_P, pE_B, pE_B_pretax_P
 
 
 importPrices = sj.combine([foreignPrices, energyPrices])
 
 
-@sj.solved(unknowns={'JF': 0., 'JE': 0}, targets=['JF_res', 'JE_res'], solver="broyden_custom")
-def importProfits(JF, JE, pF_P, pE_P, Q, PFstar, PEstar, cF, cE, prodE, rante):
+@sj.simple
+def importProfits(pF_P, pE_P, Q, PFstar, PEstar, cF, cE, prodE):
+    # Retail importer margins now accrue ABROAD (foreign-owned); kept only as
+    # diagnostics. No domestic capitalisation, so no JF/JE/jF/jE.
     DF = (pF_P - Q * PFstar) * cF
-    JF_res = DF + JF(1) / (1 + rante) - JF
-    jF = JF(1) / (1 + rante)
     DE = (pE_P - Q * PEstar) * (cE + prodE)
-    JE_res = DE + JE(1) / (1 + rante) - JE
-    jE = JE(1) / (1 + rante)
-    return JF_res, jF, JE_res, jE, DF, DE
-
-
-@sj.solved(unknowns={'JF': 0., 'JE': 0}, targets=['JF_res', 'JE_res'], solver="broyden_custom")
-def importProfits_dom(JF, JE, pF_P, pE_P, Q, PFstar, PEstar, cF, CE_DUR_B, prodE, rante):
-    """Importer margin, booking='domestic': only BROWN energy (CE_DUR_B) is
-    imported, so the retail margin is levied on brown energy alone. Green
-    energy is a domestic sector (see green_sector)."""
-    DF = (pF_P - Q * PFstar) * cF
-    JF_res = DF + JF(1) / (1 + rante) - JF
-    jF = JF(1) / (1 + rante)
-    DE = (pE_P - Q * PEstar) * (CE_DUR_B + prodE)
-    JE_res = DE + JE(1) / (1 + rante) - JE
-    jE = JE(1) / (1 + rante)
-    return JF_res, jF, JE_res, jE, DF, DE
+    return DF, DE
 
 
 @sj.simple
-def revaluation(r, j, J, jF, JF, zetaF, jE, JE, zetaE, j_Esupply, J_Esupply, zetaEsupply):
-    r_res = (J + zetaF * JF + zetaE * JE + zetaEsupply * J_Esupply) / (j(-1) + zetaF * jF(-1) + zetaE * jE(-1) + zetaEsupply * j_Esupply(-1)) - 1 - r
+def importProfits_dom(pF_P, pE_P, Q, PFstar, PEstar, cF, CE_DUR_B, prodE):
+    # Domestic booking: only brown energy is imported, so the (foreign-owned)
+    # energy margin is levied on CE_DUR_B alone. Diagnostics only.
+    DF = (pF_P - Q * PFstar) * cF
+    DE = (pE_P - Q * PEstar) * (CE_DUR_B + prodE)
+    return DF, DE
+
+
+@sj.simple
+def revaluation(r, j, J, j_Esupply, J_Esupply, zetaEsupply):
+    r_res = (J + zetaEsupply * J_Esupply) / (j(-1) + zetaEsupply * j_Esupply(-1)) - 1 - r
     return r_res
 
 
 @sj.simple
-def revaluation_dom(j, J, jF, JF, jE, JE, zetaEsupply, j_Esupply, J_Esupply):
-    rdom = (J + JF + JE + zetaEsupply * J_Esupply) / (j(-1) + jF(-1) + jE(-1) + zetaEsupply * j_Esupply(-1)) - 1
-    Adom = j + jF + jE + zetaEsupply * j_Esupply
+def revaluation_dom(j, J, zetaEsupply, j_Esupply, J_Esupply):
+    rdom = (J + zetaEsupply * J_Esupply) / (j(-1) + zetaEsupply * j_Esupply(-1)) - 1
+    Adom = j + zetaEsupply * j_Esupply
     return rdom, Adom
 
 
@@ -282,14 +293,16 @@ def IEA(J_Esupply, PEstar, P, rstar, Gamma_arb, E_supply_shock, rante, Q, zetaEs
 
 
 @sj.solved(unknowns={'nfa': (-2, 2)}, targets=['nfares'], solver="brentq")
-def CA(nfa, Q, pHstar, cHstar, PFstar, cF, PEstar, cE, prodE, rante, r, A_cpi,
-       rdom, Adom, zetaEsupply, E_supply, y, imports_dur, energy_gap_agg):
-    """ARS balance of payments plus the two durable-margin terms."""
+def CA(nfa, Q, pHstar, cHstar, pF_P, cF, pE_P, cE, prodE, rante, r, A_cpi,
+       rdom, Adom, zetaEsupply, PEstar, E_supply, y, imports_dur, energy_gap_agg):
+    """ARS balance of payments: imports valued at the RETAIL price (importers
+    foreign-owned), the home energy endowment exported at the world price, plus
+    the two durable-margin terms."""
     exports = Q * (pHstar * cHstar + PEstar * zetaEsupply * E_supply)
-    imports = Q * (PFstar * cF + PEstar * (cE + prodE)) + imports_dur - energy_gap_agg
+    imports = pF_P * cF + pE_P * (cE + prodE) + imports_dur - energy_gap_agg
     imports_pc = imports / imports.ss
     exports_pc = exports / exports.ss
-    netexports = Q * (pHstar * cHstar - PFstar * cF - PEstar * (cE + prodE - zetaEsupply * E_supply)) - imports_dur + energy_gap_agg
+    netexports = exports - imports
     revaluation_term = (r - rante(-1)) * A_cpi(-1) - (rdom - rante(-1)) * Adom(-1)
     nfares = netexports + revaluation_term + (1 + rante(-1)) * nfa(-1) - nfa
     nx_gdp = netexports / y
@@ -297,17 +310,15 @@ def CA(nfa, Q, pHstar, cHstar, PFstar, cF, PEstar, cE, prodE, rante, r, A_cpi,
 
 
 @sj.solved(unknowns={'nfa': (-2, 2)}, targets=['nfares'], solver="brentq")
-def CA_dom(nfa, Q, pHstar, cHstar, PFstar, cF, PEstar, CE_DUR_B, prodE, rante, r,
-           A_cpi, rdom, Adom, zetaEsupply, E_supply, y):
-    """ARS balance of payments, booking='domestic'. Green energy is a domestic
-    industry and the switching cost is domestic value added, so neither is
-    imported: only BROWN energy (CE_DUR_B) enters the import bill, and there is
-    no brown-reference energy gap and no switching import."""
+def CA_dom(nfa, Q, pHstar, cHstar, pF_P, cF, pE_P, CE_DUR_B, prodE, rante, r,
+           A_cpi, rdom, Adom, zetaEsupply, PEstar, E_supply, y):
+    """ARS balance of payments, booking='domestic': only BROWN energy is imported
+    (retail-priced); green energy and the switching cost are domestic."""
     exports = Q * (pHstar * cHstar + PEstar * zetaEsupply * E_supply)
-    imports = Q * (PFstar * cF + PEstar * (CE_DUR_B + prodE))
+    imports = pF_P * cF + pE_P * (CE_DUR_B + prodE)
     imports_pc = imports / imports.ss
     exports_pc = exports / exports.ss
-    netexports = Q * (pHstar * cHstar - PFstar * cF - PEstar * (CE_DUR_B + prodE - zetaEsupply * E_supply))
+    netexports = exports - imports
     revaluation_term = (r - rante(-1)) * A_cpi(-1) - (rdom - rante(-1)) * Adom(-1)
     nfares = netexports + revaluation_term + (1 + rante(-1)) * nfa(-1) - nfa
     nx_gdp = netexports / y
@@ -334,17 +345,24 @@ def piW_to_W(piw, W):
 
 
 @sj.solved(unknowns={'pHF_P': 1., 'pH_PHF': 1.}, targets=['inner_nest', 'outer_nest'])
-def CESprices(Q, eta, alpha_F, gamma, PFstar, PEstar, pHF_P, pH_PHF, eta_E, alpha_E, pE_B_P, pF_P):
+def CESprices(Q, eta, alpha_F, gamma, PFstar, PEstar, pHF_P, pH_PHF, eta_E, alpha_E, pE_B_pretax_P, pF_P):
     """CPI aggregation. DELIBERATE CHOICE (Option C, see docs/model.tex): the
     energy leg of the CPI is anchored on the BROWN price P_B^E alone, not on
     the share-weighted index [(1-D_G)P_B^(1-eta_E) + D_G P_G^(1-eta_E)].
 
-    Rationale. (i) It is what statistical agencies do -- the energy basket is
-    not reweighted every quarter for technology adoption. (ii) It keeps
-    p_rel(brown) == 1 exactly, on which the phase-2 nesting test rests.
-    (iii) Feeding D_GREEN back into CESprices would close a DAG cycle
-    (household -> D_GREEN -> CPI -> pE_B_P -> household) requiring the CPI to
-    be promoted to a model unknown.
+    The anchor is the PRE-carbon-tax brown price pE_B_pretax_P. At tau_b = 0
+    this equals pE_B_P and the block is bit-identical to before. Under a carbon
+    tax the CPI excludes the tax wedge, so brown households genuinely bear it
+    (p_rel(brown) > 1 in energy_price_bundle) and the carbon revenue has real
+    incidence -- anchoring on the TAX-INCLUSIVE price instead would insulate
+    brown households at p_rel == 1 and leak the revenue out of asset clearing.
+
+    Rationale for Option C. (i) It is what statistical agencies do -- the energy
+    basket is not reweighted every quarter for technology adoption. (ii) It
+    keeps p_rel(brown) == 1 exactly at tau_b = 0, on which the phase-2 nesting
+    test rests. (iii) Feeding D_GREEN back into CESprices would close a DAG
+    cycle (household -> D_GREEN -> CPI -> pE_B_P -> household) requiring the CPI
+    to be promoted to a model unknown.
 
     The resulting measurement gap is quantified ex post, outside the DAG, by
     ehank/deflator.py. Under the domestic-good numeraire the structural anchor
@@ -355,9 +373,9 @@ def CESprices(Q, eta, alpha_F, gamma, PFstar, PEstar, pHF_P, pH_PHF, eta_E, alph
     pH_P = pH_PHF * pHF_P
     pHstar = pH_P / Q
     if eta_E == 1:
-        inner_nest = pHF_P ** (1 - alpha_E) * pE_B_P ** alpha_E - 1
+        inner_nest = pHF_P ** (1 - alpha_E) * pE_B_pretax_P ** alpha_E - 1
     else:
-        inner_nest = (1 - alpha_E) * pHF_P ** (1 - eta_E) + alpha_E * pE_B_P ** (1 - eta_E) - 1
+        inner_nest = (1 - alpha_E) * pHF_P ** (1 - eta_E) + alpha_E * pE_B_pretax_P ** (1 - eta_E) - 1
     if eta == 1:
         outer_nest = pH_PHF ** (1 - alpha_F) * pF_PHF ** alpha_F - 1
     else:
@@ -397,8 +415,9 @@ def mon_policy(ishock, rstar, pi, phi_pi, phi_pie, rho_i, inom, phi_piw, w, P, i
 
 @sj.solved(unknowns={'B': (-1, 1)}, targets=['B_res'])
 def fiscal(B, rante, btw_n, psiB, tauY, epsT, insE, pE_P, cE, CE_DUR_B, tauE, bb,
-           subsidy_brown_only):
-    """Government budget. Two energy-crisis instruments:
+           subsidy_brown_only, s_g, psi_g, D_SWITCH, tau_b, tau_g, pE_g_ratio,
+           CE_DUR_G, Trebate, pE_B_pretax_P):
+    """Government budget. Energy-crisis instruments + the ETS carbon account.
 
       Subsidy   = tauE * (pE_P - pE_P.ss) * base_S     price cap, cost scales
                                                        with ACTUAL consumption
@@ -419,21 +438,43 @@ def fiscal(B, rante, btw_n, psiB, tauY, epsT, insE, pE_P, cE, CE_DUR_B, tauE, bb
       domestic base_S = CE_DUR_B (brown only). Green energy is a domestic
                industry with no import content, so a total-energy subsidy
                would over-pay by the green mass and leak into a permanent nfa
-               drift; only brown clears. Same brown/total distinction as the
-               exact Slutsky transfer, and the ~0.16%-of-GDP green-import
-               content that makes the two bookings genuinely non-equivalent.
-    Both instruments are debt-financed and repaid through the distortionary
-    labour tax tauY via the psiB feedback rule.
+               drift; only brown clears.
+    Both crisis instruments are debt-financed and repaid through the
+    distortionary labour tax tauY via the psiB feedback rule.
+
+    ETS (tau_b, tau_g > 0). The carbon tax is the wedge between what households
+    pay for energy (pE_B_P, pE_G_P) and its world resource cost (pE_P). That
+    wedge has no other recipient in the flow of funds, so it MUST be booked as
+    government revenue here; otherwise it is money the household spends that
+    reaches neither firms nor foreigners, and asset-market clearing fails. The
+    revenue is recycled in a balanced sub-account so B is untouched by the ETS:
+      R_carbon        = tau_b*pE_B_pretax_P*CE_DUR_B
+                        + tau_g*(pE_g_ratio*pE_P.ss)*CE_DUR_G
+      green_subsidy_p = s_g.ss*psi_g*D_SWITCH   (PERMANENT switch subsidy,
+                        recycle='green_subsidy'; 0 for 'rebate')
+      Trebate         = R_carbon - green_subsidy_p    (lump-sum residual)
+    The brown carbon base is the PRE-tax consumer price pE_B_pretax_P, not the
+    world price: under a price cap that base is pinned, so the ETS and the cap
+    compose correctly (the household is taxed on what it actually pays, capped).
+    Trebate is a model unknown closed by Trebate_res; because spending gains
+    (Trebate + green_subsidy_p) = R_carbon and taxation gains R_carbon, the ETS
+    nets out of B_res exactly. Only the TRANSITORY switch subsidy (s_g - s_g.ss)
+    is debt-financed; the permanent part is carbon-financed here. All carbon
+    terms vanish at tau_b=tau_g=0, leaving the no-ETS block bit-identical.
     """
     Tuntargeted = epsT
     Ttargeted = insE * (pE_P - pE_P.ss) * CE_DUR_B.ss
     base_S = CE_DUR_B if subsidy_brown_only else cE
     Subsidy = tauE * (pE_P - pE_P.ss) * base_S
-    spending = Tuntargeted + Ttargeted + Subsidy
-    taxation = tauY * btw_n
+    Subsidy_green = (s_g - s_g.ss) * psi_g * D_SWITCH
+    R_carbon = tau_b * pE_B_pretax_P * CE_DUR_B + tau_g * (pE_g_ratio * pE_P.ss) * CE_DUR_G
+    green_subsidy_p = s_g.ss * psi_g * D_SWITCH
+    Trebate_res = Trebate - (R_carbon - green_subsidy_p)
+    spending = Tuntargeted + Ttargeted + Subsidy + Subsidy_green + Trebate + green_subsidy_p
+    taxation = tauY * btw_n + R_carbon
     B_res = (1 + rante(-1)) * B(-1) + spending - taxation - B
     tauY_res = (1 - bb) * (psiB * (B(-1) - B.ss) - tauY) + bb * (B - B.ss)
-    return B_res, tauY_res, Tuntargeted, Ttargeted, spending, taxation, Subsidy
+    return B_res, tauY_res, Tuntargeted, Ttargeted, spending, taxation, Subsidy, Subsidy_green, R_carbon, Trebate_res
 
 
 @sj.simple
@@ -451,16 +492,13 @@ def annualize(pi, piw, inom, r, rante, piH):
 # 5. MARKET CLEARING                                                     [ARS]
 # =============================================================================
 @sj.simple
-def eqm_cond(y, cH, cHstar, A_cpi, gdp, nfa, j, jF, jE, B, cE, prodE, PEstar,
-             PEstar_shock, E_supply_elasticity, E_supply, zetaEsupply, j_Esupply, D_GREEN, D_GREEN_ss_target):
-    """Energy market closure switches on E_supply_elasticity:
-
-      inf    -> PEstar is exogenous (price-taking SOE). Shock: PEstar_shock.
-      finite -> quantity fixed by IEA, PEstar clears the market.
-                Shock: E_supply_shock.
-    """
+def eqm_cond(y, cH, cHstar, A_cpi, gdp, nfa, j, B, cE, prodE, PEstar,
+             PEstar_shock, E_supply_elasticity, E_supply, zetaEsupply, j_Esupply,
+             D_GREEN, D_GREEN_ss_target):
+    """nfa = A - j - B - zetaEsupply*j_Esupply (importers no longer held
+    domestically). Energy closure switches on E_supply_elasticity as before."""
     goods_clearing = cH + cHstar - y
-    assets_clearing = A_cpi - nfa - j - jF - jE - B - zetaEsupply * j_Esupply
+    assets_clearing = A_cpi - nfa - j - B - zetaEsupply * j_Esupply
     if E_supply_elasticity == np.inf:
         E_clearing = PEstar - PEstar_shock
     else:
@@ -472,15 +510,12 @@ def eqm_cond(y, cH, cHstar, A_cpi, gdp, nfa, j, jF, jE, B, cE, prodE, PEstar,
 
 
 @sj.simple
-def eqm_cond_dom(y, cH, cHstar, A_cpi, gdp, nfa, j, jF, jE, B, CE_DUR_B, prodE, PEstar,
+def eqm_cond_dom(y, cH, cHstar, A_cpi, gdp, nfa, j, B, CE_DUR_B, prodE, PEstar,
                  PEstar_shock, E_supply_elasticity, E_supply, zetaEsupply, j_Esupply,
                  D_GREEN, D_GREEN_ss_target):
-    """Market clearing, booking='domestic'. Identical to eqm_cond except that
-    only BROWN (imported) energy clears against the fixed world supply under the
-    supply-shock closure: green adopters leave the fossil market, directly
-    relaxing the world price -- the scarcity-relief channel made explicit."""
+    """Domestic booking: only brown (imported) energy clears against world supply."""
     goods_clearing = cH + cHstar - y
-    assets_clearing = A_cpi - nfa - j - jF - jE - B - zetaEsupply * j_Esupply
+    assets_clearing = A_cpi - nfa - j - B - zetaEsupply * j_Esupply
     if E_supply_elasticity == np.inf:
         E_clearing = PEstar - PEstar_shock
     else:

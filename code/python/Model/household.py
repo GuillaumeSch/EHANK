@@ -108,49 +108,41 @@ def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, delta_g):
     return e_grid, Pi, a_grid, d_markov
 
 
-def energy_price_bundle(pE_B_P, pE_G_P, alpha_E, eta_E, p_num):
+def energy_price_bundle(pE_B_P, pE_B_pretax_P, pE_G_P, alpha_E, eta_E, p_num):
     """Type-specific cost-of-living index, exact CES, in BOTH bases.
 
     `p_rel` is relative to the CPI and is what the CES demand system in
     `durable_shares` must use. `p_rel_num` is relative to the unit of account
     and is what the budget constraint in `consav` must use.
 
+    The CES identity is anchored on the PRE-carbon-tax brown price
+    pE_B_pretax_P (matching CESprices), while pE_d for a brown household is the
+    TAX-INCLUSIVE price pE_B_P it actually pays. At tau_b = 0 the two coincide,
+    p_rel(brown) collapses to 1 exactly, and this is bit-identical to the no-ETS
+    form. Under a carbon tax p_rel(brown) > 1: the tax is a genuine real cost to
+    brown households (not absorbed by the CPI normalisation), so its revenue
+    R_carbon has real incidence and assets clear. See CESprices for the anchor.
+
     KEEP THIS ALGEBRAIC FORM. A domestic-good-native rewrite was tried and
     reverted: giving `durable_shares` (a HETOUTPUT) any direct, nonlinear
-    dependence on `p_num` -- even after moving the pE_d/pHF_P division by
-    p_num into this hetinput and handing durable_shares pre-divided prices --
-    corrupts the linearized Jacobian. assets_clearing (a Walras's-law
-    residual, not itself a solved target) jumps from ~2e-7 to 1.3e-4 or
-    1.2e-3 depending on exactly where p_num is touched, even though the
-    formula is verified correct in levels (bit-identical to this one at every
-    date) and the isolated derivative is smooth at every step size tested
-    (1e-4, 1e-6, 1e-8) -- so it is not a formula bug or logit-curvature
-    artifact (confirmed: barely changes when taste_shock is raised 10x). The
-    root cause is narrowed to SSJ's Jacobian composition for hetOUTPUTS that
-    depend on p_num nonlinearly, but not fully pinned down; see SSJ_SKILL.md.
-    Brown states collapse to p_rel = 1 STRUCTURALLY rather than by numerical
-    cancellation. The direct form would be
-        p_rel = [alpha_E*pE_d^(1-eta_E) + (1-alpha_E)*pHF_P^(1-eta_E)]^(1/(1-eta_E))
-    which equals 1 for brown states only because CESprices enforces
-        alpha_E*pE_B_P^(1-eta_E) + (1-alpha_E)*pHF_P^(1-eta_E) = 1.
-    That identity holds analytically, but SSJ differentiates p_rel w.r.t.
-    pE_B_P and pHF_P as INDEPENDENT inputs and only recovers the cancellation
-    by composing Jacobians along the DAG -- leaving ~1e-6 of finite-difference
-    residual that showed up as a 6.7e-6 failure of the phase-2 nesting test.
-    Substituting the identity here removes pHF_P from the block entirely.
+    dependence on `p_num` corrupts the linearized Jacobian (assets_clearing
+    jumps from ~2e-7 to 1e-4..1e-3), even though the formula is bit-identical in
+    levels. Root cause narrowed to SSJ's Jacobian composition for hetOUTPUTS
+    with nonlinear p_num dependence; see SSJ_SKILL.md. Brown states collapse to
+    p_rel = 1 STRUCTURALLY (at tau_b=0) rather than by numerical cancellation.
     """
     pE_d = pE_B_P + IS_GREEN * (pE_G_P - pE_B_P)
     if eta_E == 1:
-        p_rel = (pE_d / pE_B_P) ** alpha_E
+        p_rel = (pE_d / pE_B_pretax_P) ** alpha_E
     else:
-        p_rel = (1.0 + alpha_E * (pE_d ** (1 - eta_E) - pE_B_P ** (1 - eta_E))) ** (1 / (1 - eta_E))
+        p_rel = (1.0 + alpha_E * (pE_d ** (1 - eta_E) - pE_B_pretax_P ** (1 - eta_E))) ** (1 / (1 - eta_E))
     p_rel_num = p_rel / p_num
     return p_rel, p_rel_num
 
 
 def hh_income(e_grid, atw_n_num, r_num, p_num, pE_B_P, cbarE, scale_w, markup_ss,
               a_grid, n, frisch, ghh_prefs, epsT, cE_ss_grid, insE, pE_P,
-              pE_P_ss, psi_g, Tgreen):
+              pE_P_ss, psi_g, Tgreen, s_g, Trebate):
     """ARS income plus the switching cost, expressed in units of account.
 
     The energy-price gap does NOT enter here as an income transfer -- it is
@@ -173,10 +165,13 @@ def hh_income(e_grid, atw_n_num, r_num, p_num, pE_B_P, cbarE, scale_w, markup_ss
     # household that switches to green keeps the same transfer and the switching
     # margin is undistorted. epsT is the untargeted lump sum.
     Tfiscal = epsT + insE * (pE_P - pE_P_ss) * cE_ss_grid
-    Tswitch = - psi_g * PAYS_SWITCH
+    # Green/adoption subsidy: the government pays a fraction s_g of the switching
+    # cost, so the household pays only (1-s_g)*psi_g. s_g = 0 at the SS.
+    Tswitch = - (1 - s_g) * psi_g * PAYS_SWITCH
 
+    # Trebate is the carbon-revenue lump-sum rebate (ets=True); 0 otherwise.
     coh = ((1 + r_num) * a_grid + atw_n_num * e_grid[:, np.newaxis]
-           + (Tf + Tfiscal + Tgreen) / p_num)
+           + (Tf + Tfiscal + Tgreen + Trebate) / p_num)
     coh = coh[np.newaxis, ...] + (Tswitch / p_num)[:, np.newaxis, np.newaxis]
 
     n_ss = 1

@@ -34,7 +34,7 @@ BASE = dict(
     # E_supply_elasticity = inf  -> price-taking SOE: PEstar exogenous.
     # E_supply_elasticity finite -> quantity fixed by IEA, PEstar endogenous.
     E_supply_elasticity=np.inf,
-    zetaEsupply=0.33,  # home ownership share of energy rents
+    zetaEsupply=0.0,  # home ownership share of energy rents
     Gamma_arb=100,     # intertemporal arbitrage in energy stocks
 
     # --- portfolio / open economy
@@ -64,12 +64,34 @@ DURABLE = dict(
 
 
 # =============================================================================
+# 2bis. ETS / CARBON TAX (steady-state, budget-neutral). All zero = no ETS.
+# =============================================================================
+# Permanent carbon tax on the consumer energy price, with the revenue recycled
+# in a balanced sub-account (carbon_sector). Only active when build_model /
+# make_calibration are called with ets=True.
+#
+#   tau_b   carbon tax rate on BROWN energy      (pE_B_P = pE_P*(1+tau_b))
+#   tau_g   carbon tax rate on GREEN energy      (~0; green is near-clean)
+#   s_g_ets PERMANENT green subsidy rate financed by carbon revenue
+#           (recycle='green_subsidy'); 0 for recycle='rebate'
+#
+# The effective SS brown/green price ratio becomes pE_g_ratio*(1+tau_g)/(1+tau_b),
+# so a positive tau_b raises steady-state adoption (D_GREEN floats up; psi_g is
+# held fixed at its no-ETS value). At tau_b=tau_g=0 the model is bit-identical
+# to the no-ETS baseline.
+ETS = dict(tau_b=0.0, tau_g=0.0, s_g_ets=0.0)
+
+
+# =============================================================================
 # 3. POLICY (all zero = laissez-faire)
 # =============================================================================
 POLICY = dict(
     tauE=0.0,   # energy price cap / subsidy. 1 = household price fully capped
     insE=0.0,   # Slutsky transfer indexed to pre-crisis energy consumption
     epsT=0.0,   # untargeted lump-sum transfer
+    s_g=0.0,    # green/adoption subsidy: fraction of the switching cost psi_g
+                # paid by the government. 0 at the SS (no distortion); fed as a
+                # transition path for the 'green' crisis-response policy.
 )
 
 
@@ -100,7 +122,7 @@ def _derived(c):
               'dividend_X': 0, 'vphi': 1, 'rante': c['r'],
               'beta_RA': 1 / (1 + c['r']), 'C': 1, 'A': 1, 'w': 1,
               'PEstar_shock': 1, 'PEstar': 1, 'inom_t': 0, 'union_wedge': 0,
-              'Tgreen': 0.0})
+              'Tgreen': 0.0, 'Trebate': 0.0})
 
     # Per-household steady-state BROWN energy grid (n_e, n_a), collapsed over
     # the durable axis. Zeros switch the Slutsky transfer OFF; `set_energy_grids`
@@ -110,8 +132,8 @@ def _derived(c):
     return c
 
 
-def make_calibration(numeraire='core', booking='import', **overrides):
-    """Build a calibration. `numeraire` and `booking` must match build_model's.
+def make_calibration(numeraire='core', booking='import', ets=False, **overrides):
+    """Build a calibration. `numeraire`, `booking` and `ets` must match build_model's.
 
     Under 'cpi' the price of the unit of account is a CONSTANT p_num = 1 and
     is supplied here rather than produced by a block: a block returning a
@@ -123,9 +145,13 @@ def make_calibration(numeraire='core', booking='import', **overrides):
     booking there is no green sector, so Tgreen is the fixed constant 0 the
     household reads; under 'domestic' it is a genuine block output / model
     unknown produced by green_sector and must be absent from the calibration.
+
+    Trebate (the carbon-revenue lump-sum rebate) is the same: 0 constant when
+    ets=False, and a genuine carbon_sector output / model unknown when ets=True.
     """
     c = dict(BASE)
     c.update(DURABLE)
+    c.update(ETS)
     c.update(POLICY)
     c.update(overrides)
     c = _derived(c)
@@ -136,7 +162,28 @@ def make_calibration(numeraire='core', booking='import', **overrides):
         c.pop('p_num', None)
     if booking == 'domestic':
         c.pop('Tgreen', None)
+    if ets:
+        c.pop('Trebate', None)
     return c
+
+
+def set_energy_grids_flat(calib, ss):
+    """Untargeted (flat) lump-sum counterpart of set_energy_grids.
+
+    Fills cE_ss_grid_i with the UNIFORM scalar CE_DUR_B.ss instead of each
+    household's own pre-crisis brown energy. The distribution-weighted aggregate
+    is identical (mean of the targeted grid equals CE_DUR_B.ss by construction),
+    so the government outlay -- and hence assets_clearing -- is unchanged; only
+    the INCIDENCE differs. This isolates targeting from envelope: the flat
+    transfer pays every household the same lump sum whose total equals what the
+    Slutsky transfer costs, letting E-HANK's distributional bite be read off the
+    CEV-by-type gap between the two.
+    """
+    out = dict(calib)
+    k = float(ss['CE_DUR_B'])
+    for i in range(3):
+        out[f'cE_ss_grid_{i}'] = np.full((calib['n_e'], calib['n_a']), k)
+    return out
 
 
 def set_energy_grids(calib, ss):
