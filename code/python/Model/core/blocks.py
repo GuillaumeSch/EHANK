@@ -344,44 +344,29 @@ def piW_to_W(piw, W):
     return Wres
 
 
-@sj.solved(unknowns={'pHF_P': 1., 'pH_PHF': 1.}, targets=['inner_nest', 'outer_nest'])
-def CESprices(Q, eta, alpha_F, gamma, PFstar, PEstar, pHF_P, pH_PHF, eta_E, alpha_E, pE_B_pretax_P, pF_P):
-    """CPI aggregation. DELIBERATE CHOICE (Option C, see docs/model.tex): the
-    energy leg of the CPI is anchored on the BROWN price P_B^E alone, not on
-    the share-weighted index [(1-D_G)P_B^(1-eta_E) + D_G P_G^(1-eta_E)].
-
-    The anchor is the PRE-carbon-tax brown price pE_B_pretax_P. At tau_b = 0
-    this equals pE_B_P and the block is bit-identical to before. Under a carbon
-    tax the CPI excludes the tax wedge, so brown households genuinely bear it
-    (p_rel(brown) > 1 in energy_price_bundle) and the carbon revenue has real
-    incidence -- anchoring on the TAX-INCLUSIVE price instead would insulate
-    brown households at p_rel == 1 and leak the revenue out of asset clearing.
-
-    Rationale for Option C. (i) It is what statistical agencies do -- the energy
-    basket is not reweighted every quarter for technology adoption. (ii) It
-    keeps p_rel(brown) == 1 exactly at tau_b = 0, on which the phase-2 nesting
-    test rests. (iii) Feeding D_GREEN back into CESprices would close a DAG
-    cycle (household -> D_GREEN -> CPI -> pE_B_P -> household) requiring the CPI
-    to be promoted to a model unknown.
-
-    The resulting measurement gap is quantified ex post, outside the DAG, by
-    ehank/deflator.py. Under the domestic-good numeraire the structural anchor
-    is p_core == 1, so this choice only affects the MEASURED deflator and the
-    monetary rule, not the resource constraint."""
+@sj.simple
+def CESprices(Q, eta, alpha_F, gamma, eta_E, alpha_E, pE_B_P, pE_G_P, pF_P, markup_ss, Z, w):
     alpha = alpha_E + (1 - alpha_E) * alpha_F
-    pF_PHF = pF_P / pHF_P
-    pH_P = pH_PHF * pHF_P
-    pHstar = pH_P / Q
-    if eta_E == 1:
-        inner_nest = pHF_P ** (1 - alpha_E) * pE_B_pretax_P ** alpha_E - 1
+    pH_P = markup_ss / Z * w
+    if eta == 1:
+        pHF_P = pH_P ** (1 - alpha_F) * pF_P ** alpha_F
     else:
-        inner_nest = (1 - alpha_E) * pHF_P ** (1 - eta_E) + alpha_E * pE_B_pretax_P ** (1 - eta_E) - 1
+        pHF_P = ((1 - alpha_F) * pH_P ** (1 - eta) + alpha_F * pF_P ** (1 - eta)) ** (1 / (1 - eta))
+    pF_PHF = pF_P / pHF_P
+    pH_PHF = pH_P / pHF_P
+    pHstar = pH_P / Q
     if eta == 1:
         outer_nest = pH_PHF ** (1 - alpha_F) * pF_PHF ** alpha_F - 1
     else:
         outer_nest = (1 - alpha_F) * pH_PHF ** (1 - eta) + alpha_F * pF_PHF ** (1 - eta) - 1
+    if eta_E == 1:
+        pB_P = pHF_P ** (1 - alpha_E) * pE_B_P ** alpha_E
+        pG_P = pHF_P ** (1 - alpha_E) * pE_G_P ** alpha_E
+    else:
+        pB_P = ((1 - alpha_E) * pHF_P ** (1 - eta_E) + alpha_E * pE_B_P ** (1 - eta_E)) ** (1 / (1 - eta_E))
+        pG_P = ((1 - alpha_E) * pHF_P ** (1 - eta_E) + alpha_E * pE_G_P ** (1 - eta_E)) ** (1 / (1 - eta_E))
     chi_tilde = (1 - alpha) * (alpha_F * eta + (1 - alpha_F) * eta_E) + alpha * gamma
-    return chi_tilde, pF_PHF, inner_nest, outer_nest, pH_P, pHstar, alpha
+    return chi_tilde, pF_PHF, pH_PHF, pHstar, pHF_P, alpha, outer_nest, pH_P, pB_P, pG_P
 
 
 @sj.simple
@@ -390,11 +375,10 @@ def price_levels(piw, W, w, Z, pH_P, Q, P, PE, markup_ss, prodE_es, prodE_share)
         PH = (markup_ss / Z * W) ** (1 - prodE_share) * PE ** prodE_share
     else:
         PH = ((1 - prodE_share) * (markup_ss / Z * W) ** (1 - prodE_es) + prodE_share * PE ** (1 - prodE_es)) ** (1 / (1 - prodE_es))
-    pires = PH / pH_P - P
     E = P * Q
     piH = PH / PH(-1) - 1
     w_res = W / P - w
-    return PH, pires, E, piH, w_res
+    return PH, E, piH, w_res
 
 
 @sj.solved(unknowns={'P': (0.5, 2)}, targets=['Pres'])
@@ -547,3 +531,9 @@ def test_targets(d, extra=(), tol=1e-4, noisy=False):
         raise AssertionError("residuals not zero: "
                              + ", ".join(f"{t}={v:.2e}" for t, v in bad))
     return True
+
+
+@sj.simple
+def reweight_cpi(P_times_C, C):
+    pires = P_times_C - C
+    return pires

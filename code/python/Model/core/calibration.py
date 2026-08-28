@@ -132,7 +132,7 @@ def _derived(c):
     return c
 
 
-def make_calibration(numeraire='core', booking='import', ets=False, **overrides):
+def make_calibration(numeraire='cpi', booking='import', ets=False, **overrides):
     """Build a calibration. `numeraire`, `booking` and `ets` must match build_model's.
 
     Under 'cpi' the price of the unit of account is a CONSTANT p_num = 1 and

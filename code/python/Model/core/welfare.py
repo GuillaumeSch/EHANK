@@ -11,8 +11,7 @@ economy-wide labor disutility implied by the union's wage-setting FOC
 separable and v(n) never enters the household's own problem or UTIL_i, but it
 is a genuine felicity cost shared by every household under indivisible labor
 -- a scenario that raises employment is not a free lunch. v(n) is computed
-here ex post from the cached IRF, exactly as deflator.py computes the CPI
-measurement gap ex post: no DAG change or re-solve is required.
+here ex post from the cached IRF (no DAG change or re-solve is required):
 
 Because the distribution evolves from its date-0 value, W_i is exactly the
 expected discounted utility of a household drawn at random before the shock

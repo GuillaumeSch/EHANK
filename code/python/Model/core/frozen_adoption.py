@@ -66,7 +66,7 @@ def hh_ha_durable_frozen(n_beta=3):
                            name='hh_ha_durable_frozen')
 
 
-def build_model_frozen(numeraire='core', booking='import', ets=False):
+def build_model_frozen(numeraire='cpi', booking='import', ets=False):
     """Same DAG as model.build_model, but with the frozen-choice household."""
     num = B.numeraire_core if numeraire == 'core' else B.numeraire_cpi
     if booking == 'domestic':
@@ -82,5 +82,5 @@ def build_model_frozen(numeraire='core', booking='import', ets=False):
         B.income, B.profitcenters, B.importPrices, imp,
         B.revaluation, B.revaluation_dom, B.foreign_c, B.UIP, B.IEA, ca,
         B.unions, B.piW_to_W, B.CESprices, B.price_levels, B.pitop,
-        B.mon_policy, B.fiscal, B.annualize, eqm,
+        B.mon_policy, B.fiscal, B.annualize, eqm, B.reweight_cpi,
     ])

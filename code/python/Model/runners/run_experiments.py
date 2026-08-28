@@ -7,7 +7,6 @@ Experiments
   E3  The policy-adoption interaction: does shielding kill the green margin?
   E4  Monetary policy: constant real rate vs Taylor rule       (ARS)
   E5  Adoption-channel decomposition
-  E8  CPI measurement gap left by the brown-anchored deflator (Option C)
 
 CACHES ARE TAGGED BY NUMERAIRE. An IRF computed under the CPI numeraire
 differs from one computed under the domestic-good numeraire by ~0.03% -- far
@@ -23,7 +22,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from core.model import build_model, run
-from core.deflator import true_inflation
 
 NUMERAIRE = 'core'          # 'core' = domestic good (default), 'cpi' = ARS
 BOOKING = 'import'          # 'import' baseline, or 'domestic' (green sector)
@@ -47,7 +45,6 @@ CACHE = {}
 MODEL = build_model(NUMERAIRE, booking=BOOKING)
 from tools import latex_tables as LT
 
-# pi, pE_B_P, pE_G_P and D_GREEN are needed by the deflator diagnostic.
 KEEP = ['y', 'C', 'cE', 'CE_DUR_B', 'pi', 'pi_ann', 'D_GREEN', 'D_SWITCH', 'pE_P', 'n',
         'spending', 'nx_gdp', 'PEstar', 'E_supply', 'r_ann', 'w', 'piH_ann',
         'B', 'tauY', 'pE_B_P', 'pE_G_P', 'assets_clearing', 'goods_clearing', 'E_clearing', 'nfares']
@@ -263,39 +260,6 @@ tex_path = LT.summary_table(f'{OUT}/tab_summary_{NUMERAIRE}_{BOOKING}.tex',
 print(f"  -> {tex_path}")
 
 
-# =============================================================================
-# E8. CPI MEASUREMENT GAP (Option C diagnostic, no DAG feedback)
-# =============================================================================
-print("\nE8  brown-anchored deflator vs share-weighted deflator")
-hdr2 = (f"{'shock':>7s} {'policy':>9s} {'phi_ss':>9s} {'lvl gap %':>10s} "
-        f"{'pi gap pp':>10s} {'|pi| pp':>9s} {'ratio':>8s}")
-lines2 = [hdr2, '-' * len(hdr2)]
-defl = {}
-for shock in ['price', 'supply']:
-    for p in ['none', 'subsidy', 'transfer']:
-        ss_, a = pol_ss[(shock, p, 'adoption')], pol[(shock, p, 'adoption')]
-        d = true_inflation(ss_, a)
-        defl[(shock, p)] = d
-        g = float(np.max(np.abs(d['pi_gap_ann'][:H])))
-        m = float(np.max(np.abs(a['pi_ann'][:H])))
-        lines2.append(f"{shock:>7s} {p:>9s} {d['phi_ss']:9.6f} "
-                      f"{float(np.max(np.abs(d['phi_gap'][:H]))):10.4f} "
-                      f"{100 * g:10.4f} {100 * m:9.3f} {g / max(m, 1e-16):8.2%}")
-table2 = '\n'.join(lines2)
-print('\n' + table2)
-open(f'{OUT}/deflator_table_{NUMERAIRE}_{BOOKING}.txt', 'w').write(table2 + '\n')
-
-fig, axes = plt.subplots(1, 2, figsize=(11, 3.6))
-for ax, shock in zip(axes, ['price', 'supply']):
-    for p, sty in [('none', '-'), ('subsidy', '--'), ('transfer', ':')]:
-        ax.plot(100 * defl[(shock, p)]['pi_gap_ann'][:H], lw=2, ls=sty, label=p)
-    ax.axhline(0, color='k', lw=0.5)
-    ax.set_title(f'{shock.upper()}: true minus measured inflation (ann., pp)', fontsize=10)
-    ax.set_xlabel('quarters', fontsize=8)
-axes[0].legend(fontsize=8)
-fig.suptitle(r'E8. Measurement gap from anchoring the CPI on $P^E_B$ alone')
-fig.tight_layout(); fig.savefig(f'{OUT}/fig8_deflator_gap.png', dpi=140); plt.close(fig)
-print(f"  -> {OUT}/fig8_deflator_gap.png")
 
 pickle.dump({k: v for k, v in CACHE.items()}, open(f'{OUT}/irfs_{NUMERAIRE}_{BOOKING}.pkl', 'wb'))
 print(f"\nDone. Figures + tables + irfs_{NUMERAIRE}.pkl in {OUT}/")

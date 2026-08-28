@@ -35,8 +35,8 @@ _UNKNOWNS_TD_BASE = {'y', 'pi', 'r', 'tauY', 'PEstar', 'w'}
 _TARGETS_TD_BASE = {'goods_clearing', 'pires', 'r_res', 'tauY_res', 'E_clearing', 'w_res'}
 
 # --- steady-state unknowns/targets, by booking ------------------------------
-_SS_UNKNOWNS_BASE = {'vphi': 1, 'beta_max': 0.984, 'y': 0.9868, 'psi_g': 0.253}
-_SS_TARGETS_BASE = ['piwres', 'nfares', 'goods_clearing', 'D_GREEN_res']
+_SS_UNKNOWNS_BASE = {'vphi': 1, 'beta_max': 0.984, 'y': 0.9868, 'psi_g': 0.253, 'Z': 1.03}
+_SS_TARGETS_BASE = ['piwres', 'nfares', 'goods_clearing', 'D_GREEN_res', 'pires']
 
 
 def td_unknowns_targets(booking='import', ets=False):
@@ -84,7 +84,7 @@ def ss_unknowns_targets_fixed_psi(booking='import', ets=False):
 SS_UNKNOWNS_FIXED_PSI, SS_TARGETS_FIXED_PSI = ss_unknowns_targets_fixed_psi('import')
 
 
-def build_model(numeraire='core', booking='import', ets=False):
+def build_model(numeraire='cpi', booking='import', ets=False):
     """Assemble the full DAG.
 
     `numeraire` selects the household's unit of account:
@@ -115,7 +115,7 @@ def build_model(numeraire='core', booking='import', ets=False):
         B.income, B.profitcenters, B.importPrices, imp,
         B.revaluation, B.revaluation_dom, B.foreign_c, B.UIP, B.IEA, ca,
         B.unions, B.piW_to_W, B.CESprices, B.price_levels, B.pitop,
-        B.mon_policy, B.fiscal, B.annualize, eqm,
+        B.mon_policy, B.fiscal, B.annualize, eqm, B.reweight_cpi,
     ])
 
 

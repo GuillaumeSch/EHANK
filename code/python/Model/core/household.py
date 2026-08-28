@@ -108,34 +108,8 @@ def make_grids(rho_e, sd_e, n_e, min_a, max_a, n_a, delta_g):
     return e_grid, Pi, a_grid, d_markov
 
 
-def energy_price_bundle(pE_B_P, pE_B_pretax_P, pE_G_P, alpha_E, eta_E, p_num):
-    """Type-specific cost-of-living index, exact CES, in BOTH bases.
-
-    `p_rel` is relative to the CPI and is what the CES demand system in
-    `durable_shares` must use. `p_rel_num` is relative to the unit of account
-    and is what the budget constraint in `consav` must use.
-
-    The CES identity is anchored on the PRE-carbon-tax brown price
-    pE_B_pretax_P (matching CESprices), while pE_d for a brown household is the
-    TAX-INCLUSIVE price pE_B_P it actually pays. At tau_b = 0 the two coincide,
-    p_rel(brown) collapses to 1 exactly, and this is bit-identical to the no-ETS
-    form. Under a carbon tax p_rel(brown) > 1: the tax is a genuine real cost to
-    brown households (not absorbed by the CPI normalisation), so its revenue
-    R_carbon has real incidence and assets clear. See CESprices for the anchor.
-
-    KEEP THIS ALGEBRAIC FORM. A domestic-good-native rewrite was tried and
-    reverted: giving `durable_shares` (a HETOUTPUT) any direct, nonlinear
-    dependence on `p_num` corrupts the linearized Jacobian (assets_clearing
-    jumps from ~2e-7 to 1e-4..1e-3), even though the formula is bit-identical in
-    levels. Root cause narrowed to SSJ's Jacobian composition for hetOUTPUTS
-    with nonlinear p_num dependence; see SSJ_SKILL.md. Brown states collapse to
-    p_rel = 1 STRUCTURALLY (at tau_b=0) rather than by numerical cancellation.
-    """
-    pE_d = pE_B_P + IS_GREEN * (pE_G_P - pE_B_P)
-    if eta_E == 1:
-        p_rel = (pE_d / pE_B_pretax_P) ** alpha_E
-    else:
-        p_rel = (1.0 + alpha_E * (pE_d ** (1 - eta_E) - pE_B_pretax_P ** (1 - eta_E))) ** (1 / (1 - eta_E))
+def energy_price_bundle(pB_P, pG_P, p_num):
+    p_rel = pB_P + IS_GREEN * (pG_P - pB_P)
     p_rel_num = p_rel / p_num
     return p_rel, p_rel_num
 
@@ -284,7 +258,8 @@ def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E):
     c_green = c * IS_GREEN[:, np.newaxis, np.newaxis]
     c_brown = c * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
     c_switch = c * PAYS_SWITCH[:, np.newaxis, np.newaxis]   # new adopters (state GB)
-    return d_green, d_switch, cE_dur_b, cE_dur_g, cHF_dur, c_green, c_brown, c_switch
+    p_times_c = p_rel_bc * c
+    return d_green, d_switch, cE_dur_b, cE_dur_g, cHF_dur, c_green, c_brown, c_switch, p_times_c
 
 
 def flow_utility(c, ghh, eis):
@@ -310,7 +285,7 @@ hh_one = StageBlock([dep_stage, prod_stage, durables_stage, consav_stage], name=
                     backward_init=hh_init,
                     hetinputs=[make_grids, energy_price_bundle, hh_income])
 
-GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_DUR_B', 'CE_DUR_G', 'CHF_DUR', 'UTIL', 'C_GREEN', 'C_BROWN', 'C_SWITCH']
+GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_DUR_B', 'CE_DUR_G', 'CHF_DUR', 'UTIL', 'C_GREEN', 'C_BROWN', 'C_SWITCH', 'P_TIMES_C']
 
 
 @sj.simple
@@ -328,6 +303,7 @@ def aggregate_groups(C_0, C_1, C_2, A_0, A_1, A_2, MPC_0, MPC_1, MPC_2,
                      CHF_DUR_0, CHF_DUR_1, CHF_DUR_2,
                      C_GREEN_0, C_GREEN_1, C_GREEN_2, C_BROWN_0, C_BROWN_1, C_BROWN_2,
                      C_SWITCH_0, C_SWITCH_1, C_SWITCH_2,
+                     P_TIMES_C_0, P_TIMES_C_1, P_TIMES_C_2,
                      beta_0, beta_1, beta_2):
     C = (C_0 + C_1 + C_2) / 3
     A = (A_0 + A_1 + A_2) / 3
@@ -341,7 +317,8 @@ def aggregate_groups(C_0, C_1, C_2, A_0, A_1, A_2, MPC_0, MPC_1, MPC_2,
     C_BROWN = (C_BROWN_0 + C_BROWN_1 + C_BROWN_2) / 3
     C_SWITCH = (C_SWITCH_0 + C_SWITCH_1 + C_SWITCH_2) / 3
     beta = (beta_0 + beta_1 + beta_2) / 3
-    return C, A, MPC, D_GREEN, D_SWITCH, CE_DUR_B, CE_DUR_G, CHF_DUR, C_GREEN, C_BROWN, C_SWITCH, beta
+    P_times_C = (P_TIMES_C_0 + P_TIMES_C_1 + P_TIMES_C_2) / 3
+    return C, A, MPC, D_GREEN, D_SWITCH, CE_DUR_B, CE_DUR_G, CHF_DUR, C_GREEN, C_BROWN, C_SWITCH, P_times_C, beta
 
 
 def hh_ha_durable(n_beta=3):
