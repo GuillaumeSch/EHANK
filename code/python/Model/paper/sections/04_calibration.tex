@@ -1,0 +1,192 @@
+% sections/04_calibration.tex
+% Full rewrite of the calibration section, ARS-style. Table 1 and Table 2 rebuilt in
+% booktabs with clean symbols; code references (runner names, QUARTERLY_C_USD, etc.)
+% removed; EU framing committed with a forward pointer to the empirical section.
+%
+% Requires \usepackage{booktabs}. Expected labels: sec:intro sec:policy sec:exante
+% sec:empirics app:taste ; figure label fig:taste (the identification figure).
+% Bibitem keys: ARS2024 GallagherMuehlegger2011 Chandra2010 MuehleggerRapson2022 BeresteanuLi2011
+
+\section{Calibration}\label{sec:cal}
+
+The aggregate block is inherited from \citet{ARS2024}; the durable/adoption block is
+this paper's addition. We keep the aggregate calibration close to a generic energy
+importer---the ARS parameters, an energy expenditure share of four percent, a low
+intensive substitution elasticity---and read the durable as any household energy
+durable, a heat pump or an electric vehicle. The economy we speak to is the European
+one of Sections~\ref{sec:intro} and~\ref{sec:policy}; the aggregate calibration is an
+illustrative mapping onto it rather than a euro-area estimation, and the empirical
+section (Section~\ref{sec:empirics}) estimates the adoption margin's response
+directly on European data. The steady state is identical across all baseline
+experiments. Table~\ref{tab:calibration} collects the parameters.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{lll}
+\toprule
+Parameter & Value & Source / target \\
+\midrule
+\multicolumn{3}{l}{\textit{Preferences and idiosyncratic risk}}\\
+$r$ real rate (quarterly) & $0.01$ & \citet{ARS2024} \\
+$\sigma$ inverse EIS & $1$ (log) & \citet{ARS2024} \\
+$\varphi$ inverse Frisch & $2$ & Frisch $0.5$ (standard) \\
+$\sigma_e,\rho_e,n_e$ income process & $0.57,\,0.92,\,7$ & Rouwenhorst; ARS baseline \\
+$\beta$ types / spread / $\beta_{\max}$ & $3$ / $0.06$ / solved & mean $\text{MPC}\approx 0.30$; $\beta_{\max}$ closes nfa \\
+asset grid $[\underline a,\bar a]$, $n_a$ & $[0,400]$, $50$ & \\
+\addlinespace
+\multicolumn{3}{l}{\textit{Consumption nest and openness}}\\
+$\alpha_E$ energy expenditure share & $0.04$ & \citet{ARS2024} \\
+$\eta_E$ energy substitution & $0.10$ & \citet{ARS2024} \\
+$\alpha$ total import share & $0.30$ & \citet{ARS2024} \\
+$\alpha_F,\ \gamma=\eta$ & derived & import-demand target $\chi=0.3$ \\
+\addlinespace
+\multicolumn{3}{l}{\textit{Firms, prices, wages}}\\
+$\mu$ gross markup & $1.03$ & \citet{ARS2024} \\
+$\theta_w$ wage Calvo & $0.938$ & ARS baseline \\
+$\theta_E$ energy-price Calvo & $0.65$ & ARS baseline \\
+$\theta_F$ import-price Calvo & $0.90$ & ARS baseline \\
+$\zeta_{BG}$ real-wage stabilisation & $5$ & ARS baseline \\
+$\xi_E$ energy share in production & $0$ & off in baseline \\
+\addlinespace
+\multicolumn{3}{l}{\textit{Energy supply and open economy}}\\
+$\varepsilon^E$ supply elasticity & $\infty$ / finite & price shock / supply shock \\
+$\Gamma$ stock arbitrage & $100$ & ARS baseline \\
+$\bar E^{\mathrm{shock}}$ world supply & $\alpha_E$ & endowment normalisation \\
+\addlinespace
+\multicolumn{3}{l}{\textit{Monetary and fiscal}}\\
+$(\phi_\pi,\phi_{\pi e})$ baseline / Taylor & $(0,1)$ / $(1.5,0)$ & constant real rate (ARS) / Taylor \\
+$\bar B,\ \psi_B$ debt / feedback & $0$, $0.04$ & no SS debt; $\tau^Y$ solved \\
+\addlinespace
+\multicolumn{3}{l}{\textit{Green adoption margin [this paper]}}\\
+$\delta_g$ green breakdown rate & $0.05$ & five-year durable life \\
+$\varrho=\bar P^E_G/\bar P^E_B$ & $0.80$ & heat-pump / EV delivered-cost ratio \\
+$\psi_g$ switching cost & $0.538$ (solved) & targets $\bar D^G=0.05$ \\
+$\sigma_\varepsilon$ logit taste scale & $0.05$ & identified in Section~\ref{sec:taste_id} \\
+$\rho_g$ pass-through to green price & $0$ & upper bound on the channel \\
+\addlinespace
+\multicolumn{3}{l}{\textit{Policy instruments (all $0$ in the baseline)}}\\
+$\tau^E$ price-cap intensity & $\{0,\dots,1\}$ & $1=$ full freeze \\
+$ins_E$ targeted transfer & $\{0,1\}$ & pre-crisis brown-energy indexed \\
+$T^{\mathrm{unt}}$ untargeted transfer & $\{0,1\}$ & flat-transfer counterpart \\
+$s_g$ switching subsidy & $\{0,1\}$ & crisis / carbon-financed \\
+\addlinespace
+\multicolumn{3}{l}{\textit{ETS (prepared economy only)}}\\
+$\tau_b$ brown carbon tax & $\{0.10,0.20,0.30\}$ & permanent, $\psi_g$ fixed \\
+$\tau_g$ green carbon tax & $\approx 0$ & green near-clean \\
+revenue recycling & rebate / green subsidy & Appendix~\ref{app:booking} \\
+\bottomrule
+\end{tabular}
+\caption{Calibration. The aggregate block is inherited from \citet{ARS2024}; the
+durable/adoption block is this paper's addition. $\psi_g$ is solved to
+$\bar D^G=5\%$; $\sigma_\varepsilon$ is identified in Section~\ref{sec:taste_id}.}
+\label{tab:calibration}
+\end{table}
+
+The adoption block adds four parameters. The green durable depreciates at
+$\delta_g=0.05$, a five-year life, which fixes the steady-state switching flow at
+$\bar D^{\mathrm{sw}}=\delta_g\bar D^G$. The delivered green/brown operating-cost
+ratio is $\varrho=0.80$, in the heat-pump and EV range. The switching cost $\psi_g$
+is solved to hit a steady-state green share $\bar D^G=5\%$. That leaves one free
+parameter, the logit taste scale $\sigma_\varepsilon$, which governs how responsive
+the margin is and which a level target cannot pin. Section~\ref{sec:taste_id}
+disciplines it.
+
+\subsection{Identifying the taste scale}\label{sec:taste_id}
+
+The switching cost $\psi_g$ and the taste scale $\sigma_\varepsilon$ are not
+separately identified by the single steady-state target $\bar D^G=5\%$. For any
+$\sigma_\varepsilon$, $\psi_g$ re-solves to hit the same share, so the steady state is
+invariant along the $(\sigma_\varepsilon,\psi_g)$ locus
+(Table~\ref{tab:taste_identification}): the green share and the switcher mass do not move as
+$\sigma_\varepsilon$ ranges over an order of magnitude and $\psi_g$ with it, from
+$0.32$ to $1.53$.
+
+What the locus does not leave invariant is the responsiveness of the margin. The
+steady-state adoption elasticity---the response of the green share to a permanent
+improvement in the green/brown operating-cost ratio, at fixed $\psi_g$---falls from
+$2.8$ at $\sigma_\varepsilon=0.02$ to $0.4$ at $0.20$, and the crisis adoption wave
+falls with it, from a peak $\Delta D^G$ of $19.9$ to $2.0$ percentage points
+(Figure~\ref{fig:taste_identification}). The adoption-channel magnitudes are therefore conditional
+on $\sigma_\varepsilon$: a level moment cannot discipline them, and a second
+moment---the adoption elasticity---is required.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{output/fig_taste_identification.png}
+\caption{Identification of the taste scale. \emph{Left}: the steady-state adoption
+elasticity (green share vs.\ the operating-cost gap) against $\sigma_\varepsilon$.
+\emph{Right}: the crisis adoption magnitude (peak $\Delta D^G$ to the brown-price
+shock). The steady state is held at $\bar D^G=5\%$ by recalibrating $\psi_g$; the
+dashed line marks the baseline $\sigma_\varepsilon=0.05$.}
+\label{fig:taste_identification}
+\end{figure}
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{lrrrrrr}
+\toprule
+$\sigma_\varepsilon$ & $\psi_g$ & premium \$000 & cost-gap elast. & \%/\$1{,}000 & peak $\Delta D^G$ & $\sum y$ \\
+\midrule
+$0.020$ & $0.323$ & $6.5$ & $2.78$ & $80$ & $19.86$ & $-59.2$ \\
+$0.035$ & $0.430$ & $8.6$ & $1.80$ & $54$ & $12.42$ & $-60.9$ \\
+$0.050$ & $0.538$ & $10.8$ & $1.32$ & $40$ & $8.87$ & $-61.5$ \\
+$0.070$ & $0.680$ & $13.6$ & $0.97$ & $31$ & $6.34$ & $-61.6$ \\
+$0.100$ & $0.888$ & $17.8$ & $0.69$ & $22$ & $4.36$ & $-61.4$ \\
+$0.150$ & $1.220$ & $24.4$ & $0.47$ & $16$ & $2.80$ & $-60.6$ \\
+$0.200$ & $1.534$ & $30.7$ & $0.36$ & $12$ & $2.01$ & $-59.8$ \\
+\bottomrule
+\end{tabular}
+\caption{Identification of the logit taste scale. For each $\sigma_\varepsilon$,
+$\psi_g$ is recalibrated to hold $\bar D^G=5\%$, leaving the steady state invariant.
+Columns: the implied green premium in dollars (one unit $=\$20{,}000$ quarterly
+consumption); the steady-state elasticity of the green share to the operating-cost
+gap at fixed $\psi_g$; the semi-elasticity of the switching flow to a \$1{,}000 cut
+in $\psi_g$, matched to \citet{GallagherMuehlegger2011,Chandra2010,MuehleggerRapson2022}; the peak
+crisis adoption response; and the cumulative output loss, flat while the adoption
+responsiveness varies by an order of magnitude.}
+\label{tab:taste_identification}
+\end{table}
+
+The quasi-experimental vehicle literature provides exactly that moment, on the
+upfront-cost margin. \citet{GallagherMuehlegger2011} and \citet{Chandra2010} estimate that a
+\$1{,}000 tax incentive raises hybrid adoption by 31--38\%, in a population of
+higher-income early adopters; \citet{MuehleggerRapson2022} estimate a demand elasticity of
+$-2.1$ for electric vehicles among low- and middle-income households, roughly 8\% per
+\$1{,}000 at their mean transaction price of \$26{,}000---the mass-market floor on
+responsiveness. In the model one unit is quarterly household consumption, taken as
+\$20{,}000, so the baseline $\psi_g=0.538$ is a green premium of about \$10{,}800; a
+\$1{,}000 cut in $\psi_g$ raises the switching flow by 40\% at
+$\sigma_\varepsilon=0.05$, 31\% at $0.07$, and 12\% at $0.20$
+(Table~\ref{tab:taste_identification}).
+
+Which end of the empirical range is relevant is a statement about the marginal
+adopter, not a free choice. At a 5\% green share the model's marginal adopters
+consume roughly twice the average brown household (Section~\ref{sec:exante}): they
+are the higher-income early adopters of the hybrid-era estimates, not the
+mass-market population of \citet{MuehleggerRapson2022}, whose estimate therefore bounds
+responsiveness from below. Matching the early-adopter range pins
+$\sigma_\varepsilon\in[0.05,0.07]$, with an implied green premium of
+\$11{,}000--\$14{,}000 squarely in the heat-pump and EV range, whereas
+$\sigma_\varepsilon\ge 0.10$ would imply premia of \$18{,}000 and above. The baseline
+$\sigma_\varepsilon=0.05$ is the elastic end of that interval, and the mass-market
+estimate is spanned by the sensitivity analysis. The operating-cost margin---the
+channel \citet{BeresteanuLi2011} document for gasoline prices and hybrid demand---then
+implies an elasticity of the green share to the energy-cost gap of $1.3$ at the
+baseline. This responsiveness is a structural property of a rare margin, not an
+artefact of the smoothing method; Appendix~\ref{app:taste} develops the point.
+
+The dollar mapping is the one assumption stated rather than estimated, and its role
+is transparent: a higher consumption unit scales the model's per-\$1{,}000 response
+down and the implied premium up, so the two criteria co-move and the joint interval
+stays tight---at \$16{,}000 the pin is roughly $[0.07,0.10]$, at \$24{,}000
+$[0.04,0.06]$. Each of these intervals lies inside the sensitivity grid of
+Table~\ref{tab:taste_identification}, over which the steady state and the policy ordering are
+invariant.
+
+The aggregate results do not turn on any of this. The cumulative output loss
+$\sum y$ is flat across the locus (Table~\ref{tab:taste_identification}, last column),
+varying by under 4\% while the adoption response varies tenfold, and the policy
+ordering follows from the relative price alone. The taste scale governs how large the
+adoption channel is, not whether the cap switches it off or the transfer preserves
+it. Section~\ref{sec:empirics} brings a European estimate of the same margin to bear,
+complementing the U.S. anchors used here.

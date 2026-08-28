@@ -1,0 +1,91 @@
+\section{The energy shocks and the adoption channel}
+\label{sec:experiments}
+
+\subsection{The two shocks and the common-steady-state counterfactual}
+\label{sec:counterfactual}
+
+The \emph{price} shock is a 100 log-point rise in the world energy price with a
+16-quarter half-life, as in \citet{ARS2024}: energy supply is perfectly elastic
+($\varepsilon^{E}=\infty$) and the world price is exogenous. The \emph{supply}
+shock is a 10\% cut in available energy for 6 quarters, after which the world
+price clears a fixed quantity endogenously, as in \citet{Bayer2026}. Impulse
+responses are reported as $100\times$ the level deviation from steady state.
+Variables whose steady state is one (prices, $w$, $n$, and the shares $D^{G}$,
+$D^{sw}$) read directly as percent or percentage-point deviations; $C$ (steady
+state $\approx0.997$) is within rounding of a percent; $y$ and $\mathrm{gdp}$
+(steady state $\approx0.985$) are level deviations $\times100$, within about
+$1.5\%$ of the exact percentage; energy quantities are a share of the energy
+steady state ($\approx0.040$).
+
+Several results below isolate the adoption channel as the difference between the
+full model and a ``no-adoption'' counterfactual,
+$\Delta_H\equiv\sum_{t<H}(y^{\mathrm{adopt}}_t-y^{\mathrm{no\text{-}adopt}}_t)$.
+The counterfactual is constructed to share the full model's steady state
+\emph{exactly}: households still hold the discrete durable-choice margin, and the
+steady-state green share, switching flow, and switching cost
+($\bar D^{G}=5\%$, $D^{sw}_{ss}$, $\psi_g$) are bit-identical to the adoption
+economy. What differs is the \emph{transition} only: the discrete-choice
+probabilities are held at their steady-state values throughout the impulse
+response, so the durable composition does not respond to the crisis while every
+other block responds normally. We call this the \textbf{common-steady-state}, or
+\emph{frozen-choice}, counterfactual. The alternative---shutting the choice by
+making green durables infeasible, so the counterfactual's own steady state has
+$D^{G}_{ss}=0$---would compare two economies that differ both in the crisis
+response \emph{and} in steady-state composition; the frozen construction isolates
+the crisis response alone.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{output/fig1_price_shock.png}
+\caption{Brown energy \emph{price} shock (elastic supply), adoption open (solid)
+vs.\ frozen at the common steady state (dashed), no policy.}
+\label{fig:baseline}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{output/fig1_supply_shock.png}
+\caption{Brown energy \emph{supply} shock ($-10\%$ for 6 quarters, fixed
+quantity), adoption open (solid) vs.\ frozen (dashed), no policy.}
+\label{fig:baseline_supply}
+\end{figure}
+
+\subsection{What the adoption margin adds}
+\label{sec:signmap}\label{sec:crisis}
+
+Under the import booking and the price shock, the adoption channel's contribution
+to cumulative output is $\Delta_{24}=-8.8$ (Table~\ref{tab:summary}): the margin
+is \emph{contractionary}. It follows a race between two resource flows in the
+balance of payments (Section~\ref{sec:bop}). Adoption imports a \textbf{switching
+cost} $\psi_g D^{sw}_t$---a resource outflow, \emph{front-loaded} (paid once by
+each switcher) and scaling with the adoption \emph{volume} $D^{sw}$---and, against
+it, a \textbf{flow energy saving} $(P^{E}_{B}-P^{E}_{G})\,C^{G}_{E,t}$ booked as
+reduced imports, an inflow accruing \emph{gradually} over the life of the green
+durable. Under the frozen counterfactual and the import booking the front-loaded
+cost dominates the windowed saving at every persistence. The magnitude is the
+pocket cost of the crisis-time switching wave at the calibrated $\psi_g=0.54$
+($\approx0.54\times C_{ss}$), not a general-equilibrium artefact: the direct cost
+$\psi_g\times$ extra switchers cumulates to $+8.96$, matching the measured gap
+almost exactly. Under the fixed-quantity (supply) closure a third, expansionary
+term appears---adoption lowers fossil demand against a fixed supply, so the
+clearing price falls and relaxes scarcity for \emph{all} households---which shifts
+$\Delta_{24}$ up to $-0.35$. The marginal switcher's steady-state indifference,
+$\psi_g\approx(\bar P^{E}_{B}-\bar P^{E}_{G})\,\bar C^{G}_{E}/(r+\delta_g)$, ties
+the threshold to the cost ratio $\varrho$.
+
+\paragraph{Booking caveat.} The \emph{sign} of $\Delta_{24}$---not the policy
+ordering below---depends on how the green resource flows are booked. Under the
+alternative domestic-industry booking (green energy and installation as
+zero-profit domestic value added rather than imports) it flips to $+28.6$ under
+the price shock and $+4.7$ under the supply shock. We report the import booking
+throughout and collect the comparison in Appendix~\ref{app:booking}. This is a
+booking convention, not a result about the transition, and it is why we phrase the
+paper's headline in terms of the \emph{margin's response} to policy rather than
+its output sign.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig5_decomposition.png}
+\caption{Contribution of the green adoption margin (full minus frozen), by
+shock. Output, consumption, energy use, net exports.}
+\label{fig:decomposition}
+\end{figure}
+
+\input{output/tab_summary_core_import.tex}

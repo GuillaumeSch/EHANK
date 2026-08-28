@@ -456,3 +456,19 @@ elsewhere in the DAG (`p_num` is `pH_P`, used contemporaneously in the hetoutput
 `pH_P(-1)` in `numeraire_core`'s `r_num`) — but this was not confirmed against SSJ internals,
 only against the household block's own behavior. Treat as an empirical constraint, not a
 diagnosed SSJ bug with a known internal cause.
+
+## Gotcha: nonlinear inner-block maxit (solve_impulse_nonlinear)
+
+`solve_impulse_nonlinear` inner `sj.solved` blocks (here the retail-energy NKPC,
+`energyPrices` / `energyPrices_inner`) default to `maxit=30` at the CLASS level:
+`Block.solve_impulse_nonlinear_options = dict(tol=1e-8, maxit=30, verbose=True)`.
+The `maxit=` kwarg passed to the top-level solve sets only the OUTER Newton and
+does NOT reach these inner blocks; per-block `options=` do not reach them either.
+Raise the class default in place before solving:
+
+    from sequence_jacobian.blocks.block import Block
+    Block.solve_impulse_nonlinear_options['maxit'] = 500   # instances share the dict
+
+Even so: the ex-post cap does not converge at eps=0.75, and nothing converges at
+eps=1.0 inside a warm grid loop (state carried in the model between solves). Cap
+robustness runs at eps<=0.5; the size sweep in nl_investigate.py stops at 0.75.

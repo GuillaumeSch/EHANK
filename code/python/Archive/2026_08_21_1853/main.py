@@ -19,7 +19,7 @@ import sys
 import subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, 'paper', 'output')
+OUT = os.path.join(HERE, 'output')
 
 # group -> list of (script, argv). Order within 'all' is the paper's order.
 GROUPS = {
@@ -38,8 +38,6 @@ GROUPS = {
     # Dose-response of the cap + distributional CEV (E6/E7).
     # fig6, tab_dose_core_import, tab_cev_core_import.
     'welfare':     [('run_dose_response.py', [])],
-    # taste-scale identification (tab_taste_identification, fig_taste_identification)
-    'taste_id':    [('run_taste_identification.py', [])],
     # Section 5 (welfare table + monetary figure) and Section 6 (ex-ante/ex-post,
     # green subsidy). run_summary_table -> tab_summary_import + fig_monetary;
     # run_exante_expost -> tab_exante_expost + fig_carbon_optimal + crisis fig;
@@ -66,18 +64,18 @@ GROUPS = {
                     ('run_nl_cev.py', [])],
 }
  
-ORDER = ['qa', 'baseline', 'signmap', 'welfare', 'taste_id', 'exante',
-         'persistence', 'taub', 'booking', 'nonlin']
+ORDER = ['qa', 'baseline', 'signmap', 'welfare', 'exante', 'persistence',
+         'taub', 'booking', 'nonlin']
 
 
 def run_script(script, argv):
-    path = os.path.join(HERE, 'runners', script)
+    path = os.path.join(HERE, script)
     if not os.path.exists(path):
         print(f"  [MISSING] {script} not found -- skipping "
               f"(its figures/tables will be absent).")
         return False
     print(f"  >>> python {script} {' '.join(argv)}", flush=True)
-    r = subprocess.run([sys.executable, '-m', f"runners.{script[:-3]}", *argv], cwd=HERE)
+    r = subprocess.run([sys.executable, path, *argv], cwd=HERE)
     if r.returncode != 0:
         print(f"  [FAIL] {script} exited {r.returncode}")
         return False
@@ -106,7 +104,7 @@ def main():
             print(f"unknown group '{g}'. choose from: {', '.join(ORDER)} | all | list")
             return
         run_group(g)
-    print("\nDone. All figures/tables are in paper/output/.")
+    print("\nDone. All figures/tables are in output/.")
 
 
 if __name__ == '__main__':

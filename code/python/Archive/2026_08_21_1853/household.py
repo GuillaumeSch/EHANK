@@ -279,7 +279,12 @@ def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E):
 
     cE_dur_b = cE_dur * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
     cE_dur_g = cE_dur * IS_GREEN[:, np.newaxis, np.newaxis]
-    return d_green, d_switch, cE_dur_b, cE_dur_g, cHF_dur
+    # Bundle consumption split by current technology (for the cross-sectional
+    # decomposition of C: C = C_BROWN + C_GREEN, masses 1-D_GREEN / D_GREEN).
+    c_green = c * IS_GREEN[:, np.newaxis, np.newaxis]
+    c_brown = c * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
+    c_switch = c * PAYS_SWITCH[:, np.newaxis, np.newaxis]   # new adopters (state GB)
+    return d_green, d_switch, cE_dur_b, cE_dur_g, cHF_dur, c_green, c_brown, c_switch
 
 
 def flow_utility(c, ghh, eis):
@@ -305,7 +310,7 @@ hh_one = StageBlock([dep_stage, prod_stage, durables_stage, consav_stage], name=
                     backward_init=hh_init,
                     hetinputs=[make_grids, energy_price_bundle, hh_income])
 
-GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_DUR_B', 'CE_DUR_G', 'CHF_DUR', 'UTIL']
+GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_DUR_B', 'CE_DUR_G', 'CHF_DUR', 'UTIL', 'C_GREEN', 'C_BROWN', 'C_SWITCH']
 
 
 @sj.simple
@@ -321,6 +326,8 @@ def aggregate_groups(C_0, C_1, C_2, A_0, A_1, A_2, MPC_0, MPC_1, MPC_2,
                      D_GREEN_0, D_GREEN_1, D_GREEN_2, D_SWITCH_0, D_SWITCH_1, D_SWITCH_2,
                      CE_DUR_B_0, CE_DUR_B_1, CE_DUR_B_2, CE_DUR_G_0, CE_DUR_G_1, CE_DUR_G_2,
                      CHF_DUR_0, CHF_DUR_1, CHF_DUR_2,
+                     C_GREEN_0, C_GREEN_1, C_GREEN_2, C_BROWN_0, C_BROWN_1, C_BROWN_2,
+                     C_SWITCH_0, C_SWITCH_1, C_SWITCH_2,
                      beta_0, beta_1, beta_2):
     C = (C_0 + C_1 + C_2) / 3
     A = (A_0 + A_1 + A_2) / 3
@@ -330,8 +337,11 @@ def aggregate_groups(C_0, C_1, C_2, A_0, A_1, A_2, MPC_0, MPC_1, MPC_2,
     CE_DUR_B = (CE_DUR_B_0 + CE_DUR_B_1 + CE_DUR_B_2) / 3
     CE_DUR_G = (CE_DUR_G_0 + CE_DUR_G_1 + CE_DUR_G_2) / 3
     CHF_DUR = (CHF_DUR_0 + CHF_DUR_1 + CHF_DUR_2) / 3
+    C_GREEN = (C_GREEN_0 + C_GREEN_1 + C_GREEN_2) / 3
+    C_BROWN = (C_BROWN_0 + C_BROWN_1 + C_BROWN_2) / 3
+    C_SWITCH = (C_SWITCH_0 + C_SWITCH_1 + C_SWITCH_2) / 3
     beta = (beta_0 + beta_1 + beta_2) / 3
-    return C, A, MPC, D_GREEN, D_SWITCH, CE_DUR_B, CE_DUR_G, CHF_DUR, beta
+    return C, A, MPC, D_GREEN, D_SWITCH, CE_DUR_B, CE_DUR_G, CHF_DUR, C_GREEN, C_BROWN, C_SWITCH, beta
 
 
 def hh_ha_durable(n_beta=3):

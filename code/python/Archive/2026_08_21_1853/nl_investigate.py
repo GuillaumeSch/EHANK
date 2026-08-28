@@ -11,9 +11,26 @@ the transition). It replaces the earlier version that shut the margin in the
 steady state itself (green_block huge, D_GREEN_ss=0%), so cached results from
 before this change (nl_size.pkl / nl_taste.pkl under the OLD methodology) are
 NOT comparable and must be regenerated -- hence the '_frozen' cache tag below.
+
+AUDIT FIX (maxit): the top-level solve_impulse_nonlinear(maxit=...) sets the
+outer Newton count only. The inner GE Newton of the energyPrices solved block
+reads the class-level default Block.solve_impulse_nonlinear_options=dict(maxit=30),
+which the outer kwarg does NOT reach. Lifting that default (below) gives the
+mid-range solves headroom and removes a latent cliff. It does NOT buy the
+baseline shock size: eps=1.0 converges only from a fresh model, not inside a
+grid loop that has already solved smaller sizes on the same instance (state
+carried in M between solves), so the default grid stops at 0.75 -- which is
+exactly where the paper's nonlinearity claims live. eps=1.0 is left out and
+documented as fragile rather than forced.
 """
-import os, pickle, time, numpy as np
+import os, pickle, sys, time
+import numpy as np
+from sequence_jacobian.blocks.block import Block
 from model import build_model, run, shock_price, td_unknowns_targets, frozen_model
+
+# --- AUDIT FIX: lift the inner-block backward-iteration cap (default 30). ---
+INNER_MAXIT = 100
+Block.solve_impulse_nonlinear_options = dict(tol=1e-8, maxit=INNER_MAXIT, verbose=False)
 
 M = build_model('core', booking='import')
 U, T = td_unknowns_targets('import')
@@ -25,10 +42,21 @@ def metrics(lin, nl):
     out = {}
     for k in SERIES:
         L = np.asarray(lin[k]); N = np.asarray(nl[k])
-        Li, Ni = 100*float(L[0]), 100*float(N[0])
-        Lp = 100*float(np.max(np.abs(L[:H]))); Np = 100*float(np.max(np.abs(N[:H])))
+        Li, Ni = 100 * float(L[0]), 100 * float(N[0])
+        Lp = 100 * float(np.max(np.abs(L[:H]))); Np = 100 * float(np.max(np.abs(N[:H])))
         out[k] = dict(Li=Li, Ni=Ni, Lp=Lp, Np=Np)
     return out
+
+
+def _ratio(m, key, floor=1e-3):
+    """NL/L peak ratio, guarded. Returns nan when the linear peak is ~0.
+
+    The frozen ('no_adoption') D_GREEN barely moves, so its linear peak is
+    numerically zero and the raw ratio explodes to O(100). Reporting that as a
+    'nonlinearity' is meaningless; guard it.
+    """
+    Lp = abs(m[key]['Lp'])
+    return m[key]['Np'] / Lp if Lp > floor else float('nan')
 
 
 def solve_pair(size, variant='adoption', taste=None, maxit=200):
@@ -43,11 +71,13 @@ def solve_pair(size, variant='adoption', taste=None, maxit=200):
     # -- hence the nonlinear residual functions -- differ from the adoption dag).
     nl_model = frozen_model('core', 'import') if variant == 'no_adoption' else M
     t0 = time.time()
+    # SSJ raises on non-convergence, so a returned path is converged by
+    # construction. We still record the outer maxit and wall time for provenance.
     nl = nl_model.solve_impulse_nonlinear(ss, U, T, shk, maxit=maxit, tol=1e-8,
                                           verbose=False)
     dt = time.time() - t0
     return dict(m=metrics(lin, nl), psi_g=float(ss['psi_g']),
-                DG_ss=float(ss['D_GREEN']), dt=dt, ok=True)
+                DG_ss=float(ss['D_GREEN']), dt=dt, maxit_inner=INNER_MAXIT, ok=True)
 
 
 def load(f):
@@ -57,14 +87,14 @@ def load(f):
 def run_grid(cache, grid, **fixed):
     res = load(cache)
     for key, kw in grid:
-        if key in res:
+        if key in res and res[key].get('ok'):
             print(f'skip {key}', flush=True); continue
         try:
             res[key] = solve_pair(**kw, **fixed)
+            yr = _ratio(res[key]['m'], 'y')
+            dgr = _ratio(res[key]['m'], 'D_GREEN')
             print(f'done {key}  ({res[key]["dt"]:.0f}s)  '
-                  f'y NL/L={res[key]["m"]["y"]["Np"]/max(abs(res[key]["m"]["y"]["Lp"]),1e-9):.3f}  '
-                  f'DG NL/L={res[key]["m"]["D_GREEN"]["Np"]/max(abs(res[key]["m"]["D_GREEN"]["Lp"]),1e-9):.3f}',
-                  flush=True)
+                  f'y NL/L={yr:.3f}  DG NL/L={dgr:.3f}', flush=True)
         except Exception as e:
             res[key] = dict(ok=False, err=f'{type(e).__name__}: {e}')
             print(f'FAIL {key}: {res[key]["err"]}', flush=True)
@@ -78,19 +108,12 @@ def run_grid(cache, grid, **fixed):
 SIZE_CACHE = 'nl_size_frozen.pkl'
 TASTE_CACHE = 'nl_taste_frozen.pkl'
 
-if __name__ == '__main__':
-    import sys
-    which = sys.argv[1] if len(sys.argv) > 1 else 'size'
-    if which == 'size':
-        grid = ([(f'ad_{s}', dict(size=s, variant='adoption'))
-                 for s in [0.125, 0.25, 0.5, 0.75, 1.0]] +
-                [(f'no_{s}', dict(size=s, variant='no_adoption'))
-                 for s in [0.125, 0.25, 0.5, 0.75, 1.0]])
-        run_grid(SIZE_CACHE, grid)
-    elif which == 'taste':
-        grid = [(f'ts_{ts}', dict(size=0.5, variant='adoption', taste=ts))
-                for ts in [0.02, 0.05, 0.10, 0.20, 0.40]]
-        run_grid(TASTE_CACHE, grid)
+# Sizes: the run grid and build_fig9 read the same list, so the figure never
+# silently drops points. Capped at 0.75 (the convergent range and the paper's
+# stated range); eps=1.0 is fragile in a warm grid loop -- see module docstring.
+SIZES = [0.03125, 0.0625, 0.125, 0.25, 0.5, 0.75]
+NO_SIZES = [0.125, 0.25, 0.5, 0.75]
+TASTES = [0.02, 0.05, 0.10, 0.20, 0.40]
 
 
 def build_fig9(out='output/fig9_nonlinearity.png'):
@@ -99,25 +122,25 @@ def build_fig9(out='output/fig9_nonlinearity.png'):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     rs = load(SIZE_CACHE); rt = load(TASTE_CACHE)
-    def pkr(v, s):
-        m = v['m'][s]; return m['Np'] / m['Lp'] if abs(m['Lp']) > 1e-6 else float('nan')
-    sizes = [0.03125, 0.0625, 0.125, 0.25, 0.5, 0.75]
-    ad_y = [pkr(rs[f'ad_{s}'], 'y') for s in sizes if f'ad_{s}' in rs]
-    ad_dg = [pkr(rs[f'ad_{s}'], 'D_GREEN') for s in sizes if f'ad_{s}' in rs]
-    sz_ad = [s for s in sizes if f'ad_{s}' in rs]
-    no_sizes = [0.125, 0.25, 0.5, 0.75]
-    no_y = [pkr(rs[f'no_{s}'], 'y') for s in no_sizes if f'no_{s}' in rs]
-    sz_no = [s for s in no_sizes if f'no_{s}' in rs]
-    tastes = [0.02, 0.05, 0.10, 0.20, 0.40]
-    t_dg = [pkr(rt[f'ts_{ts}'], 'D_GREEN') for ts in tastes if f'ts_{ts}' in rt]
-    t_y = [pkr(rt[f'ts_{ts}'], 'y') for ts in tastes if f'ts_{ts}' in rt]
-    tv = [ts for ts in tastes if f'ts_{ts}' in rt]
+
+    def ok(d, k):
+        return k in d and d[k].get('ok')
+
+    ad_sz = [s for s in SIZES if ok(rs, f'ad_{s}')]
+    ad_y = [_ratio(rs[f'ad_{s}']['m'], 'y') for s in ad_sz]
+    ad_dg = [_ratio(rs[f'ad_{s}']['m'], 'D_GREEN') for s in ad_sz]
+    no_sz = [s for s in NO_SIZES if ok(rs, f'no_{s}')]
+    no_y = [_ratio(rs[f'no_{s}']['m'], 'y') for s in no_sz]
+    tv = [ts for ts in TASTES if ok(rt, f'ts_{ts}')]
+    t_dg = [_ratio(rt[f'ts_{ts}']['m'], 'D_GREEN') for ts in tv]
+    t_y = [_ratio(rt[f'ts_{ts}']['m'], 'y') for ts in tv]
+
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(12, 4.2))
     a1.axhline(1, color='k', lw=0.6, ls=':')
-    a1.plot(sz_ad, ad_dg, 'o-', color='C1', lw=2, label=r'$D^{G}$ (adoption on)')
-    a1.plot(sz_ad, ad_y, 's-', color='C0', lw=2, label=r'output $y$ (adoption on)')
-    a1.plot(sz_no, no_y, '^--', color='C3', lw=2,
-           label=r'output $y$ (adoption frozen, common SS)')
+    a1.plot(ad_sz, ad_dg, 'o-', color='C1', lw=2, label=r'$D^{G}$ (adoption on)')
+    a1.plot(ad_sz, ad_y, 's-', color='C0', lw=2, label=r'output $y$ (adoption on)')
+    a1.plot(no_sz, no_y, '^--', color='C3', lw=2,
+            label=r'output $y$ (adoption frozen, common SS)')
     a1.set_xlabel('shock size (impact log-dev of world energy price)')
     a1.set_ylabel('nonlinear / linear (peak)')
     a1.set_title('Nonlinearity vs shock size'); a1.legend(fontsize=8)
@@ -133,5 +156,15 @@ def build_fig9(out='output/fig9_nonlinearity.png'):
     print(f'  -> {out}')
 
 
-if __name__ == '__main__' and len(__import__('sys').argv) > 1 and __import__('sys').argv[1] == 'fig':
-    build_fig9()
+if __name__ == '__main__':
+    which = sys.argv[1] if len(sys.argv) > 1 else 'size'
+    if which == 'size':
+        grid = ([(f'ad_{s}', dict(size=s, variant='adoption')) for s in SIZES] +
+                [(f'no_{s}', dict(size=s, variant='no_adoption')) for s in NO_SIZES])
+        run_grid(SIZE_CACHE, grid)
+    elif which == 'taste':
+        grid = [(f'ts_{ts}', dict(size=0.5, variant='adoption', taste=ts))
+                for ts in TASTES]
+        run_grid(TASTE_CACHE, grid)
+    elif which == 'fig':
+        build_fig9()
