@@ -1,0 +1,118 @@
+\section{The linearised solution and the CPI deflator}\label{app:deflator}
+\label{app:nonlin}
+
+Three robustness exhibits that support the main-text results without being part
+of the argument: the accuracy of the linearised (sequence-space) solution given
+the discrete adoption choice, the first-order welfare check on the nonlinear
+transition, and the measurement gap in the brown-anchored CPI.
+
+\subsection{Robustness: the nonlinearity lives in the adoption margin}
+\label{sec:nonlin}
+
+A natural concern is that the discrete adoption choice makes the economy too
+nonlinear for the linearised (sequence-space) solution to be reliable, in
+contrast to \citet{ARS2024}, who find nonlinearity immaterial in the continuous
+economy. Comparing the linearised impulse responses with their nonlinear
+counterparts (a fixed--Jacobian Newton solve) confines the concern to one
+variable. Aggregate output is essentially linear: the ratio of the nonlinear to
+the linear peak response, $y^{\mathrm{NL}}/y^{\mathrm{L}}$, stays in $[1.00,1.01]$
+across shock sizes, reproducing the small nonlinearity AMRS report. The
+nonlinearity is concentrated in the adoption share $\DG$, whose peak ratio rises
+monotonically from $1.16$ at a one-eighth shock to $2.04$ at a three-quarter
+shock (Figure~\ref{fig:nonlin}, left). Freezing the margin does not reveal a more
+nonlinear economy underneath: under the common--steady-state counterfactual
+(Section~\ref{sec:counterfactual}), with $\DG$ held fixed along the transition,
+output is itself only mildly nonlinear ($y^{\mathrm{NL}}/y^{\mathrm{L}}\approx
+1.19$ at the largest shock), and the wedge between the nonlinear and linear paths
+is \emph{wider} than with the margin open, not narrower. The discrete choice is
+where curvature concentrates, but leaving it free keeps aggregate output within
+one percent of its linear approximation.\footnote{At the baseline shock size
+($\varepsilon=1.0$) the nonlinear solve is fragile, the inner price block reaches
+its iteration cap, so the sweep is reported to $\varepsilon=0.75$. The $\DG$
+ratio is monotone and convex over $[0,0.75]$, so nothing turns on the largest
+point.}
+
+
+The convexity is the intrinsic curvature of a logit share evaluated near a low
+level. For a binary choice $P=[1+\exp(-\Delta/\sigma_\varepsilon)]^{-1}$ in the
+value gap $\Delta$, the relative curvature is $(1-2P)/\sigma_\varepsilon$, so
+$D^{G,\mathrm{NL}}/D^{G,\mathrm{L}}-1\propto 1/\sigma_\varepsilon$. Re-solving on
+a grid of $\sigma_\varepsilon$ (holding $\bar D^{G}=0.05$ by recalibrating
+$\psi_g$) confirms this: the ratio falls monotonically from $2.21$ at
+$\sigma_\varepsilon=0.02$ to $1.06$ at $\sigma_\varepsilon=0.40$
+(Figure~\ref{fig:nonlin}, right), and it tends to one as the shock vanishes, so
+the linearisation is exact to first order and the Jacobian is correct. Two
+implications follow. Aggregate and consumption-based welfare statistics are
+reliable under linearisation. The \emph{level} of induced greening at the
+largest shocks is understated by the linear solution, and does not converge
+under a full-size shock, so adoption-channel magnitudes are read at a reduced
+shock size, and the taste scale $\sigma_\varepsilon$ that governs this curvature
+is the same parameter whose identification Section~\ref{sec:taste_id} and
+Appendix~\ref{app:taste} characterise: an adoption-elasticity moment pins both
+at once.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig9_nonlinearity.png}
+\caption{The nonlinearity is confined to the discrete adoption margin.
+\emph{Left:} peak nonlinear/linear ratio vs shock size, output (adoption on
+and off) and $D^{G}$. \emph{Right:} the same ratio vs the logit taste scale
+$\sigma_\varepsilon$ at a half-size shock, $\psi_g$ recalibrated to
+$\bar D^{G}=5\%$.}
+\label{fig:nonlin}
+\end{figure}
+
+
+\subsection{First-order welfare and the nonlinear check}
+\label{sec:nlcev}
+
+The consumption-equivalent variations reported throughout are first-order in the
+shock: \texttt{UTIL} along the linear impulse response is the derivative of
+aggregate flow utility, so the CEV is the leading term of the welfare expansion
+around a distorted steady state along a deterministic path. This is not the
+stochastic case in which first-order welfare evaluation is known to give spurious
+rankings (Kim and Kim, 2003; Benigno and Woodford, 2005): the first-order term is
+nonzero and dominant here. But the shock is large and the adoption margin is
+convex, so the size of the neglected second-order terms is an empirical question,
+which we settle by recomputing each scenario's welfare on the nonlinear
+perfect-foresight transition (Table~\ref{tab:nl_cev_import}).
+
+\input{output/tab_nl_cev_import.tex}
+
+Three things follow. First, the linear CEV \emph{overstates} the welfare loss, by
+$1$--$2\%$ at a quarter-size shock and up to $7$--$26\%$ at three-quarters, in the
+direction the convexity of the adoption margin predicts; the paper's levels are
+upper bounds on the losses, and would be overstated by an extrapolated
+$10$--$15\%$ at the headline size, which does not converge nonlinearly. Second,
+the policy ordering, flat $>$ Slutsky $>$ cap $>$ ETS $>$ laissez-faire, holds
+at every converged size, linear and nonlinear alike, with the first-order gaps
+essentially unchanged; the welfare rankings stand. Third, the one difference that
+runs the other way is the impatient type under the flat transfer, whose
+nonlinear/linear ratio rises to $1.89$: the linear solution understates the gain
+of high-MPC households when the transfer relaxes a binding liquidity constraint,
+which reinforces rather than weakens the distributional result of
+Section~\ref{sec:flat}. The single claim the first-order calculation cannot
+support is the sign of the crisis-only greening dividend of
+Section~\ref{sec:routeA}, which is why we report it there as zero to first order.
+
+
+\subsection{The brown-anchored CPI understates the cost of living}
+\label{sec:deflator}
+
+The model's CPI anchors its energy leg on the brown price alone
+(eq.~\ref{eq:innernest}), while the economically correct index reweights brown
+and green by the adoption share. The gap has the closed form
+$\phi^{1-\eta_E}=1+\alpha_E D^{G}\bigl[(P^E_G)^{1-\eta_E}-(P^E_B)^{1-\eta_E}\bigr]$,
+computed ex post so it closes no loop in the model. It is small but not zero:
+the measured deflator overstates the cost of living by at most a few tenths of
+an annualised percentage point over the crisis, and the overstatement grows
+with adoption (Figure~\ref{fig:deflator}). Because the monetary rule reads the
+measured CPI, this is the wedge a Taylor rule would miss; under the
+domestic-good numeraire it affects only the measured deflator and the rule, not
+the resource constraint.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{output/fig8_deflator_gap.png}
+\caption{True minus measured annualised inflation from anchoring the CPI on
+$P^E_B$ alone, by policy.}
+\label{fig:deflator}
+\end{figure}

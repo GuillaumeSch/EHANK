@@ -1,0 +1,203 @@
+\section{The energy shocks and the adoption channel}
+\label{sec:experiments}
+
+\subsection{The two shocks and the common-steady-state counterfactual}
+\label{sec:counterfactual}
+
+The \emph{price} shock is a 100 log-point rise in the world energy price with a
+16-quarter half-life, as in \citet{ARS2024}: energy supply is perfectly elastic
+($\varepsilon^{E}=\infty$) and the world price is exogenous. The \emph{supply}
+shock is a 10\% cut in available energy for 6 quarters, after which the world
+price clears a fixed quantity endogenously, as in \citet{Bayer2026}. The two are
+easiest to read side by side (Figure~\ref{fig:shocks}): under the price shock we
+move the world price directly and the quantity clears; under the supply shock we
+move the quantity, a 10\% cut, and the world price clears it. Because energy
+demand is highly inelastic ($\eta_E=0.10$), a 10\% quantity cut requires a price
+spike of about $170\%$ to clear, so the supply shock is in fact the larger
+\emph{price} disturbance of the two on impact. Impulse
+responses are reported as $100\times$ the level deviation from steady state.
+Variables whose steady state is one (prices, $w$, $n$, and the shares $D^{G}$,
+$D^{sw}$) read directly as percent or percentage-point deviations; $C$ (steady
+state $\approx0.997$) is within rounding of a percent; $y$ and $\mathrm{gdp}$
+(steady state $\approx0.985$) are level deviations $\times100$, within about
+$1.5\%$ of the exact percentage; energy quantities are a share of the energy
+steady state ($\approx0.040$).
+
+Several results below isolate the adoption channel as the difference between the
+full model and a ``no-adoption'' counterfactual,
+$\Delta_H\equiv\sum_{t<H}(y^{\mathrm{adopt}}_t-y^{\mathrm{no\text{-}adopt}}_t)$.
+The counterfactual is constructed to share the full model's steady state
+\emph{exactly}: households still hold the discrete durable-choice margin, and the
+steady-state green share, switching flow, and switching cost
+($\bar D^{G}=5\%$, $D^{sw}_{ss}$, $\psi_g$) are bit-identical to the adoption
+economy. What differs is the \emph{transition} only: the discrete-choice
+probabilities are held at their steady-state values throughout the impulse
+response, so the durable composition does not respond to the crisis while every
+other block responds normally. We call this the \textbf{common-steady-state}, or
+\emph{frozen-choice}, counterfactual. The alternative, shutting the choice by
+making green durables infeasible, so the counterfactual's own steady state has
+$D^{G}_{ss}=0$,would compare two economies that differ both in the crisis
+response \emph{and} in steady-state composition; the frozen construction isolates
+the crisis response alone.
+
+\begin{figure}[H]\centering
+\IfFileExists{output/fig_shocks_import.pdf}{\includegraphics[width=\textwidth]{output/fig_shocks_import.pdf}}{\textit{[figure output/fig\_shocks\_import.pdf: run run\_shocks.py]}}
+\caption{The two energy shocks. \emph{Left}: the price shock moves the world energy
+price (exogenous) and the quantity clears. \emph{Right}: the supply shock moves
+availability ($-10\%$ for 6 quarters, exogenous) and the world price clears the
+reduced quantity, spiking about $170\%$ because demand is inelastic. In the right
+panel the bold blue line is the announced availability cut and the dashed blue line
+is realized availability: the two differ because world stock arbitrage
+\eqref{eq:energy-supply} releases inventories against the cut, buffering part of it,
+and rebuilds them afterwards. Percent deviations from own steady state.}
+\label{fig:shocks}
+\end{figure}
+
+Figures~\ref{fig:baseline} and~\ref{fig:baseline_supply} report the baseline
+responses to the two shocks, each with the adoption margin open (solid) against the
+frozen counterfactual (dashed).
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{output/fig1_price_shock.png}
+\caption{Brown energy \emph{price} shock (elastic supply), adoption open (solid)
+vs.\ frozen at the common steady state (dashed), no policy.}
+\label{fig:baseline}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{output/fig1_supply_shock.png}
+\caption{Brown energy \emph{supply} shock ($-10\%$ for 6 quarters, fixed
+quantity), adoption open (solid) vs.\ frozen (dashed), no policy.}
+\label{fig:baseline_supply}
+\end{figure}
+
+\subsection{What the adoption margin adds}
+\label{sec:signmap}\label{sec:crisis}
+
+Under the import booking and the price shock, the adoption channel's contribution
+to cumulative output is $\Delta_{24}=-8.8$ (Table~\ref{tab:summary};
+Figure~\ref{fig:decomposition} plots the margin's contribution across variables): the margin
+is \emph{contractionary}. It follows a race between two resource flows in the
+balance of payments (Section~\ref{sec:bop}). Adoption imports a \textbf{switching
+cost} $\psi_g D^{sw}_t$, a resource outflow, \emph{front-loaded} (paid once by
+each switcher) and scaling with the adoption \emph{volume} $D^{sw}$,and, against
+it, a \textbf{flow energy saving} $(P^{E}_{B}-P^{E}_{G})\,C^{G}_{E,t}$ booked as
+reduced imports, an inflow accruing \emph{gradually} over the life of the green
+durable. Under the frozen counterfactual and the import booking the front-loaded
+cost dominates the windowed saving at every persistence. The magnitude is the
+pocket cost of the crisis-time switching wave at the calibrated $\psi_g=0.54$
+($\approx0.54\times C_{ss}$), not a general-equilibrium artefact: the direct cost
+$\psi_g\times$ extra switchers cumulates to $+8.96$, matching the measured gap
+almost exactly. Under the fixed-quantity (supply) closure a third, expansionary
+term appears, adoption lowers fossil demand against a fixed supply, so the
+clearing price falls and relaxes scarcity for \emph{all} households, which shifts
+$\Delta_{24}$ up to $-0.35$. The marginal switcher's steady-state indifference,
+$\psi_g\approx(\bar P^{E}_{B}-\bar P^{E}_{G})\,\bar C^{G}_{E}/(r+\delta_g)$, ties
+the threshold to the cost ratio $\varrho$.
+
+\paragraph{Booking caveat.} The \emph{sign} of $\Delta_{24}$, not the policy
+ordering below, depends on how the green resource flows are booked. Under the
+alternative domestic-industry booking (green energy and installation as
+zero-profit domestic value added rather than imports) it flips to $+28.6$ under
+the price shock and $+4.7$ under the supply shock. We report the import booking
+throughout and collect the comparison in Appendix~\ref{app:booking}. This is a
+booking convention, not a result about the transition, and it is why we phrase the
+paper's headline in terms of the \emph{margin's response} to policy rather than
+its output sign.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig5_decomposition.png}
+\caption{Contribution of the green adoption margin (full minus frozen), by
+shock. Output, consumption, energy use, net exports.}
+\label{fig:decomposition}
+\end{figure}
+
+The race between the two resource flows is exact on the import side.
+Figure~\ref{fig:adoption_flows} splits the adoption channel's contribution to
+imports, full minus frozen, under the baseline import booking, into the
+front-loaded switching-cost outflow $\psi_g D^{sw}_t$ and everything else, the
+latter dominated by the gradual energy saving from the brown-to-green mix shift.
+The split is exact by construction. The switching cost dominates the saving at
+every horizon under both shocks: under the price shock it cumulates to $+8.96$
+against a $-5.63$ energy-mix inflow, a net import response of $+3.33$ that accounts
+for the channel's contractionary output contribution ($\Delta_{24}=-8.8$). The
+outflow is largest exactly on impact, when household income is falling hardest,
+which is why booking it as an import makes the channel contractionary rather than
+its timing incidental.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig5b_adoption_flows.png}
+\caption{Adoption channel on the import side (full minus frozen): the front-loaded
+switching-cost outflow $\psi_g D^{sw}$ against the gradual energy-saving inflow, and
+their sum. Contributions in level deviations $\times100$; import booking.}
+\label{fig:adoption_flows}
+\end{figure}
+
+The adoption channel's output effect is a domestic-demand phenomenon. Decomposing
+output one level below the domestic/export split (Figure~\ref{fig:output_channels}),
+the frozen-choice counterfactual separates domestic demand into what it would be with
+the margin shut, the AMRS real-income and substitution channels, and the adoption
+channel's increment. The adoption channel's cumulative contribution ($-9.0$) falls
+almost entirely on domestic home-good demand, not exports ($+0.2$): the
+switching-cost import outflow draws resources out of domestic absorption. Its
+magnitude nearly matches the export offset ($+8.7$) with the opposite sign, so
+aggregate output tracks the AMRS channel while the adoption drag and the
+competitiveness gain roughly cancel.
+
+\begin{figure}[H]\centering
+\IfFileExists{output/fig_output_channels_import.pdf}{\includegraphics[width=0.8\textwidth]{output/fig_output_channels_import.pdf}}{\textit{[figure output/fig\_output\_channels\_import.pdf: run run\_output\_channels.py]}}
+\caption{Output response, three exact channels: exports $c_H^{*}$, domestic demand
+with the adoption margin frozen (AMRS), and the adoption channel's increment to
+domestic demand. The three sum to $y$. Level deviations $\times100$, price shock, no
+policy.}
+\label{fig:output_channels}
+\end{figure}
+
+The same response, read from the household budget rather than from output, is almost
+entirely a general-equilibrium phenomenon. Decomposing consumption through the
+household consumption Jacobians, $dC=\sum_x J^{C,x}\,dx$ over the household's inputs,
+exact to first order, separates the direct effect of the shock, the energy bill in
+the budget, from the indirect effects that run through factor income and the real
+rate (Figure~\ref{fig:direct_indirect}, computed in the CPI numeraire where these
+inputs are unambiguous; the total is numeraire-invariant). The direct energy-price
+channel is negligible ($-0.2$ cumulative): energy is a small budget share, so a
+higher energy price does little to consumption on its own. The collapse is the
+indirect real-income channel ($-101.8$ of a $-105.6$ total), with the real rate
+adding $-3.6$. The energy shock reaches consumption almost entirely by lowering
+factor income in general equilibrium, not by raising the household's energy bill, 
+the mechanism \citet{ARS2024} and the broader HANK literature identify, here in an
+open economy with an adoption margin.
+
+\begin{figure}[H]\centering
+\IfFileExists{output/fig_direct_indirect_import.pdf}{\includegraphics[width=0.78\textwidth]{output/fig_direct_indirect_import.pdf}}{\textit{[figure output/fig\_direct\_indirect\_import.pdf: run run\_direct\_indirect.py]}}
+\caption{Consumption response to the brown-price shock, decomposed into the channels
+through which the shock reaches the household budget: the direct energy-price effect
+and the indirect effects operating through real income and the real rate. Household
+consumption Jacobians, CPI numeraire; the channels sum to the total. Level deviations
+$\times100$.}
+\label{fig:direct_indirect}
+\end{figure}
+
+\paragraph{Who the shock recruits.} The crisis draws in households who would not have
+switched at the pre-crisis steady state. Figure~\ref{fig:induced_adopters}
+characterises them with a comparative static: the switching probability of the median
+type at a steady state with a permanently $10\%$ higher brown price, minus the
+baseline field. The induced switching is positive throughout and rises with
+productivity; at high productivity the recruitment reaches down to more moderate
+wealth, pulling in households who sat just below the switching threshold. Weighted by
+the steady-state distribution, the induced flow concentrates at moderate productivity
+and low-to-moderate wealth, where the brown mass sits. The construction is a
+comparative-static proxy: it uses a permanent price change rather than the transitory
+crisis path, so it locates and signs the induced margin rather than timing it; the
+exact transition object reads the disaggregated choice probabilities along the impulse
+response.
+
+\begin{figure}[H]\centering
+\IfFileExists{output/fig_induced_adopters_import.pdf}{\includegraphics[width=0.8\textwidth]{output/fig_induced_adopters_import.pdf}}{\textit{[figure output/fig\_induced\_adopters\_import.pdf: run run\_induced\_adopters.py]}}
+\caption{Induced adopters: the extra quarterly switching probability a permanently
+$10\%$ higher brown price induces, median discount-factor type, over the
+wealth--productivity grid (comparative static). Contours mark steady-state brown mass.}
+\label{fig:induced_adopters}
+\end{figure}
+
+\input{output/tab_summary_core_import.tex}
