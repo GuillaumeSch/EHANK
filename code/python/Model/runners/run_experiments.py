@@ -1,24 +1,8 @@
-#%%
-"""Run every experiment in the paper and write figures to output/.
-
-Experiments
-  E1  Baseline: price shock vs supply shock, adoption on/off
-  E2  Fiscal policy: no policy / price cap / Slutsky transfer  (Bayer, Langot)
-  E3  The policy-adoption interaction: does shielding kill the green margin?
-  E4  Monetary policy: constant real rate vs Taylor rule       (ARS)
-  E5  Adoption-channel decomposition
-
-CACHES ARE TAGGED BY NUMERAIRE. An IRF computed under the CPI numeraire
-differs from one computed under the domestic-good numeraire by ~0.03% -- far
-too little to notice by eye, far too much to leave mixed in one table. Never
-reuse a cache across numeraires; that is what the tag prevents.
-"""
+"""Run every paper experiment and write figures to output/."""
 import os
 import shutil
 import pickle
 import numpy as np
-import matplotlib
-#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from core.model import build_model, run
@@ -26,11 +10,7 @@ from core.model import build_model, run
 NUMERAIRE = 'cpi'          # 'cpi' = ARS CPI numeraire (only supported numeraire)
 BOOKING = 'import'          # 'import' baseline, or 'domestic' (green sector)
 
-# The cache is keyed only by tag string, not by model/calibration content
-# (see get() below), so it goes stale silently on any change to model.py,
-# calibration.py or the blocks. Wipe it on every run rather than relying on
-# a manual `rm -rf cache_*` before each launch. Set to False only if you are
-# deliberately resuming a crashed run with an unchanged model.
+# Wipe the tag-keyed cache on every run; False only to resume a crashed run.
 CLEAR_CACHE = True
 
 OUT = 'paper/output'
@@ -39,8 +19,7 @@ if CLEAR_CACHE:
     shutil.rmtree(CDIR, ignore_errors=True)
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(CDIR, exist_ok=True)
-H = 24                       # matches the paper's "cumulative sums over 24
-                              # quarters" convention (Table~tab:summary caption)
+H = 24                       # 24-quarter cumulation window (summary table)
 CACHE = {}
 MODEL = build_model(NUMERAIRE, booking=BOOKING)
 from tools import latex_tables as LT
@@ -51,29 +30,14 @@ KEEP = ['y', 'C', 'cE', 'CE_DUR_B', 'pi', 'pi_ann', 'D_GREEN', 'D_SWITCH', 'pE_P
 SSKEEP = ['alpha_E', 'eta_E', 'pE_B_P', 'pE_G_P', 'D_GREEN', 'eis', 'psi_g'] + \
          [f'beta_{i}' for i in range(3)]
 
-
 def get(tag, **kw):
-    """Solve one experiment, caching (steady-state scalars, IRF) to disk so
-    the matrix can be run in resumable chunks.
-
-    IRFs are stored as RAW level deviations from steady state (the 100x is
-    applied only at report time, in pc()/cum()), matching the Section 4
-    convention and tab:dose / tab:signmap.
-
-    model_variant='no_adoption' is the COMMON-STEADY-STATE counterfactual (see
-    model.frozen_model / frozen_adoption.py): 'adoption' and 'no_adoption' share
-    a bit-identical steady state and differ only in the transition (the
-    adoption choice does not respond to the shock under 'no_adoption'). Raw
-    level deviations (no per-series normalisation by the steady state) are kept
-    throughout for consistency with the paper's other tables (summary vs
-    signmap)."""
+    """Solve one experiment, caching (ss scalars, irf) to disk."""
     f = f'{CDIR}/{tag}.pkl'
     if tag in CACHE:
         return CACHE[tag]
     if os.path.exists(f):
         CACHE[tag] = pickle.load(open(f, 'rb'))
         return CACHE[tag]
-    print(f"  solving {tag} ...", flush=True)
     ss, irf = run(MODEL, numeraire=NUMERAIRE, booking=BOOKING, **kw)
     irf_kept = {k: np.asarray(irf[k])[:60] for k in KEEP if k in irf}
     d = ({k: float(ss[k]) for k in SSKEEP}, irf_kept)
@@ -81,10 +45,8 @@ def get(tag, **kw):
     CACHE[tag] = d
     return d
 
-
 def pc(irf, k, h=H):
     return 100 * np.asarray(irf[k])[:h]
-
 
 def panel(ax, series, k, title, ylab=None):
     for lab, irf, sty in series:
@@ -95,7 +57,6 @@ def panel(ax, series, k, title, ylab=None):
     if ylab:
         ax.set_ylabel(ylab, fontsize=8)
     ax.tick_params(labelsize=8)
-
 
 def figure(fname, series, keys, suptitle, ncol=3):
     nrow = int(np.ceil(len(keys) / ncol))
@@ -109,29 +70,15 @@ def figure(fname, series, keys, suptitle, ncol=3):
     fig.tight_layout()
     fig.savefig(f'{OUT}/{fname}', dpi=140)
     plt.close(fig)
-    print(f"  -> {OUT}/{fname}")
-
 
 MACRO = [('y', r'Output $y$'), ('C', r'Consumption $C$'), ('CE_DUR_B', r'Brown Energy $c^E_B$'),
-         #('pi_ann', r'CPI inflation (ann.)'),
-         # ('n', r'Hours $n$'),
          ('pE_B_P', r'Brown energy price $P^E_B/P$'),
          ('D_GREEN', r'Green share $D^{G}$'), 
-         #('D_SWITCH', r'Switchers $D^{sw}$'),
          ('spending', r'Fiscal spending $G$'), ('nx_gdp', r'Net exports / GDP'),
          ('PEstar', r'World energy price $P^{E*}$'), ('E_supply', r'World energy supply $E^*$'),
-         #('r_ann', r'Interest rate (ann.)'), 
-         #('w', r'Wage $w$'),
-         #('piH_ann', r'Domestic-good inflation (ann.)'), 
-         #('B', r'Bond holdings $B$'),
-         #('tauY', r'Tax revenue / GDP $\tau^Y$'),
-        #('assets_clearing', r'assets_clearing'), ('goods_clearing', r'goods_clearing'), ('nfares', r'nfares'),
          ]
 
-# =============================================================================
 print("E0  baseline: price vs supply shock")
-# NOTE: these are the same four experiments E2 needs. They previously carried
-# separate cache tags and were therefore solved twice; the tags are now shared.
 p_ad = get('price_none_adoption', shock_kind='price', policy='none', model_variant='adoption')[1]
 s_ad = get('supply_none_adoption', shock_kind='supply', policy='none', model_variant='adoption')[1]
 
@@ -139,11 +86,7 @@ figure('fig0_shock.png',
        [('Price Shock', p_ad, '-'), ('Supply Shock', s_ad, '-')],
        MACRO, 'E0a. Brown energy PRICE shock vs SUPPLY shock')
 
-
-# =============================================================================
 print("E1  baseline: price vs supply shock, adoption on/off")
-# NOTE: these are the same four experiments E2 needs. They previously carried
-# separate cache tags and were therefore solved twice; the tags are now shared.
 p_ad = get('price_none_adoption', shock_kind='price', policy='none', model_variant='adoption')[1]
 p_no = get('price_none_no_adoption', shock_kind='price', policy='none', model_variant='no_adoption')[1]
 s_ad = get('supply_none_adoption', shock_kind='supply', policy='none', model_variant='adoption')[1]
@@ -157,7 +100,6 @@ figure('fig1_supply_shock.png',
        [('adoption open', s_ad, '-'), ('adoption frozen (common SS)', s_no, '--')],
        MACRO, 'E1b. Brown energy SUPPLY shock, -10% for 6q (Bayer-style, fixed quantity)')
 
-# =============================================================================
 print("E2/E3  fiscal policy and its interaction with adoption")
 pol, pol_ss = {}, {}
 for shock in ['price', 'supply']:
@@ -175,7 +117,6 @@ for shock, nm in [('price', 'PRICE'), ('supply', 'SUPPLY')]:
             ('Slutsky transfer', pol[(shock, 'transfer', 'adoption')], ':')],
            MACRO, f'E2. Fiscal response to the {nm} shock (adoption margin open)')
 
-# The paper's headline: policy x adoption interaction
 PLABEL = {'none': 'no policy', 'subsidy': 'price cap', 'transfer': 'Slutsky transfer'}
 fig, axes = plt.subplots(2, 3, figsize=(13, 7))
 for j, (shock, nm) in enumerate([('price', 'PRICE'), ('supply', 'SUPPLY')]):
@@ -189,9 +130,7 @@ for j, (shock, nm) in enumerate([('price', 'PRICE'), ('supply', 'SUPPLY')]):
 axes[0, 0].legend(fontsize=8)
 fig.suptitle('E3. Does shielding consumers shut down the green adoption margin?')
 fig.tight_layout(); fig.savefig(f'{OUT}/fig3_policy_adoption.png', dpi=140); plt.close(fig)
-print(f"  -> {OUT}/fig3_policy_adoption.png")
 
-# =============================================================================
 print("E4  monetary policy")
 mon = {m: get(f'supply_mon_{m}', shock_kind='supply', policy='none',
               model_variant='adoption', monetary=m)[1]
@@ -200,7 +139,6 @@ figure('fig4_monetary.png',
        [('constant real rate', mon['real_rate'], '-'), ('Taylor rule', mon['taylor'], '--')],
        MACRO, 'E4. Monetary policy and the supply shock')
 
-# =============================================================================
 print("E5  adoption-channel decomposition")
 fig, axes = plt.subplots(1, 4, figsize=(16, 3.4))
 for ax, (k, t) in zip(axes, [('y', 'Output'), ('C', 'Consumption'),
@@ -213,15 +151,9 @@ for ax, (k, t) in zip(axes, [('y', 'Output'), ('C', 'Consumption'),
 axes[0].legend(fontsize=8)
 fig.suptitle('E5. Contribution of the green adoption margin')
 fig.tight_layout(); fig.savefig(f'{OUT}/fig5_decomposition.png', dpi=140); plt.close(fig)
-print(f"  -> {OUT}/fig5_decomposition.png")
 
-
-# =============================================================================
-# SUMMARY TABLE
-# =============================================================================
 def cum(irf, k, h=H):
     return float(np.sum(np.asarray(irf[k])[:h]))
-
 
 rows = []
 for shock in ['price', 'supply']:
@@ -257,11 +189,5 @@ tex_path = LT.summary_table(f'{OUT}/tab_summary_{NUMERAIRE}_{BOOKING}.tex',
                             tex_rows, H, NUMERAIRE, BOOKING,
                             label=('tab:summary' if BOOKING == 'import'
                                   else f'tab:summary_{BOOKING}'))
-print(f"  -> {tex_path}")
-
-
 
 pickle.dump({k: v for k, v in CACHE.items()}, open(f'{OUT}/irfs_{NUMERAIRE}_{BOOKING}.pkl', 'wb'))
-print(f"\nDone. Figures + tables + irfs_{NUMERAIRE}.pkl in {OUT}/")
-
-# %%

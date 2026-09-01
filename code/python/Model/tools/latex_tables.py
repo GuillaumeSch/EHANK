@@ -1,43 +1,12 @@
-"""Write paper-style LaTeX table fragments to output/tab_*.tex, \\input-able
-directly from ehank_results.tex. Keeps the .tex file's hand-written tables in
-sync with the code that produces the numbers, instead of manual copy-paste.
-
-USAGE IN THE MAIN .tex
------------------------
-Replace a hand-written `table` environment with:
-
-    \\input{output/tab_summary_core_import.tex}
-
-Every writer here emits a COMPLETE `table` environment (booktabs style, same
-as the paper's existing tables), so no wrapper is needed at the call site.
-
-CONVENTIONS
------------
-- Bold the peak-D_GREEN column (the paper's convention for the adoption-margin
-  headline number).
-- Numbers are pre-formatted strings, not raw floats: every writer takes
-  already-rounded values so the table content in output/*.tex matches exactly
-  what's printed to stdout / the .txt logs, with no silent rounding drift.
-- `\\label{}` keys are stable across bookings/numeraires (tag suffix in the
-  filename, not the label), so \\ref{} in prose does not need to change when
-  the input file changes.
-"""
+"""LaTeX table fragments written to output/tab_*.tex."""
 import os
-
 
 def _escape(s):
     return str(s).replace('_', r'\_').replace('%', r'\%')
 
-
 def write_table(path, colspec, header, rows, caption, label,
                  small=True, centering=True, midrule_after=None):
-    """Generic booktabs table writer.
-
-    header: list of column header strings (LaTeX-ready, e.g. r'$y(0)$\\%').
-    rows:   list of lists of cell strings (LaTeX-ready). Use '' for blank.
-    midrule_after: set of 0-indexed row numbers after which to insert a
-        \\midrule (e.g. to separate shocks), or None.
-    """
+    """Generic booktabs table writer."""
     os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
     lines = [r'\begin{table}[H]' + (r'\centering' if centering else '')]
     if small:
@@ -59,17 +28,8 @@ def write_table(path, colspec, header, rows, caption, label,
     open(path, 'w').write('\n'.join(lines) + '\n')
     return path
 
-
-# =============================================================================
-# PAPER-SPECIFIC BUILDERS
-# =============================================================================
 def summary_table(path, rows, H, numeraire, booking, label='tab:summary'):
-    """Main E2/E3 fiscal-policy summary table (run_experiments.py).
-
-    rows: list of dicts with keys
-        shock, policy, y0, ycum, pi0, dG_peak, fiscal, adopt_y
-      (adopt_y only meaningful for policy=='none'; pass '' otherwise upstream).
-    """
+    """Main fiscal-policy summary table."""
     header = ['Shock', 'Policy', r'$y(0)$\%', r'$\sum y$', r'$\pi(0)$ ann.',
               r'peak $D^{G}$ pp', 'fiscal cost', r'adoption $\to \sum y$']
     body, mid = [], set()
@@ -96,13 +56,8 @@ def summary_table(path, rows, H, numeraire, booking, label='tab:summary'):
     return write_table(path, 'llrrrrrr', header, body, caption, label,
                        midrule_after=mid)
 
-
 def booking_signmap_table(path, rows, H, label='tab:signmap'):
-    """Route A cross-booking sign-map (run_booking_compare.py): adoption's
-    output contribution by booking x shock, 'none' policy only.
-
-    rows: dict {(booking, shock): adopt_y_value}
-    """
+    """Cross-booking sign-map table."""
     header = [f'$\\Delta_{{{H}}}$, adoption output contribution',
               'import booking', 'domestic booking']
     body = [
@@ -117,13 +72,8 @@ def booking_signmap_table(path, rows, H, label='tab:signmap'):
               r'counterfactual of Section~\ref{sec:model}. \emph{None} policy.')
     return write_table(path, 'lcc', header, body, caption, label, small=True)
 
-
 def dose_response_table(path, rows_by_shock, tau_grid, label='tab:dose'):
-    """E6/E7 dose-response table (run_dose_response.py).
-
-    rows_by_shock: {shock: {'rows': [dict(tau=..,dG=..,y=..,pi0=..,cE=..,fisc=..,cev=..)],
-                            'transfer': dict(same keys, no tau)}}
-    """
+    """Dose-response table."""
     header = ['Shock', 'Policy', 'peak $D^{G}$ pp', r'$\sum y$', r'$\pi(0)$',
               r'$\sum c_E$', 'fiscal', 'CEV \\%']
     body, mid = [], set()
@@ -142,7 +92,6 @@ def dose_response_table(path, rows_by_shock, tau_grid, label='tab:dose'):
               r'Slutsky transfer benchmark (full compensation, $\iota=1$).')
     return write_table(path, 'llrrrrrr', header, body, caption, label,
                        midrule_after=mid)
-
 
 def cev_table_tex(path, ss, irfs, labels=None, scenario_note='price shock',
                   label='tab:cev'):

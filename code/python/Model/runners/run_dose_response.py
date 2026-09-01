@@ -1,37 +1,22 @@
-#%%
-"""E6  Partial price cap: dose-response in tauE.
-   E7  Welfare: consumption-equivalent variation of each policy.
-
-Both instruments are zero at the steady state, so the steady state is
-INVARIANT to tauE and insE (verified to machine precision). We therefore solve
-the steady state once per (adoption variant x energy closure) and sweep the
-policy by re-solving the impulse response only. This is the `resolve_ss=False`
-idea from the user's my_funs.compare_irfs_by_parameter, specialised to the
-policy instruments.
-"""
+"""E6: partial price cap, dose-response in tauE."""
 import os
 import shutil
 import pickle
 import numpy as np
-import matplotlib
-#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from core.model import (build_model, solve_ss, shock_price, shock_supply,
                          td_unknowns_targets, _calibrate_supply, ss_unknowns_targets,
-                         MODELS, MONETARY, ENERGY_CLOSURE)
+                         MODELS, ENERGY_CLOSURE)
 from core.calibration import make_calibration, set_energy_grids
 from core.welfare import cev, cev_table
 from core import blocks as B
 from tools import latex_tables as LT
 
-# See run_experiments.py: caches are tagged by numeraire on purpose.
 NUMERAIRE = 'cpi'
 BOOKING = 'import'          # 'import' baseline, or 'domestic' (green sector)
 
-# See run_experiments.py: cache is keyed by tag only, goes stale silently
-# on model/calibration changes. Wipe on every run; set False to resume a
-# crashed run with an unchanged model.
+# Wipe the tag-keyed cache on every run; False only to resume a crashed run.
 CLEAR_CACHE = False
 
 OUT, H = 'paper/output', 24
@@ -44,7 +29,6 @@ MODEL = build_model(NUMERAIRE, booking=BOOKING)
 UNKNOWNS_TD, TARGETS_TD = td_unknowns_targets(BOOKING)
 TAU_GRID = [0.0, 0.25, 0.50, 0.75, 1.0]
 
-
 def base_ss(variant='adoption', closure='elastic'):
     ov = dict(ENERGY_CLOSURE[closure]); ov.update(MODELS[variant])
     calib = make_calibration(NUMERAIRE, booking=BOOKING, **ov)
@@ -54,17 +38,8 @@ def base_ss(variant='adoption', closure='elastic'):
     ss = solve_ss(MODEL, calib, unknowns=u, targets=t, booking=BOOKING)
     return ss, calib
 
-
 def irf_with(ss, shk, tauE=0.0, insE=0.0, calib=None):
-    """Impulse response under a policy.
-
-    The price cap (tauE) leaves both the steady state AND the household
-    hetinputs untouched, so it can be swept by re-solving the impulse response
-    alone -- cheap. The Slutsky transfer changes cE_ss_grid, a household
-    hetinput that enters the Jacobian, so injecting it into a copied steady
-    state leaves a stale Jacobian (assets_clearing then breaks by ~14). It
-    needs a genuine re-solve.
-    """
+    """Impulse response under a policy."""
     if insE == 0.0:
         s = ss.copy()
         s['tauE'], s['insE'] = tauE, 0.0
@@ -78,10 +53,8 @@ def irf_with(ss, shk, tauE=0.0, insE=0.0, calib=None):
     B.test_targets(irf)
     return irf, ss2
 
-
 def cum(x, h=H):
     return 100 * float(np.sum(np.asarray(x)[:h]))
-
 
 results = {}
 for closure, shock_name in [('elastic', 'price'), ('inelastic', 'supply')]:
@@ -133,8 +106,7 @@ for closure, shock_name in [('elastic', 'price'), ('inelastic', 'supply')]:
         pi0=100 * float(np.asarray(irf_tr['pi_ann'])[0])), cev_table=tbl)
 
     if shock_name == 'price':
-        # Distributional CEV table (matches the paper's existing table): no
-        # policy, cap at 0.5 and 1.0, transfer, relabelled for display.
+        # distributional CEV table: no policy, cap 0.5/1.0, transfer
         cev_irfs = {'no policy': irfs['cap 0.00'],
                    r'cap $\tau^E=0.5$': irfs['cap 0.50'],
                    r'cap $\tau^E=1$': irfs['cap 1.00'],
@@ -143,19 +115,13 @@ for closure, shock_name in [('elastic', 'price'), ('inelastic', 'supply')]:
             f'{OUT}/tab_cev_{NUMERAIRE}_{BOOKING}.tex', ss, cev_irfs,
             labels=list(cev_irfs), scenario_note='price shock',
             label=('tab:cev' if BOOKING == 'import' else f'tab:cev_{BOOKING}'))
-        print(f"  -> {cev_path}")
 
 pickle.dump(results, open(f'{OUT}/dose_response.pkl', 'wb'))
 
 tex_path = LT.dose_response_table(
     f'{OUT}/tab_dose_{NUMERAIRE}_{BOOKING}.tex', results, TAU_GRID,
     label=('tab:dose' if BOOKING == 'import' else f'tab:dose_{BOOKING}'))
-print(f"  -> {tex_path}")
 
-
-# =============================================================================
-# FIGURE: dose-response
-# =============================================================================
 fig, axes = plt.subplots(2, 4, figsize=(16, 7))
 for j, sh in enumerate(['price', 'supply']):
     R, tr = results[sh]['rows'], results[sh]['transfer']
@@ -174,11 +140,7 @@ for j, sh in enumerate(['price', 'supply']):
 axes[0, 0].legend(fontsize=8)
 fig.suptitle(r'E6. Dose-response in the price cap $\tau^E$, against the transfer benchmark')
 fig.tight_layout(); fig.savefig(f'{OUT}/fig6_dose_response.png', dpi=140); plt.close(fig)
-print(f"\n-> {OUT}/fig6_dose_response.png")
 
-# =============================================================================
-# TABLE
-# =============================================================================
 lines = [f"{'shock':>7s} {'policy':>14s} {'peak DG':>9s} {'cum y':>8s} "
          f"{'pi(0)':>8s} {'cum cE':>8s} {'fiscal':>8s} {'CEV %':>9s}",
          '-' * 78]
@@ -192,6 +154,3 @@ for sh in ['price', 'supply']:
 tbl = '\n'.join(lines)
 print('\n' + tbl)
 open(f'{OUT}/dose_response_table.txt', 'w').write(tbl + '\n')
-print("\nDone.")
-
-# %%

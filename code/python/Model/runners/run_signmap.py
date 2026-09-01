@@ -1,25 +1,7 @@
-#%%
-"""Route A sign-map: adoption's cumulative-output contribution (Delta_24) as a
-function of the brown-price-shock half-life. Produces output/fig_signmap.png.
-
-STATUS (common-steady-state migration): this exhibit is NO LONGER used in the
-body of the paper. Under the common-steady-state ('frozen') counterfactual the
-adoption channel is contractionary at every persistence and Delta_24 does not
-cross zero -- there is no "sign map" to draw. The old zero-crossing (~11q) was
-an artefact of the mixed-steady-state comparison (green_block=1e10, D_GREEN_ss=0)
-this script used to build. The script is kept, and fixed to use the shared
-run()/frozen_model() machinery, only as a diagnostic; its figure is optional
-appendix material at most.
-
-Booking: 'import'. EFFICIENCY: the steady state does not depend on the shock's
-half-life, so it is solved ONCE and the half-life sweep re-solves only the
-linear impulse response, on the full model and on the frozen-choice model.
-"""
+"""Adoption's cumulative-output contribution vs shock half-life (diagnostic)."""
 import os
 import pickle
 import numpy as np
-import matplotlib
-#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from core.model import (build_model, frozen_model, solve_ss, run, shock_price,
@@ -31,8 +13,7 @@ NUMERAIRE = 'cpi'
 OUT = 'paper/output'
 CDIR = 'cache_signmap'
 os.makedirs(OUT, exist_ok=True)
-# The cached deltas were computed under the old mixed-steady-state comparison
-# and are not comparable; wipe on every run.
+# Wipe the cache on every run.
 import shutil
 shutil.rmtree(CDIR, ignore_errors=True)
 os.makedirs(CDIR, exist_ok=True)
@@ -44,19 +25,15 @@ MODEL = build_model(NUMERAIRE, booking=BOOKING)
 MODEL_FROZEN = frozen_model(NUMERAIRE, booking=BOOKING)
 utd, ttd = td_unknowns_targets(BOOKING)
 
-
 def cum_y(irf, h=H):
     return 100 * float(np.sum(np.asarray(irf['y'])[:h]))
 
-
-# --- steady state, solved ONCE. The full and frozen models SHARE it exactly
-#     (common-steady-state counterfactual), so there is only one ss to solve.
+# steady state, solved once (full and frozen models share it)
 u_ss, t_ss = ss_unknowns_targets(BOOKING)
 ss = solve_ss(MODEL, make_calibration(NUMERAIRE, booking=BOOKING),
               unknowns=u_ss, targets=t_ss, booking=BOOKING)
 
-# --- half-life sweep: re-solve the LINEAR IRF only (SS is shock-invariant).
-#     Delta_24 = cum_y(full) - cum_y(frozen), both from the same ss.
+# half-life sweep: re-solve the linear IRF only; Delta_24 = cum_y(full) - cum_y(frozen)
 delta = []
 for hl in HALF_LIVES:
     f = f'{CDIR}/delta_hl{hl}.pkl'
@@ -72,7 +49,7 @@ for hl in HALF_LIVES:
     print(f"  half_life={hl:4d}  Delta_{H}={d:+.2f}", flush=True)
 delta = np.array(delta)
 
-# --- supply-shock marker (its own inelastic-closure steady state, via run) --
+# supply-shock marker (own inelastic-closure steady state)
 fs = f'{CDIR}/delta_supply.pkl'
 if os.path.exists(fs):
     delta_supply = pickle.load(open(fs, 'rb'))
@@ -85,7 +62,7 @@ else:
     pickle.dump(delta_supply, open(fs, 'wb'))
 print(f"  supply shock  Delta_{H}={delta_supply:+.2f}")
 
-# --- zero crossing (linear interpolation between bracketing grid points) ----
+# zero crossing (linear interpolation)
 sign_change = np.where(np.diff(np.sign(delta)) != 0)[0]
 crossing = None
 if len(sign_change):
@@ -98,7 +75,7 @@ else:
     print("  (no sign change: adoption channel is single-signed across the grid, "
           "as expected under the common-steady-state counterfactual)")
 
-# --- figure (colours match the caption: price=orange/C1, supply=blue/C0) ----
+# figure
 fig, ax = plt.subplots(figsize=(6.5, 4.5))
 ax.plot(HALF_LIVES, delta, 'o-', color='C1', lw=2, label='price shock')
 ax.axhline(0, color='k', lw=0.7)
@@ -112,6 +89,3 @@ ax.legend(frameon=False)
 fig.tight_layout()
 fig.savefig(f'{OUT}/fig_signmap.png', dpi=140)
 plt.close(fig)
-print(f"-> {OUT}/fig_signmap.png")
-
-# %%

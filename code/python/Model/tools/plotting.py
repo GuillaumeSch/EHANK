@@ -1,19 +1,6 @@
-"""Plotting helpers.
-
-Adapted from the user's my_funs.py. Only `compare_irfs_by_parameter` survived
-the port: the policy-function plotters there are hardcoded for a five-state
-durable model (None / New Brown / Old Brown / New Green / Old Green) and for a
-single `ss['baseline'].internals['hh']` block, whereas this model has four
-durable states and one household block per discount-factor type (hh_0..hh_2).
-They would need a rewrite, not a port.
-
-The idea worth keeping is `resolve_ss=False`: when a parameter does not move the
-steady state, sweep it by re-solving the impulse response only. Both policy
-instruments here satisfy that (verified to machine precision).
-"""
+"""Plotting helpers for IRF overlays and parameter sweeps."""
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 def show_irfs(irfs, outputs, labels=None, titles=None, T_plot=24,
               ylabel='% dev. from ss', figsize=None, ncol=4, save_path=None):
@@ -40,14 +27,9 @@ def show_irfs(irfs, outputs, labels=None, titles=None, T_plot=24,
         fig.savefig(save_path, dpi=140)
     return fig
 
-
 def sweep_parameter(model, ss, param, values, shocks, unknowns_td, targets_td,
                     check=None):
-    """Sweep a parameter that does NOT move the steady state.
-
-    Returns (irfs, labels). Raises if `param` turns out to shift the steady
-    state -- pass `check` a solver to verify rather than assume.
-    """
+    """Sweep a parameter that does not move the steady state."""
     irfs, labels = [], []
     for v in values:
         s = ss.copy()
@@ -59,10 +41,8 @@ def sweep_parameter(model, ss, param, values, shocks, unknowns_td, targets_td,
         labels.append(rf'${param} = {v}$')
     return irfs, labels
 
-
 def durable_shares_by_wealth(ss, block='hh_0', truncate_at=5, save_path=None):
-    """Share of each durable state at every wealth level. Four-state version
-    (BB, BG, GB, GG) of the my_funs.py five-state plot."""
+    """Share of each durable state at every wealth level."""
     labels = {0: 'BB brown', 1: 'BG (zero mass)', 2: 'GB switching', 3: 'GG green'}
     colors = {0: '#8B4513', 1: '#808080', 2: '#90EE90', 3: '#228B22'}
     D = np.asarray(ss.internals[block]['consav']['D'])

@@ -1,19 +1,4 @@
-"""Common-SS adoption decomposition.
-
-The `no_adoption` variant (green_block large) shuts the margin by pinning
-D_GREEN=0 in the STEADY STATE, so an adoption-on vs adoption-off comparison mixes
-two things: the missing crisis response AND a different starting steady state
-(5% green vs 0% green).
-
-`FrozenLogitChoice` removes that confound. It inherits LogitChoice.backward_step
-unchanged -- so the steady state is bit-identical to the adoption-on economy
-(same choice probabilities, same D_GREEN=0.05, same psi_g) -- and overrides only
-backward_step_shock to zero the choice-probability response dP. In the
-transition the durable composition is therefore frozen at its steady-state
-values (no crisis-induced switching), while green households keep their
-insulation and everything else responds normally. The adoption channel is then
-the clean difference (full - frozen) from a COMMON steady state.
-"""
+"""Common-steady-state 'no adoption' counterfactual."""
 import numpy as np
 import sequence_jacobian as sj
 from sequence_jacobian.blocks.stage_block import StageBlock
@@ -25,11 +10,7 @@ from core import household as H
 
 
 class FrozenLogitChoice(LogitChoice):
-    """LogitChoice whose choice probabilities do not respond to shocks.
-
-    backward_step (hence the steady state) is inherited unchanged; only the
-    perturbation zeroes dP. dEV keeps the envelope term sum(P*dV), so values and
-    Va still propagate through the FIXED steady-state choice probabilities."""
+    """LogitChoice whose choice probabilities do not respond to shocks."""
 
     def backward_step_shock(self, ss, shocks, precomputed):
         f, lom = precomputed
@@ -67,8 +48,8 @@ def hh_ha_durable_frozen(n_beta=3):
 
 
 def build_model_frozen(numeraire='cpi', booking='import', ets=False):
-    """Same DAG as model.build_model, but with the frozen-choice household."""
-    num = B.numeraire_core if numeraire == 'core' else B.numeraire_cpi
+    """Same DAG as model.build_model, with the frozen-choice household."""
+    num = B.numeraire_cpi
     if booking == 'domestic':
         margin = [B.green_sector]
         ca, imp, eqm = B.CA_dom, B.importProfits_dom, B.eqm_cond_dom

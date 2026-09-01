@@ -1,24 +1,4 @@
-"""Version A -- ex-ante greening vs ex-post capping (steady-state comparison).
-
-The policy question: to shield households from a transitory brown-energy price
-crisis, is it better to (EA) prepare EX ANTE with a permanent carbon tax that
-leaves the economy greener and less exposed, or (EP) respond EX POST with an
-energy price cap during the crisis?
-
-Both economies are hit by the SAME price shock. Welfare is the total CEV of the
-full scenario relative to a COMMON reference -- the no-ETS baseline steady state
--- so the standing cost/benefit of the permanent ETS and the crisis transition
-are on one axis (welfare.cev_total). We report gross fiscal disbursement
-alongside welfare: the cap's crisis outlay vs the ETS's standing carbon revenue,
-so the ex-ante economy is not scored as a free lunch.
-
-Claim on CONSUMPTION / WELFARE (CEV by discount-factor type), not output: the
-adoption channel's output contribution is booking-dependent (import vs domestic)
-whereas the consumption/CEV ranking is not.
-
-Numbers are printed and also written to output/tab_exante_expost_*.tex and
-output/fig_exante_expost_*.pdf.
-"""
+"""Ex-ante greening vs ex-post capping (steady-state comparison)."""
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,21 +7,15 @@ from core.model import build_model, run, solve_ss, ss_unknowns_targets_fixed_psi
 from core.calibration import make_calibration
 from core.welfare import cev_total
 from tools.latex_tables import write_table
-from core import blocks as B
 
 H = 24                      # welfare / disbursement horizon (matches .tex captions)
 TAU_B = 0.10                # headline permanent carbon tax for the EA economy
 NUMERAIRE, BOOKING = 'cpi', 'import'
 OUT = 'paper/output'
 
-
-# =============================================================================
-# 1. STEADY STATES
-# =============================================================================
 def solve_ets_ss(model, psi_fixed, tau_b, tau_g=0.0, s_g_ets=0.0,
                  recycle='rebate'):
-    """Prepared ETS steady state: psi_g fixed at the no-ETS baseline, D_GREEN
-    floats up under the permanent carbon tax."""
+    """Prepared ETS steady state (psi_g fixed at the no-ETS baseline)."""
     ov = dict(tau_b=tau_b, tau_g=tau_g, s_g_ets=s_g_ets)
     if recycle == 'green_subsidy':
         ov['s_g'] = s_g_ets
@@ -51,15 +25,8 @@ def solve_ets_ss(model, psi_fixed, tau_b, tau_g=0.0, s_g_ets=0.0,
     ss = solve_ss(model, calib, unknowns=u, targets=t, booking=BOOKING)
     return ss
 
-
-# =============================================================================
-# 2. STANDING WELFARE: the welfare-optimal permanent carbon tax
-# =============================================================================
 def standing_sweep(model, ss_base, psi_fixed, taus):
-    """CEV of each ETS steady state vs the baseline SS, with NO crisis (a zero
-    impulse). Reveals whether -- and where -- a permanent carbon tax raises
-    steady-state welfare in this externality-free model (green energy is
-    structurally cheaper, so the logit friction leaves green under-adopted)."""
+    """CEV of each ETS steady state vs baseline SS, no crisis."""
     zero = {k: np.zeros(H) for k in ('UTIL_0', 'UTIL_1', 'UTIL_2', 'n')}
     rows = []
     for tb in taus:
@@ -68,30 +35,25 @@ def standing_sweep(model, ss_base, psi_fixed, taus):
         rows.append((tb, float(ss['D_GREEN']), float(ss['R_carbon']), 100 * chi))
     return rows
 
-
-# =============================================================================
-# 3. CRISIS COMPARISON
-# =============================================================================
 def gross_disbursement(irf, key):
     return float(np.sum(np.asarray(irf[key])[:H]))
-
 
 def main():
     os.makedirs(OUT, exist_ok=True)
     model = build_model(NUMERAIRE, booking=BOOKING)
 
-    # --- baseline (common reference) and the fixed psi_g it pins ---
+    # baseline (common reference) and the psi_g it pins
     ss_base, irf_lf = run(model, shock_kind='price', policy='none',
                           numeraire=NUMERAIRE, booking=BOOKING)
     psi_fixed = float(ss_base['psi_g'])
 
-    # --- ex-post responses on the baseline economy ---
+    # ex-post responses on the baseline economy
     _, irf_cap = run(model, shock_kind='price', policy='subsidy',
                      numeraire=NUMERAIRE, booking=BOOKING)
     _, irf_tr = run(model, shock_kind='price', policy='transfer',
                     numeraire=NUMERAIRE, booking=BOOKING)
 
-    # --- ex-ante prepared (ETS) economy, no crisis policy, and ETS + cap ---
+    # ex-ante prepared (ETS) economy: no crisis policy, and ETS + cap
     ss_ets, irf_ea = run(model, shock_kind='price', policy='none', ets=True,
                          ets_kwargs=dict(tau_b=TAU_B, recycle='rebate'),
                          numeraire=NUMERAIRE, booking=BOOKING)
@@ -99,7 +61,7 @@ def main():
                         ets_kwargs=dict(tau_b=TAU_B, recycle='rebate'),
                         numeraire=NUMERAIRE, booking=BOOKING)
 
-    # --- welfare (total CEV vs the common baseline SS) + gross disbursement ---
+    # welfare (total CEV vs common baseline SS) + gross disbursement
     scen = [
         ('Laissez-faire',        ss_base, irf_lf,     'none'),
         ('Ex-post cap',          ss_base, irf_cap,    'Subsidy'),
@@ -131,7 +93,7 @@ def main():
                            f'{100*byt[1]:.3f}', f'{100*byt[2]:.3f}',
                            f'\\textbf{{{pk:.2f}}}', f'{100*g:.2f}'])
 
-    # --- standing welfare sweep: welfare-optimal permanent carbon tax ---
+    # standing welfare sweep
     taus = [0.0, 0.05, 0.10, 0.20, 0.30]
     print('\nStanding welfare (ETS SS vs baseline, permanent, no crisis):')
     print(f'{"tau_b":>7s}{"D_GREEN":>10s}{"R_carbon":>10s}{"standCEV%":>11s}')
@@ -139,7 +101,7 @@ def main():
     for tb, dg, rc, chi in sweep:
         print(f'{tb:7.2f}{dg:10.4f}{rc:10.5f}{chi:11.4f}')
 
-    # --- figure: welfare-optimal permanent carbon tax (hump) + induced greening
+    # figure: welfare-optimal permanent carbon tax + induced greening
     tb_arr = np.array([r[0] for r in sweep])
     dg_arr = np.array([r[1] for r in sweep])
     chi_arr = np.array([r[3] for r in sweep])
@@ -159,11 +121,8 @@ def main():
     figc.tight_layout()
     fcpath = os.path.join(OUT, f'fig_carbon_optimal_{BOOKING}.pdf')
     figc.savefig(fcpath, dpi=140, bbox_inches='tight')
-    print(f'[figure] {fcpath}   (tau_b* = {100*tb_star:.0f}%)')
 
-    # =========================================================================
-    # 4. FIGURE: crisis dynamics, LF vs ex-post cap vs ex-ante ETS
-    # =========================================================================
+    # figure: crisis dynamics, LF vs ex-post cap vs ex-ante ETS
     from plotting import show_irfs
     fig = show_irfs(
         [irf_lf, irf_cap, irf_ea],
@@ -175,11 +134,7 @@ def main():
     fig.suptitle(r'Version A: ex-ante greening vs ex-post capping', y=1.03)
     fpath = os.path.join(OUT, f'fig_exante_expost_{BOOKING}.pdf')
     fig.savefig(fpath, dpi=140, bbox_inches='tight')
-    print(f'\n[figure] {fpath}')
 
-    # =========================================================================
-    # 5. LATEX TABLE
-    # =========================================================================
     tpath = os.path.join(OUT, f'tab_exante_expost_{BOOKING}.tex')
     write_table(
         tpath,
@@ -194,8 +149,6 @@ def main():
                  f'is the cap outlay (ex-post) or the standing carbon revenue '
                  f'over $H={H}$ (ex-ante).'),
         label=f'tab:exante_expost_{BOOKING}')
-    print(f'[table]  {tpath}')
-
 
 if __name__ == '__main__':
     main()

@@ -1,20 +1,4 @@
-"""QA / robustness exhibit for the common-steady-state 'no adoption' counterfactual.
-
-Two things, both cheap (a handful of solves, no sweeps):
-  1. Assert the steady state is bit-identical between model_variant='adoption'
-     and model_variant='no_adoption' (frozen_model()). This is the property the
-     whole counterfactual depends on -- if it ever breaks (e.g. after an edit to
-     household.py or frozen_adoption.py), this script fails loudly instead of
-     silently producing a contaminated adoption-channel number.
-  2. Plot full vs frozen for a price shock, short window (H=24, matches the
-     paper's tables) and long window (120q), output and consumption. This is
-     the figure referenced by the Model section's methodology paragraph.
-
-Writes:
-  output/frozen_qa_residuals.txt   -- SS identity + equilibrium residual check
-  output/fig_frozen_qa.png         -- H=24 panel (y, C, D_GREEN, nx_gdp)
-  output/fig_frozen_qa_longrun.png -- 120q panel (y, C), common-SS vs full
-"""
+"""QA for the common-steady-state 'no adoption' counterfactual."""
 import os
 import numpy as np
 import matplotlib
@@ -24,7 +8,6 @@ import matplotlib.pyplot as plt
 from core.model import (build_model, frozen_model, solve_ss, run, shock_price,
                    td_unknowns_targets, ss_unknowns_targets)
 from core.calibration import make_calibration
-from core import blocks as B
 
 NUMERAIRE, BOOKING = 'cpi', 'import'
 OUT = 'paper/output'
@@ -33,7 +16,6 @@ H_LONG = 120
 
 RES_KEYS = ['goods_clearing', 'assets_clearing', 'E_clearing', 'nfares',
            'pires', 'r_res', 'tauY_res', 'w_res']
-
 
 def main():
     os.makedirs(OUT, exist_ok=True)
@@ -57,9 +39,9 @@ def main():
         lines.append(f'  {k:10s} adoption={float(ss_ad[k]):.10f}  '
                      f'no_adoption={float(ss_no[k]):.10f}  diff={d:.2e}')
     assert max_ss_diff < 1e-9, (
-        f'SS identity BROKEN: max diff={max_ss_diff:.2e}. The common-steady-'
-        f'state property no longer holds -- do not trust adoption-channel '
-        f'numbers until this is fixed.')
+        f'SS identity broken (max diff={max_ss_diff:.2e}); the adoption and '
+        f'no-adoption steady states must be identical for the channel to be '
+        f'read as full minus frozen.')
     lines.append(f'  PASS: max SS diff = {max_ss_diff:.2e} (< 1e-9)')
 
     lines.append('')
@@ -78,7 +60,7 @@ def main():
     print(report)
     open(f'{OUT}/frozen_qa_residuals.txt', 'w').write(report + '\n')
 
-    # ---------- H=24 panel ----------
+    # H=24 panel
     def pc(irf, k, h=H):
         return 100 * np.asarray(irf[k])[:h]
     keys = [('y', 'Output $y$'), ('C', 'Consumption $C$'),
@@ -96,9 +78,8 @@ def main():
     fig.tight_layout()
     fig.savefig(f'{OUT}/fig_frozen_qa.png', dpi=140, bbox_inches='tight')
     plt.close(fig)
-    print(f'  -> {OUT}/fig_frozen_qa.png')
 
-    # ---------- long-run panel ----------
+    # long-run panel
     shk_long = shock_price(size=1.0, half_life=16, T=300)
     A_long = M.solve_impulse_linear(ss, u, t, shk_long)
     Fz_long = MF.solve_impulse_linear(ss, u, t, shk_long)
@@ -113,8 +94,6 @@ def main():
     fig.tight_layout()
     fig.savefig(f'{OUT}/fig_frozen_qa_longrun.png', dpi=140, bbox_inches='tight')
     plt.close(fig)
-    print(f'  -> {OUT}/fig_frozen_qa_longrun.png')
-
 
 if __name__ == '__main__':
     main()

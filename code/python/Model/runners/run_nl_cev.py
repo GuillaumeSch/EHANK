@@ -1,39 +1,16 @@
-"""Nonlinear robustness of the welfare (CEV) numbers.
-
-The CEVs in the paper are FIRST-ORDER in the shock size: `UTIL_i` along the
-linear impulse response is d/d(eps) of aggregate flow utility (see
-paper/notes/welfare_note.pdf). This runner recomputes each scenario's welfare on the
-NONLINEAR perfect-foresight transition (solve_impulse_nonlinear: Newton on the
-aggregate unknowns, household block re-solved exactly), where `UTIL_i` is the
-exact aggregate of u(c) over the exact distribution, and compares:
-
-    * CEV level, per scenario and per beta type:  chi_NL / chi_L
-    * the policy ORDERING (transfer > flat > cap > LF, ETS ~ LF)
-
-at reduced shock sizes SIZES (the nonlinear solver does not converge at the
-headline size 1.0; App. B). Both economies of the ex-ante comparison
-(baseline and ETS steady state) are covered.
-
-Nonlinear ImpulseDicts from SSJ are DEVIATIONS from the steady state, so they
-feed welfare.cev_total exactly like the linear ones. Cached per (scenario,
-size) in cache_nl_cev/; delete to recompute. Runtime: one nonlinear solve is
-minutes, so run this in the background (python -u run_nl_cev.py > nl_cev.txt).
-"""
+"""Nonlinear robustness of the welfare (CEV) numbers."""
 import os
 import sys
 import time
 import pickle
 import numpy as np
 
-from core.model import (build_model, run, frozen_model, shock_price,
+from core.model import (build_model, run, shock_price,
                    td_unknowns_targets)
 from core.welfare import cev_total
 from tools.latex_tables import write_table
 
-# Inner sj.solved blocks (the retail-energy NKPC in particular) converge only
-# linearly under the cap and exceed SSJ's class-level default maxit=30; per-block
-# `options` do not reach them, so raise the class default in place (instances
-# share the dict).
+# raise SSJ class-level maxit; retail-energy NKPC converges only linearly under the cap
 from sequence_jacobian.blocks.block import Block as _SJBlock
 _SJBlock.solve_impulse_nonlinear_options['maxit'] = 500
 
@@ -54,20 +31,15 @@ SCENARIOS = [
     ('Ex-ante ETS',      'none',          True),
 ]
 
-
 def _cache(key):
     os.makedirs(CACHE, exist_ok=True)
     return os.path.join(CACHE, key + '.pkl')
 
-
 def _slim(d):
     return {k: np.asarray(v) for k, v in d.items()}
 
-
 def solve_scenario(model, policy, ets, size):
-    """Returns (ss, lin, nl) for one scenario at one shock size. ss is the
-    scenario's own pre-crisis steady state; the CEV is later taken against the
-    common baseline SS via welfare.cev_total."""
+    """Returns (ss, lin, nl) for one scenario at one shock size."""
     key = f'{policy}_{"ets" if ets else "base"}_s{size}_{BOOKING}'
     f = _cache(key)
     if os.path.exists(f):
@@ -94,7 +66,6 @@ def solve_scenario(model, policy, ets, size):
     with open(f, 'wb') as fh:
         pickle.dump(out, fh)
     return out
-
 
 def main():
     os.makedirs(OUT, exist_ok=True)
@@ -155,8 +126,6 @@ def main():
         midrule_after={len(SCENARIOS) * i - 1 for i in range(1, len(sizes))})
     with open(os.path.join(OUT, f'nl_cev_{BOOKING}.pkl'), 'wb') as fh:
         pickle.dump(results, fh)
-    print(f'\n[table] {OUT}/tab_nl_cev_{BOOKING}.tex')
-
 
 if __name__ == '__main__':
     main()

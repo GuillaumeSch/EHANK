@@ -1,19 +1,4 @@
-"""Version A -- tau_b sweep of the ex-ante ETS economy under a brown-energy
-price shock, for two carbon-revenue recycling schemes.
-
-Extends run_exante_expost.py (fixed TAU_B=0.10, recycle='rebate') to:
-  (i)  sweep tau_b over a grid, and
-  (ii) compare two uses of the carbon revenue:
-         'rebate'        lump-sum Trebate (baseline)
-         'green_subsidy' the revenue pays a share s_g of the green switching
-                         cost. s_g is solved ENDOGENOUSLY per tau_b so the
-                         scheme is exactly budget-neutral (Trebate = 0): all
-                         carbon revenue, and only the carbon revenue, funds the
-                         switching subsidy.
-
-Self-contained: no plotting/latex_tables dependency. Writes two PNGs and prints
-the endogenous s_g* and a budget check per tau_b.
-"""
+"""tau_b sweep of the ex-ante ETS economy under a brown-energy shock."""
 import os
 import numpy as np
 from scipy.optimize import brentq
@@ -27,7 +12,7 @@ from core.calibration import make_calibration
 NUMERAIRE, BOOKING = 'cpi', 'import'
 H = 24
 TAU_GRID = [0.10, 0.20, 0.30]     # 0.30 is the safe upper bound (fixed-psi SS
-                                  # bracket breaks above ~0.30, handoff item 7)
+                                  # bracket breaks above ~0.30)
 OUT = 'paper/output'
 ROOT_CACHE = 'cache/sg_roots.pkl'       # cached budget-neutral s_g* (see below)
 
@@ -36,29 +21,20 @@ PANELS = [('C', r'Consumption $C$'),
           ('pE_B_P', r'Brown price $P^E_B/P$'),
           ('y', r'Output $y$')]
 
-
 def pc(irf, k, h=H):
     return 100 * np.asarray(irf[k])[:h]
 
-
-# ---------------------------------------------------------------------------
-# Endogenous s_g: solve for the switching-subsidy rate that exhausts carbon
-# revenue exactly (Trebate = 0). SS-only, so cheap enough to call inside brentq.
-# ---------------------------------------------------------------------------
+# solve s_g that exhausts carbon revenue (Trebate=0); SS-only, called inside brentq
 def ets_ss_only(model, psi_fixed, tb, s_g):
-    """Prepared ETS steady state at a GIVEN switching-subsidy rate s_g,
-    psi_g held fixed at the no-ETS baseline (D_GREEN floats)."""
+    """Prepared ETS steady state at a given switching-subsidy rate s_g."""
     ov = dict(tau_b=tb, tau_g=0.0, s_g_ets=s_g, s_g=s_g)
     calib = make_calibration(NUMERAIRE, booking=BOOKING, ets=True, **ov)
     calib['psi_g'] = psi_fixed
     u, t = ss_unknowns_targets_fixed_psi(BOOKING, ets=True)
     return solve_ss(model, calib, unknowns=u, targets=t, booking=BOOKING)
 
-
 def s_g_budget_neutral(model, psi_fixed, tb, hi=0.6):
-    """s_g* such that Trebate(s_g*) = 0. Trebate = R_carbon - s_g*psi_g*D_SWITCH
-    is decreasing in s_g (>0 at s_g=0, <0 once the subsidy over-runs revenue),
-    so a sign change is bracketed on [0, hi]."""
+    """s_g* such that Trebate(s_g*) = 0."""
     def resid(s_g):
         return float(ets_ss_only(model, psi_fixed, tb, s_g)['Trebate'])
     r_lo = resid(0.0)                       # = R_carbon > 0
@@ -68,19 +44,13 @@ def s_g_budget_neutral(model, psi_fixed, tb, hi=0.6):
         r_hi = resid(hi)
     return brentq(resid, 0.0, hi, xtol=1e-4)
 
-
 def baseline_psi(model):
     ss, _ = run(model, shock_kind='price', policy='none',
                 numeraire=NUMERAIRE, booking=BOOKING)
     return float(ss['psi_g'])
 
-
-# ---------------------------------------------------------------------------
-# Figure builders
-# ---------------------------------------------------------------------------
 def solve_scenario(model, tb, recycle, psi_fixed):
-    """Full run (SS + IRF). For green_subsidy, s_g is set to the budget-neutral
-    root; the returned split confirms Trebate ~ 0."""
+    """Full run (SS + IRF); s_g budget-neutral for green_subsidy."""
     if recycle == 'rebate':
         ss, irf = run(model, shock_kind='price', policy='none', ets=True,
                       ets_kwargs=dict(tau_b=tb, recycle='rebate'),
@@ -100,7 +70,6 @@ def solve_scenario(model, tb, recycle, psi_fixed):
     split = dict(DG=float(ss['D_GREEN']), R=R, gsub=R - trebate,
                  trebate=trebate, s_g=s_star)
     return irf, split
-
 
 def make_figure(model, recycle, irf_lf, irf_cap, psi_fixed, fname):
     ets, split = {}, {}
@@ -133,7 +102,6 @@ def make_figure(model, recycle, irf_lf, irf_cap, psi_fixed, fname):
     plt.close(fig)
     return split
 
-
 def main():
     os.makedirs(OUT, exist_ok=True)
     model = build_model(NUMERAIRE, booking=BOOKING)
@@ -155,8 +123,6 @@ def main():
                 s = split[tb]
                 print(f"{tb:6.2f}{s['s_g']:8.4f}{100*s['DG']:9.2f}{s['R']:11.5f}"
                       f"{s['gsub']:12.5f}{s['trebate']:11.2e}")
-        print(f"  -> {fname}")
-
 
 if __name__ == '__main__':
     main()

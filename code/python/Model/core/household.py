@@ -1,79 +1,7 @@
-"""E-HANK household with a brown/green durable, built to nest ARS exactly.
+"""E-HANK household with a brown/green durable, nesting the ARS household.
 
-DURABLE STATE (4 points) = the PAIR (holding entering the period, holding chosen
-last period). Index order:
-
-    0 = BB   brown now, brown before
-    1 = BG   brown now, green before
-    2 = GB   green now, brown before   <- pays the switching cost psi_g
-    3 = GG   green now, green before
-
-Stage order (forward): [dep, prod, durables, consav].
-
-BREAKDOWN MARKOV (`d_markov`), applied in the `dep` stage:
-    brown is ABSORBING (no depreciation)      -> BB, BG map to BB w.p. 1
-    green breaks down to brown at rate delta_g -> GB, GG map to BB w.p. delta_g,
-                                                  and stay green otherwise
-
-NUMERAIRE-GENERIC BUDGET
-------------------------
-The block never references the CPI directly as the unit of account. It reads
-three quantities produced upstream by `numeraire_cpi` or `numeraire_core`:
-
-    p_num       price of the unit of account, RELATIVE TO THE CPI
-    r_num       real return in units of account,  1+r_num = (1+r)*p_num(-1)/p_num
-    atw_n_num   after-tax labour income in units of account, atw_n / p_num
-
-Assets `a` are denominated in units of account, so the aggregate `A` returned
-here is too and must be converted (A_cpi = A * p_num) before it meets the
-CPI-denominated objects nfa, j, jF, jE, B in `assets_clearing`.
-
-    p_num = 1     -> ARS's CPI basket numeraire
-    p_num = pH_P  -> domestic good numeraire
-
-Everything contractually written in CPI units -- the fiscal transfers epsT and
-insE, the ARS energy subsistence term Tf, and the switching cost psi_g -- is
-divided by p_num on the way in. Keeping psi_g CPI-denominated is a MODELLING
-CHOICE, not a normalisation: denominating it in domestic-good units instead
-moves D_GREEN by ~9%. See docs/model.tex.
-
-HOW THE DURABLE ENTERS THE BUDGET (exact CES, not a first-order transfer)
-------------------------------------------------------------------------
-Each durable type gets its own exact consumption-bundle price index, reusing
-ARS's own energy-nest parameters (alpha_E, eta_E) -- no new preference
-parameter:
-
-    pE_d(d)  = pE_B_P + IS_GREEN(d) * (pE_G_P - pE_B_P)
-    p_rel(d) = [alpha_E*pE_d(d)^(1-eta_E) + (1-alpha_E)*pHF_P^(1-eta_E)]^(1/(1-eta_E))
-
-`p_rel` is CPI-relative and is what the CES demand system (`durable_shares`)
-uses; `p_rel_num = p_rel / p_num` is the same bundle price converted to units
-of the numeraire and is what the budget constraint uses:
-
-    p_rel_num(d) * c + a' = coh(d)
-
-TWO BASES, ON PURPOSE, NOT BY OVERSIGHT: `durable_shares` stays CPI-relative
-and `consav`'s budget constraint is numeraire-relative. A rewrite that made
-the whole household block numeraire-native throughout (computing p_rel_num
-directly via the general CES formula, in numeraire units, and feeding
-`durable_shares` numeraire-relative prices instead) was tried and reverted:
-however the p_num-dependence was introduced -- in the hetinput, in the
-hetoutput, or split across both -- it corrupted the linearized Jacobian,
-producing an assets_clearing (Walras's-law) residual of 1e-4 to 1e-3, against
-~2e-7 for this formulation. The economics are unaffected either way (the
-demand ratio is base-invariant, verified); this is a numerical-robustness
-constraint of the current SSJ version, not a modelling choice. See the note
-in `energy_price_bundle` and SSJ_SKILL.md.
-
-EXACT NESTING PROPERTY: for brown states (BB, BG) pE_d = pE_B_P identically,
-and CESprices enforces alpha_E*pE_B_P^(1-eta_E) + (1-alpha_E)*pHF_P^(1-eta_E) = 1
-at every date, so p_rel(BB) = p_rel(BG) = 1 EXACTLY. Phase-2 nesting is
-therefore exact by construction, not merely to solver tolerance.
-
-PRICE-BASE TRAP (numeraire change): every CES demand ratio must have both legs
-in the SAME base. `durable_shares` below therefore uses the CPI-relative
-`p_rel`, never `p_rel_num`, because pE_d and pHF_P are CPI-relative. Mixing
-the two silently rescales cE_dur by p_num and breaks assets_clearing.
+Durable state: 0=BB, 1=BG, 2=GB (pays switching cost psi_g), 3=GG
+(holding now, holding chosen last period). Stage order: dep, prod, durables, consav.
 """
 import numpy as np
 import sequence_jacobian as sj
@@ -81,9 +9,6 @@ from sequence_jacobian.blocks.stage_block import StageBlock
 from sequence_jacobian.blocks.support.stages import ExogenousMaker, Continuous1D, LogitChoice
 
 
-# =============================================================================
-# 1. DURABLE GRID AND BREAKDOWN MARKOV
-# =============================================================================
 def make_durable_markov(delta_g):
     """Rows = state today, columns = state next period. Order BB, BG, GB, GG."""
     d_markov = np.array([
@@ -95,9 +20,9 @@ def make_durable_markov(delta_g):
     return d_markov
 
 
-# is the household GREEN this period? (states GB, GG)
+# is the household green this period? (states GB, GG)
 IS_GREEN = np.array([0.0, 0.0, 1.0, 1.0])
-# does the household PAY the switching cost? (state GB = green chosen, brown held)
+# does the household pay the switching cost? (state GB = green chosen, brown held)
 PAYS_SWITCH = np.array([0.0, 0.0, 1.0, 0.0])
 
 
@@ -117,33 +42,14 @@ def energy_price_bundle(pB_P, pG_P, p_num):
 def hh_income(e_grid, atw_n_num, r_num, p_num, pE_B_P, cbarE, scale_w, markup_ss,
               a_grid, n, frisch, ghh_prefs, epsT, cE_ss_grid, insE, pE_P,
               pE_P_ss, psi_g, Tgreen, s_g, Trebate):
-    """ARS income plus the switching cost, expressed in units of account.
-
-    The energy-price gap does NOT enter here as an income transfer -- it is
-    priced exactly through p_rel_num(d) in consav's budget constraint. Tf, Tfiscal,
-    Tswitch and Tgreen are CPI-denominated by construction and are converted by
-    dividing by p_num.
-
-    Tgreen is the domestic green-sector rebate (booking='domestic'): the
-    competitive green sector supplies green energy and installs green durables
-    at zero profit and rebates the proceeds lump-sum. It is 0 under the
-    import booking (green energy imported, switching cost booked as import).
-    Households still PAY the switching cost (Tswitch) and the green energy
-    price (via p_rel) in both bookings; only the BoP counterpart differs.
-    """
+    """ARS income plus the switching cost, in units of account."""
     atw_n = atw_n_num * p_num
     Tf = - pE_B_P * cbarE * (atw_n * markup_ss) * scale_w - pE_B_P * cbarE * (1 - scale_w)
-    # Slutsky transfer: lump sum indexed to pre-crisis BROWN energy (cE_ss_grid,
-    # collapsed over the durable axis). Added to the (e,a) cash-on-hand BEFORE
-    # the durable broadcast, so it is identical across durable states -- a
-    # household that switches to green keeps the same transfer and the switching
-    # margin is undistorted. epsT is the untargeted lump sum.
+    # Slutsky transfer, indexed to pre-crisis brown energy; epsT is the untargeted sum.
     Tfiscal = epsT + insE * (pE_P - pE_P_ss) * cE_ss_grid
-    # Green/adoption subsidy: the government pays a fraction s_g of the switching
-    # cost, so the household pays only (1-s_g)*psi_g. s_g = 0 at the SS.
+    # green subsidy: government pays fraction s_g of the switching cost
     Tswitch = - (1 - s_g) * psi_g * PAYS_SWITCH
 
-    # Trebate is the carbon-revenue lump-sum rebate (ets=True); 0 otherwise.
     coh = ((1 + r_num) * a_grid + atw_n_num * e_grid[:, np.newaxis]
            + (Tf + Tfiscal + Tgreen + Trebate) / p_num)
     coh = coh[np.newaxis, ...] + (Tswitch / p_num)[:, np.newaxis, np.newaxis]
@@ -159,17 +65,12 @@ def hh_init(coh, r_num, eis):
     return Va, V
 
 
-# =============================================================================
-# 2. STAGES
-# =============================================================================
 dep_stage = ExogenousMaker(markov_name='d_markov', index=0, name='dep')
 prod_stage = ExogenousMaker(markov_name='Pi', index=1, name='prod')
 
 
 def util_l(V, green_block, coh):
-    """Flow payoff of choosing durable d given the durable held, on (d | d_).
-    coh[2] (state GB) is net of psi_g, so the feasibility guard is a genuine
-    budget check and is numeraire-invariant (a sign test)."""
+    """Flow payoff of choosing durable d given the durable held."""
     gb = -green_block
     infeasible = coh[2] <= 0.0
     gb_masked = np.where(infeasible, -1e10, gb)
@@ -189,10 +90,7 @@ durables_stage = LogitChoice(value='V', backward='Va', index=0, name='durables',
 
 
 def consav(V, Va, a_grid, r_num, beta_g, eis, coh, ghh, p_rel_num):
-    """EGM step with a type-specific bundle price, in units of account.
-    Budget:   p_rel_num(d) * c + a' = coh(d)
-    Envelope: Va = (1+r_num) * uc / p_rel_num
-    Euler:    uc = beta * p_rel_num * Va_cont"""
+    """EGM consumption-savings step with a type-specific bundle price."""
     p_rel_bc = p_rel_num[:, np.newaxis, np.newaxis]
 
     uc_nextgrid = beta_g * p_rel_bc * Va
@@ -212,12 +110,7 @@ def consav(V, Va, a_grid, r_num, beta_g, eis, coh, ghh, p_rel_num):
 
 
 def compute_weighted_mpc(c, a_grid, r_num, e_grid, p_num):
-    """MPC out of a marginal unit of CPI income.
-
-    dc/dcoh is measured in units of account, so multiplying by p_num makes the
-    statistic numeraire-invariant: it equals dc/dcoh_cpi in both bases and
-    reduces to the ARS definition when p_num = 1.
-    """
+    """MPC out of a marginal unit of CPI income."""
     mpc = np.empty_like(c)
     post_return = (1 + r_num) * a_grid
     mpc[..., 1:-1] = (c[..., 2:] - c[..., :-2]) / (post_return[2:] - post_return[:-2])
@@ -228,21 +121,7 @@ def compute_weighted_mpc(c, a_grid, r_num, e_grid, p_num):
 
 
 def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E):
-    """Population shares, switching flow, and the household's EXACT CES demand
-    split, by durable type. These aggregate (over the stationary distribution
-    and across beta types) into CE_DUR_B / CE_DUR_G / CHF_DUR, which
-    blocks.hh_outputs_dur uses to build cH/cF/cE.
-
-    Why this is needed: ARS's own hh_outputs computes cE = alpha_E *
-    pE_B_P^(-eta_E) * C, i.e. the CES demand evaluated at the AGGREGATE price
-    index. With durable-type-specific prices that is wrong by Jensen: the true
-    aggregate is sum_d of the type-specific demands.
-
-    PRICE BASE: pE_d and pHF_P are CPI-relative, so the denominator must be
-    the CPI-relative p_rel, NOT p_rel_num. Mixing bases rescales every demand
-    by p_num and breaks assets_clearing under the core numeraire -- verified
-    concretely (see `energy_price_bundle`), not just asserted.
-    """
+    """Population shares, switching flow, and CES demand by durable type."""
     d_green = np.zeros_like(c) + IS_GREEN[:, np.newaxis, np.newaxis]
     d_switch = np.zeros_like(c) + PAYS_SWITCH[:, np.newaxis, np.newaxis]
 
@@ -253,8 +132,7 @@ def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E):
 
     cE_dur_b = cE_dur * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
     cE_dur_g = cE_dur * IS_GREEN[:, np.newaxis, np.newaxis]
-    # Bundle consumption split by current technology (for the cross-sectional
-    # decomposition of C: C = C_BROWN + C_GREEN, masses 1-D_GREEN / D_GREEN).
+    # split bundle consumption by current technology
     c_green = c * IS_GREEN[:, np.newaxis, np.newaxis]
     c_brown = c * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
     c_switch = c * PAYS_SWITCH[:, np.newaxis, np.newaxis]   # new adopters (state GB)
@@ -263,9 +141,7 @@ def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E):
 
 
 def flow_utility(c, ghh, eis):
-    """Per-period felicity, aggregated by SSJ into UTIL over the distribution.
-    Discounted with each type's own beta this gives utilitarian welfare, and
-    hence the consumption-equivalent variation (see ehank/welfare.py)."""
+    """Per-period felicity, aggregated by SSJ into UTIL."""
     c_safe = np.maximum(c - ghh, 1e-10)
     if eis == 1:
         util = np.log(c_safe)
@@ -278,9 +154,6 @@ consav_stage = Continuous1D(backward=['V', 'Va'], policy='a', f=consav, name='co
                             hetoutputs=[compute_weighted_mpc, durable_shares, flow_utility])
 
 
-# =============================================================================
-# 3. ASSEMBLY (beta heterogeneity via the ARS rename/remap idiom)
-# =============================================================================
 hh_one = StageBlock([dep_stage, prod_stage, durables_stage, consav_stage], name='hh',
                     backward_init=hh_init,
                     hetinputs=[make_grids, energy_price_bundle, hh_income])

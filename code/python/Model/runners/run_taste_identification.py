@@ -1,25 +1,4 @@
-"""Identification of the logit taste scale sigma_eps.
-
-psi_g and sigma_eps are not separately identified by the single steady-state
-target D_GREEN_ss = 5%: for any sigma_eps, psi_g re-solves to hit the same 5%
-share, so the steady state is invariant along the (sigma_eps, psi_g) locus. What
-the locus does NOT leave invariant is the RESPONSIVENESS of the margin, which a
-second moment---an adoption elasticity---pins down.
-
-This runner traces the locus and reports, at each sigma_eps (with psi_g
-recalibrated to 5%):
-  * the steady-state adoption elasticity: the response of the green share to a
-    permanent improvement in the green/brown operating-cost ratio (pE_g_ratio),
-    computed at FIXED psi_g via the common-SS 'fixed-psi' configuration
-    (ss_unknowns_targets_fixed_psi). This is the object to confront with the
-    micro estimates of Beresteanu--Li (2011) and Muehlegger--Rapson (2022).
-  * the crisis response: peak dD_GREEN to the baseline brown-price shock.
-  * the aggregate output loss (Sum y over H): near-invariant, which is why the
-    paper's macro conclusions and policy ordering do not turn on sigma_eps.
-
-Emits tab_taste_identification_<booking>.tex, fig_taste_identification.png.
-Runtime: one SS solve is ~15-25s, so this is a few minutes; run locally.
-"""
+"""Identification of the logit taste scale sigma_eps."""
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,13 +12,11 @@ H = 24
 NUMERAIRE, BOOKING = 'cpi', 'import'
 OUT = 'paper/output'
 SIGMAS = [0.02, 0.035, 0.05, 0.07, 0.10, 0.15, 0.20]
-# Dollar mapping for the subsidy moment: one model unit = quarterly household
-# consumption. Stated as an explicit, adjustable assumption in the paper.
+# Subsidy moment in dollars: one model unit = quarterly household consumption.
 QUARTERLY_C_USD = 20_000
 BASE_RATIO = 0.80          # pE_g_ratio at calibration
 DRATIO = 0.01              # perturbation for the SS elasticity
 SAVING0 = 1.0 - BASE_RATIO  # baseline green operating-cost advantage
-
 
 def _flow_fixed(model, sigma, psi):
     cal = make_calibration(NUMERAIRE, BOOKING, taste_shock=sigma, psi_g=psi,
@@ -48,14 +25,12 @@ def _flow_fixed(model, sigma, psi):
                   targets=SS_TARGETS_FIXED_PSI)
     return float(ss['D_SWITCH']) / (1 - float(ss['D_GREEN']))
 
-
 def _DG_fixed(model, sigma, ratio, psi):
     cal = make_calibration(NUMERAIRE, BOOKING, taste_shock=sigma, psi_g=psi,
                            pE_g_ratio=ratio)
     ss = solve_ss(model, cal, unknowns=SS_UNKNOWNS_FIXED_PSI,
                   targets=SS_TARGETS_FIXED_PSI)
     return float(ss['D_GREEN'])
-
 
 def sweep(model):
     rows = []
@@ -67,8 +42,7 @@ def sweep(model):
         d0 = _DG_fixed(model, sig, BASE_RATIO, psi)
         dm = _DG_fixed(model, sig, BASE_RATIO - DRATIO, psi)
         elast = np.log(dm / d0) / np.log((SAVING0 + DRATIO) / SAVING0)
-        # upfront-cost margin: semi-elasticity of the switching flow to a $1,000
-        # cut in psi_g (the moment matched to the vehicle-subsidy literature)
+        # semi-elasticity of the switching flow to a $1,000 cut in psi_g (vehicle-subsidy moment)
         f0 = _flow_fixed(model, sig, psi)
         f1 = _flow_fixed(model, sig, psi * 0.99)
         per1000 = 100 * (np.exp(np.log(f1 / f0) / (0.01 * psi * QUARTERLY_C_USD) * 1000) - 1)
@@ -80,7 +54,6 @@ def sweep(model):
         print(f"sigma={sig:.3f}  psi_g={psi:.4f}  D_G_ss={100*dgss:.3f}%  "
               f"elast={elast:.3f}  peakDG={peak:.2f}  Sy={sy:.1f}", flush=True)
     return rows
-
 
 def make_figure(rows, out):
     sig = [r['sigma'] for r in rows]
@@ -105,13 +78,8 @@ def make_figure(rows, out):
     fig.savefig(out, dpi=140, bbox_inches='tight')
     plt.close(fig)
 
-
 def switch_prob_table(model, out_tex):
-    """Distribution-weighted quantiles of the quarterly switch probability among
-    brown incumbents, by discount-factor type. Documents the rare-margin regime
-    of Appendix app:taste: essentially all brown mass sits in the exponential
-    tail of the logit, so the semi-elasticity of the switching flow equals
-    1/sigma_eps household by household and cannot be attenuated by heterogeneity."""
+    """Distribution-weighted quantiles of the quarterly switch probability."""
     import household as hh_mod
     ss, _ = run(model, shock_kind='price', policy='none')
     greens = np.where(hh_mod.IS_GREEN > 0)[0]
@@ -160,8 +128,6 @@ def switch_prob_table(model, out_tex):
                  r'so the brown population sits in the exponential tail of the '
                  r'logit (Appendix~\ref{app:taste}).'),
         label='tab:switch_prob_dist', midrule_after={len(order) - 1})
-    print(f'[table] {out_tex}')
-
 
 def main():
     os.makedirs(OUT, exist_ok=True)
@@ -191,9 +157,6 @@ def main():
                  r'responsiveness varies by an order of magnitude.'),
         label=f'tab:taste_identification')
     make_figure(rows, os.path.join(OUT, 'fig_taste_identification.png'))
-    print(f"\n[table] {OUT}/tab_taste_identification_{BOOKING}.tex")
-    print(f"[figure] {OUT}/fig_taste_identification.png")
-
 
 if __name__ == '__main__':
     main()

@@ -1,23 +1,4 @@
-"""Route A -- does ex-ante greening pay off as the crisis becomes more persistent?
-
-The one-off result (run_exante_expost.py) is that ex-post capping dominates
-ex-ante greening. The natural defence of the ex-ante case is persistence: a
-longer-lived price shock should let the greener economy's lower exposure
-compound over more periods. This runner tests that directly by sweeping the
-shock half-life and re-solving ONLY the impulse response (the steady state does
-not move with persistence), via the general-equilibrium Jacobian G computed once
-per steady state.
-
-Metrics, all as total CEV vs the common no-ETS baseline SS:
-  CEV_LF   laissez-faire crisis
-  CEV_cap  ex-post price cap
-  CEV_ETS  ex-ante ETS economy (tau_b), no crisis policy
-and the decomposition of the ex-ante number into its constant STANDING part and
-the crisis-only 'greening dividend' = CEV_ETS_crisis - CEV_LF, which is the
-object that would have to GROW with persistence for the ex-ante case to work.
-
-Writes output/fig_persistence_<booking>.pdf and output/tab_persistence_<booking>.tex.
-"""
+"""Ex-ante greening payoff as the crisis becomes more persistent."""
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -34,15 +15,12 @@ OUT = 'paper/output'
 CEV_OUTS = ['UTIL_0', 'UTIL_1', 'UTIL_2', 'n']
 FIG_OUTS = ['C', 'D_GREEN', 'y']
 
-
 def _G(model, ss, u, t):
     return model.solve_jacobian(ss, u, t, inputs=['PEstar_shock'],
                                 outputs=CEV_OUTS + FIG_OUTS, T=T)
 
-
 def _irf(G, shk):
     return {o: G[o]['PEstar_shock'] @ shk for o in G}
-
 
 def main():
     os.makedirs(OUT, exist_ok=True)
@@ -95,9 +73,7 @@ def main():
         if hl == 16:
             irfs_16 = dict(lf=i_lf, cap=i_cap, ets=i_ets)
 
-    # =========================================================================
-    # FIGURE: (left) CEV vs persistence; (right) crisis-only protection vs persist.
-    # =========================================================================
+    # figure: CEV vs persistence; crisis-only protection vs persistence
     fig, (axL, axR) = plt.subplots(1, 2, figsize=(11, 4))
     axL.plot(HALF_LIVES, series['lf'], 'o-', label='Laissez-faire')
     axL.plot(HALF_LIVES, series['cap'], 's-', label='Ex-post cap')
@@ -115,11 +91,7 @@ def main():
     fig.tight_layout()
     fpath = os.path.join(OUT, f'fig_persistence_{BOOKING}.pdf')
     fig.savefig(fpath, dpi=140, bbox_inches='tight')
-    print(f'\n[figure] {fpath}')
 
-    # =========================================================================
-    # LATEX TABLE
-    # =========================================================================
     tpath = os.path.join(OUT, f'tab_persistence_{BOOKING}.tex')
     write_table(
         tpath, colspec='rrrrrr',
@@ -133,8 +105,6 @@ def main():
                  f'{100*chi_stand:+.3f}\\% minus CEV$_{{\\mathrm{{LF}}}}$) does '
                  f'not grow with persistence, while the cap protection does.'),
         label=f'tab:persistence_{BOOKING}')
-    print(f'[table]  {tpath}')
-
 
 if __name__ == '__main__':
     main()

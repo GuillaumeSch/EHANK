@@ -1,27 +1,4 @@
-"""ETS vs baseline: impulse responses and the cross-sectional consumption split.
-
-Two exhibits, both on the SAME energy shock hitting two economies that differ
-only in the steady state they start from:
-    baseline    tau_b = 0,     D_GREEN_ss = 5%
-    prepared    tau_b = TAU_B, D_GREEN_ss floats up (psi_g fixed at baseline)
-
-(1) fig_ets_irf_<shock>_<booking>.pdf -- overlay of aggregate IRFs, in LEVEL
-    deviations x100 (not normalised: the two economies do not share a steady
-    state, and D_GREEN starts from 5% vs ~9%).
-
-(2) fig_cross_section_<shock>_<booking>.pdf + tab_cross_section_<booking>.tex --
-    C decomposed by the household's CURRENT technology. Three groups:
-        BB  brown incumbents            mass 1 - D_GREEN
-        GB  new adopters (pay psi_g)    mass D_SWITCH
-        GG  green incumbents            mass D_GREEN - D_SWITCH
-    The split is two-layer: fixed-population (frozen counterfactual) per-capita
-    responses, plus an adoption/migration term (full minus frozen). Aggregate
-    C_GREEN / C_BROWN / C_SWITCH are SSJ aggregates of the hetoutputs
-    c_green / c_brown / c_switch (household.py).
-
-Both economies, price AND supply shock, full and frozen variants, no policy.
-Runs are cached in cache_ets_xs/ (delete to force recomputation).
-"""
+"""ETS vs baseline: IRFs and the cross-sectional consumption split."""
 import os
 import pickle
 import numpy as np
@@ -38,10 +15,6 @@ CACHE = 'cache/cache_ets_xs'
 CLEAR_CACHE = False
 SHOCKS = ('price', 'supply')
 
-
-# =============================================================================
-# 1. RUNS (cached)
-# =============================================================================
 def _cached_run(model, key, **kw):
     os.makedirs(CACHE, exist_ok=True)
     f = os.path.join(CACHE, key + '.pkl')
@@ -55,11 +28,8 @@ def _cached_run(model, key, **kw):
         pickle.dump(out, fh)
     return out
 
-
 def get_runs(model):
-    """(shock, economy, variant) -> (ss, irf). variant 'adoption' is the full
-    model; 'frozen' is the common-SS counterfactual with choice probabilities
-    held at their steady-state values (fixed group populations)."""
+    """(shock, economy, variant) -> (ss, irf)."""
     runs = {}
     for shk in SHOCKS:
         for var in ('adoption', 'no_adoption'):
@@ -74,26 +44,8 @@ def get_runs(model):
                 numeraire=NUMERAIRE, booking=BOOKING)
     return runs
 
-
-# =============================================================================
-# 2. CROSS-SECTIONAL DECOMPOSITION
-# =============================================================================
 def decompose(ss, irf, irf_f):
-    """Two-layer split of dC by current technology group.
-
-    Layer 1 (fixed populations, frozen counterfactual irf_f): group masses do
-    not move, so dC_j^f / m_j is the per-capita response of group j with no
-    selection into or out of the group. This is the clean "consumption of
-    green vs brown users" comparison.
-
-    Layer 2 (adoption/migration term): dC - dC^f, split by group. It bundles
-    the crisis-time switchers' psi_g payments, their insulation gain, the
-    wealth SELECTION of who switches (adopters are ~2x richer than the average
-    brown household in the SS), and the GE feedback of the wave. It is NOT a
-    per-capita object; it is reported as a group-level contribution.
-
-    Aggregate identity, checked: dC = sum_j dC_j^f + sum_j (dC_j - dC_j^f).
-    """
+    """Two-layer split of dC by current technology group."""
     mG = float(ss['D_GREEN']); mS = float(ss['D_SWITCH']); mB = 1.0 - mG
     m = {'BB': mB, 'GB': mS, 'GG': mG - mS}
     CS = float(ss['C_SWITCH'])
@@ -104,9 +56,7 @@ def decompose(ss, irf, irf_f):
         return {'BB': np.asarray(x['C_BROWN']), 'GB': np.asarray(x['C_SWITCH']),
                 'GG': np.asarray(x['C_GREEN']) - np.asarray(x['C_SWITCH'])}
     dCg, dCg_f = groups(irf), groups(irf_f)
-    # Frozen choice PROBABILITIES, not frozen masses: the (e,a) distribution
-    # still drifts, so masses move by O(1e-3) of the full response. Net that
-    # residual composition out at SS per-capita levels.
+    # frozen choice probabilities, not masses; net residual composition drift out at SS levels
     dmG_f, dmS_f = np.asarray(irf_f['D_GREEN']), np.asarray(irf_f['D_SWITCH'])
     dm_f = {'BB': -dmG_f, 'GB': dmS_f, 'GG': dmG_f - dmS_f}
     assert np.max(np.abs(dmG_f)) < 0.05 * np.max(np.abs(np.asarray(irf['D_GREEN'])))
@@ -118,21 +68,15 @@ def decompose(ss, irf, irf_f):
     return dict(m=m, cbar=cb, dcbar_f=dcbar_f, fixed=dCg_f, migr=migr,
                 dC=dC, dC_f=dC_f, dmG=np.asarray(irf['D_GREEN']))
 
-
 def _cum(x):
     return 100 * float(np.sum(np.asarray(x)[:H]))
 
-
-# =============================================================================
-# 3. FIGURES
-# =============================================================================
 IRF_VARS = [
     ('y', r'Output $y$'), ('C', r'Consumption $C$'),
     ('CE_DUR_B', r'Brown energy $C^B_E$'), ('pi_ann', r'CPI inflation (ann.)'),
     ('D_GREEN', r'Green share $D^G$'), ('D_SWITCH', r'Switchers $D^{sw}$'),
     ('pE_B_P', r'Brown price $P^E_B/P$'), ('nx_gdp', r'Net exports / GDP'),
 ]
-
 
 def fig_irf(runs, shk):
     ssb, irfb = runs[(shk, 'base', 'adoption')]
@@ -156,7 +100,6 @@ def fig_irf(runs, shk):
     fig.savefig(f, dpi=140, bbox_inches='tight')
     return f
 
-
 def fig_cross_section(runs, shk):
     ssb, irfb = runs[(shk, 'base', 'adoption')]
     sse, irfe = runs[(shk, 'ets', 'adoption')]
@@ -166,7 +109,7 @@ def fig_cross_section(runs, shk):
     lab = {'BB': 'brown incumbents (BB)', 'GB': 'switchers (GB)',
            'GG': 'green incumbents (GG)'}
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.4))
-    # (a) per-capita c by group, fixed populations, % of own SS -- both economies
+    # per-capita c by group, % of own SS
     ax = axes[0]
     for d, ls, name in ((db, '-', 'baseline'), (de, '--', 'ETS')):
         for j in ('BB', 'GG'):
@@ -175,7 +118,7 @@ def fig_cross_section(runs, shk):
     ax.axhline(0, color='grey', lw=0.5)
     ax.set_title('Per-capita $c$ by technology, fixed populations (% of own SS)', fontsize=10)
     ax.legend(fontsize=7, frameon=False)
-    # (b)-(c) contributions to dC, level x100, baseline and ETS
+    # contributions to dC, level x100
     for ax, d, name in ((axes[1], db, 'baseline'), (axes[2], de, f'ETS $\\tau_b$={TAU_B}')):
         ax.plot(100 * d['fixed']['BB'][:H], lw=2, color=col['BB'], label='brown, fixed pop.')
         ax.plot(100 * (d['fixed']['GB'] + d['fixed']['GG'])[:H], lw=2, color=col['GG'],
@@ -195,10 +138,6 @@ def fig_cross_section(runs, shk):
     fig.savefig(f, dpi=140, bbox_inches='tight')
     return f, db, de
 
-
-# =============================================================================
-# 4. MAIN
-# =============================================================================
 def main():
     os.makedirs(OUT, exist_ok=True)
     model = build_model(NUMERAIRE, booking=BOOKING)
@@ -208,7 +147,6 @@ def main():
     for shk in SHOCKS:
         f1 = fig_irf(runs, shk)
         f2, db, de = fig_cross_section(runs, shk)
-        print(f'[figure] {f1}\n[figure] {f2}')
         for name, d, (ss, irf) in (('baseline', db, runs[(shk, 'base', 'adoption')]),
                                    (f'ETS $\\tau_b={TAU_B}$', de, runs[(shk, 'ets', 'adoption')])):
             pk = 100 * float(np.max(irf['D_GREEN'][:H]))
@@ -243,8 +181,6 @@ def main():
                  f'cumulative per-capita consumption response of brown / green '
                  f'incumbents in \\% of their own steady state, fixed populations.'),
         label=f'tab:cross_section_{BOOKING}', midrule_after={1})
-    print(f'\n[table]  {tpath}')
-
 
 if __name__ == '__main__':
     main()

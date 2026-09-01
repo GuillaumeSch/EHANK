@@ -1,13 +1,4 @@
-"""Green/adoption subsidy as a crisis instrument: IRFs vs the other policies.
-
-policy='green' layers a transitory switching subsidy s_g (model.shock_green) on
-top of the brown-price shock, so the government pays a fraction of psi_g during
-the acute crisis (GREEN_SIZE=1.0 = full switching cost at impact, decaying at the
-shock's half-life). The steady state is untouched (s_g=0 at the SS), so this is
-like-for-like with none/cap/transfer. This isolates what the one-line table entry
-in run_summary_table.py cannot: the DYNAMICS of the forced adoption wave and its
-output / consumption / fiscal cost.
-"""
+"""Green subsidy as a crisis instrument: IRFs vs other policies."""
 import os
 import numpy as np
 import matplotlib
@@ -31,10 +22,8 @@ PANELS = [('D_GREEN', r'Green share $D^{G}$ (pp)'),
           ('pE_B_P', r'Brown price $P^E_B/P$ (\%)'),
           ('spending', r'Fiscal spending (\%)')]
 
-
 def pc(irf, k, h=H):
     return 100 * np.asarray(irf[k])[:h]
-
 
 def main():
     os.makedirs(OUT, exist_ok=True)
@@ -69,8 +58,6 @@ def main():
               f"{np.max(pc(irf,'D_SWITCH')):9.3f}{np.sum(pc(irf,'y')):9.2f}"
               f"{np.sum(pc(irf,'C')):9.2f}{np.sum(pc(irf,'spending')):9.2f}"
               f"{100*m:9.3f}")
-    print(f"[figure] {fpath}")
-
 
 if __name__ == '__main__':
     main()

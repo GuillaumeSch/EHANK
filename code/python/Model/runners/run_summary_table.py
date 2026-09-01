@@ -1,17 +1,4 @@
-"""Single summary table for all five additions.
-
-Panel A -- price-shock policy responses (the fiscal instruments): laissez-faire,
-ex-post cap, Slutsky transfer, untargeted flat transfer (#4), green/adoption
-subsidy (#1), and the ex-ante ETS economy (#5). Columns: impact output, cumulative
-consumption, peak green share, gross fiscal disbursement over H, and total CEV vs
-the no-ETS baseline steady state.
-
-Panel B -- the monetary-policy shock (#3) under both interest-rate rules:
-impact nominal rate, output, inflation, consumption.
-
-Writes output/tab_summary_<booking>.tex (two table environments) and prints the
-numbers.
-"""
+"""Summary table for the five additions."""
 import os
 import numpy as np
 
@@ -24,24 +11,20 @@ TAU_B = 0.10
 NUMERAIRE, BOOKING = 'cpi', 'import'
 OUT = 'paper/output'
 
-
 def _c0(irf, k):
     return 100 * float(np.asarray(irf[k])[0])
-
 
 def _cum(irf, k):
     return 100 * float(np.sum(np.asarray(irf[k])[:H]))
 
-
 def _peakDG(irf):
     return 100 * float(np.max(np.asarray(irf['D_GREEN'])[:H]))
-
 
 def main():
     os.makedirs(OUT, exist_ok=True)
     model = build_model(NUMERAIRE, booking=BOOKING)
 
-    # ---------- Panel A: price-shock policies ----------
+    # Panel A: price-shock policies
     ss_base, irf_none = run(model, shock_kind='price', policy='none',
                             numeraire=NUMERAIRE, booking=BOOKING)
     runs = {'none': (ss_base, irf_none)}
@@ -79,10 +62,7 @@ def main():
         rowsA.append([labels[k], f'{y0:.2f}', f'{cumY:.1f}',
                       f'\\textbf{{{pk:.2f}}}', f'{gf:.1f}', f'{100*cev:.3f}'])
 
-    # ---------- Panel B -> figure: monetary IRFs (Taylor vs constant real rate) ----------
-    # The monetary-policy shock is a separate experiment from the ex-ante/ex-post
-    # comparison; it is reported as an IRF figure (fig_monetary.pdf), placed in
-    # Section 4 with the other policy responses, not as an orphan table panel.
+    # Panel B -> monetary IRF figure (fig_monetary.pdf); reported in Section 4, not as a table panel
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -113,9 +93,8 @@ def main():
         im = mirfs[rule]
         print(f'  {name:<22s} i(0)={_c0(im,"inom_ann"):+.2f}  y(0)={_c0(im,"y"):.3f}'
               f'  pi(0)={_c0(im,"pi_ann"):.3f}  C(0)={_c0(im,"C"):.3f}')
-    print(f'[figure] {fpath}')
 
-    # ---------- write Panel A only ----------
+    # write Panel A only
     tpath = os.path.join(OUT, f'tab_summary_{BOOKING}.tex')
     write_table(
         tpath, colspec='lrrrrr',
@@ -127,8 +106,6 @@ def main():
                  f'$H={H}$, peak green share, gross fiscal disbursement, and '
                  f'total CEV vs the no-ETS baseline SS.'),
         label=f'tab:summary_price_{BOOKING}')
-    print(f'[table] {tpath}  (Panel A; monetary shock is now fig_monetary_{BOOKING}.pdf)')
-
 
 if __name__ == '__main__':
     main()
