@@ -24,8 +24,7 @@ BASE = dict(
     Gamma_arb=100,    # intertemporal arbitrage in energy stocks
 
     # portfolio / open economy
-    zetaF=0, zetaE=0, eps_dcp=1, pcX_home=1,
-    ghh_prefs=0, w_index=0, scale_w=0, cbarE=0, wealth_effect=1,
+    eps_dcp=1, pcX_home=1, ghh_prefs=0, scale_w=0, cbarE=0,
 
     # monetary policy: real-rate rule
     rho_i=0, phi_pi=0, phi_pie=1, phi_piw=0,

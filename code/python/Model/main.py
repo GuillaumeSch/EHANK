@@ -27,8 +27,12 @@ GROUPS = {
     'exante':      [('run_summary_table.py', []),
                     ('run_exante_expost.py', []),
                     ('run_green_subsidy.py', []),
+                    ('run_output_decomposition.py', []),
                     # ETS vs baseline IRF overlay + consumption by technology group
                     ('run_ets_cross_section.py', [])],
+    # Appendix: monetary stance sweep and accommodative offset.
+    'monetary':    [('run_monetary_stance.py', []),
+                    ('run_monetary_offset.py', [])],
     # Persistence sweep (Route A). tab_persistence_import + fig_persistence.
     'persistence': [('run_persistence.py', [])],
     # carbon-tau_b sweep: rebate vs green-subsidy recycling (Appendix A.2)
@@ -44,7 +48,7 @@ GROUPS = {
 }
 
 ORDER = ['qa', 'baseline', 'signmap', 'welfare', 'taste_id', 'exante',
-         'persistence', 'taub', 'booking', 'nonlin']
+         'monetary', 'persistence', 'taub', 'booking', 'nonlin']
 
 
 def run_script(script, argv):
