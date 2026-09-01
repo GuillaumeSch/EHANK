@@ -31,7 +31,7 @@ from core import blocks as B
 
 H = 24                      # welfare / disbursement horizon (matches .tex captions)
 TAU_B = 0.10                # headline permanent carbon tax for the EA economy
-NUMERAIRE, BOOKING = 'core', 'import'
+NUMERAIRE, BOOKING = 'cpi', 'import'
 OUT = 'paper/output'
 
 

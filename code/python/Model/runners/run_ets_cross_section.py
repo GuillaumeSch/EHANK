@@ -32,7 +32,7 @@ from tools.latex_tables import write_table
 
 H = 24
 TAU_B = 0.10
-NUMERAIRE, BOOKING = 'core', 'import'
+NUMERAIRE, BOOKING = 'cpi', 'import'
 OUT = 'paper/output'
 CACHE = 'cache/cache_ets_xs'
 CLEAR_CACHE = False

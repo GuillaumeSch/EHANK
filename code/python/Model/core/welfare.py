@@ -19,8 +19,12 @@ expected discounted utility of a household drawn at random before the shock
 
 With log utility a permanent proportional consumption change chi satisfies
     dW = log(1+chi)/(1-beta)   =>   chi = exp((1-beta) dW) - 1.
-With CRRA(1/eis) the flow utility scales by (1+chi)^(1-1/eis), giving
-    chi = [1 + dW (1-beta)(1-1/eis) / u_ss] ** (1/(1-1/eis)) - 1.
+With CRRA(1/eis), u(c)=c^(1-1/eis)/(1-1/eis) scales by (1+chi)^(1-1/eis) under a
+permanent proportional change chi, so [(1+chi)^(1-1/eis)-1] u_ss/(1-beta) = dW,
+    chi = [1 + dW (1-beta) / u_ss] ** (1/(1-1/eis)) - 1,
+with u_ss = UTIL_i^ss the SS felicity level (the normalisation 1/(1-1/eis) is
+already inside u_ss, so it must NOT reappear in the bracket). Reduces to the log
+expression as eis -> 1.
 
 chi < 0 means the scenario is worse than the steady state: households would
 pay |chi| of permanent consumption to avoid it.
@@ -79,7 +83,7 @@ def cev_total(base_ss, pre_ss, irf, eis=None, T=None):
             chis.append(np.exp((1 - b) * dW) - 1)
         else:
             p = 1 - 1 / eis
-            chis.append((1 + dW * (1 - b) * p / u_base) ** (1 / p) - 1)
+            chis.append((1 + dW * (1 - b) / u_base) ** (1 / p) - 1)
     chis = np.array(chis)
     return float(chis.mean()), chis
 
@@ -103,7 +107,7 @@ def cev(ss, irf, eis=None, T=None):
         else:
             u_ss = float(ss[f'UTIL_{i}'])
             p = 1 - 1 / eis
-            chis.append((1 + dW * (1 - b) * p / u_ss) ** (1 / p) - 1)
+            chis.append((1 + dW * (1 - b) / u_ss) ** (1 / p) - 1)
     chis = np.array(chis)
     return float(chis.mean()), chis
 

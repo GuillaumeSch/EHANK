@@ -4,24 +4,24 @@
 % removed; EU framing committed with a forward pointer to the empirical section.
 %
 % Requires \usepackage{booktabs}. Expected labels: sec:intro sec:policy sec:exante
-% sec:empirics app:taste ; figure label fig:taste (the identification figure).
+% app:taste ; figure label fig:taste (the identification figure).
 % Bibitem keys: ARS2024 GallagherMuehlegger2011 Chandra2010 MuehleggerRapson2022 BeresteanuLi2011
 
 \section{Calibration}\label{sec:cal}
 
 The aggregate block is inherited from \citet{ARS2024}; the durable/adoption block is
 this paper's addition. We keep the aggregate calibration close to a generic energy
-importer---the ARS parameters, an energy expenditure share of four percent, a low
-intensive substitution elasticity---and read the durable as any household energy
+importer, the AMRS parameters, an energy expenditure share of four percent, a low
+intensive substitution elasticity, and read the durable as any household energy
 durable, a heat pump or an electric vehicle. The economy we speak to is the European
 one of Sections~\ref{sec:intro} and~\ref{sec:policy}; the aggregate calibration is an
-illustrative mapping onto it rather than a euro-area estimation, and the empirical
-section (Section~\ref{sec:empirics}) estimates the adoption margin's response
-directly on European data. The steady state is identical across all baseline
-experiments. Table~\ref{tab:calibration} collects the parameters.
+illustrative mapping onto it rather than a euro-area estimation. The steady state is
+identical across all baseline experiments. Table~\ref{tab:calibration} collects the
+parameters.
 
-\begin{table}[t]
-\centering\small
+\begin{table}[H]
+\centering\small\singlespacing
+\renewcommand{\arraystretch}{0.95}
 \begin{tabular}{lll}
 \toprule
 Parameter & Value & Source / target \\
@@ -30,7 +30,7 @@ Parameter & Value & Source / target \\
 $r$ real rate (quarterly) & $0.01$ & \citet{ARS2024} \\
 $\sigma$ inverse EIS & $1$ (log) & \citet{ARS2024} \\
 $\varphi$ inverse Frisch & $2$ & Frisch $0.5$ (standard) \\
-$\sigma_e,\rho_e,n_e$ income process & $0.57,\,0.92,\,7$ & Rouwenhorst; ARS baseline \\
+$\sigma_e,\rho_e, n_e$ income process & $0.57,\,0.92,\,7$ & Rouwenhorst; AMRS baseline \\
 $\beta$ types / spread / $\beta_{\max}$ & $3$ / $0.06$ / solved & mean $\text{MPC}\approx 0.30$; $\beta_{\max}$ closes nfa \\
 asset grid $[\underline a,\bar a]$, $n_a$ & $[0,400]$, $50$ & \\
 \addlinespace
@@ -42,27 +42,26 @@ $\alpha_F,\ \gamma=\eta$ & derived & import-demand target $\chi=0.3$ \\
 \addlinespace
 \multicolumn{3}{l}{\textit{Firms, prices, wages}}\\
 $\mu$ gross markup & $1.03$ & \citet{ARS2024} \\
-$\theta_w$ wage Calvo & $0.938$ & ARS baseline \\
-$\theta_E$ energy-price Calvo & $0.65$ & ARS baseline \\
-$\theta_F$ import-price Calvo & $0.90$ & ARS baseline \\
-$\zeta_{BG}$ real-wage stabilisation & $5$ & ARS baseline \\
+$\theta_w$ wage Calvo & $0.938$  & AMRS baseline \\
+$\theta_E$ energy-price Calvo & $0.65$  & AMRS baseline \\
+$\theta_F$ import-price Calvo & $0.90$  & AMRS baseline \\
+$\zeta_{BG}$ real-wage stabilisation & $5$  & AMRS baseline \\
 $\xi_E$ energy share in production & $0$ & off in baseline \\
 \addlinespace
 \multicolumn{3}{l}{\textit{Energy supply and open economy}}\\
 $\varepsilon^E$ supply elasticity & $\infty$ / finite & price shock / supply shock \\
-$\Gamma$ stock arbitrage & $100$ & ARS baseline \\
+$\Gamma$ stock arbitrage & $100$  & AMRS baseline \\
 $\bar E^{\mathrm{shock}}$ world supply & $\alpha_E$ & endowment normalisation \\
 \addlinespace
 \multicolumn{3}{l}{\textit{Monetary and fiscal}}\\
-$(\phi_\pi,\phi_{\pi e})$ baseline / Taylor & $(0,1)$ / $(1.5,0)$ & constant real rate (ARS) / Taylor \\
+$(\phi_\pi,\phi_{\pi e})$ baseline / Taylor & $(0,1)$ / $(1.5,0)$ & constant real rate (AMRS) / Taylor \\
 $\bar B,\ \psi_B$ debt / feedback & $0$, $0.04$ & no SS debt; $\tau^Y$ solved \\
 \addlinespace
 \multicolumn{3}{l}{\textit{Green adoption margin [this paper]}}\\
 $\delta_g$ green breakdown rate & $0.05$ & five-year durable life \\
-$\varrho=\bar P^E_G/\bar P^E_B$ & $0.80$ & heat-pump / EV delivered-cost ratio \\
-$\psi_g$ switching cost & $0.538$ (solved) & targets $\bar D^G=0.05$ \\
+$\varrho=\bar P^E_G/\bar P^E_B$ & $0.54$ & EV/ICE operating-cost ratio; App.~\ref{app:rho} \\
+$\psi_g$ switching cost & $0.770$ (solved) & targets $\bar D^G=0.05$ \\
 $\sigma_\varepsilon$ logit taste scale & $0.05$ & identified in Section~\ref{sec:taste_id} \\
-$\rho_g$ pass-through to green price & $0$ & upper bound on the channel \\
 \addlinespace
 \multicolumn{3}{l}{\textit{Policy instruments (all $0$ in the baseline)}}\\
 $\tau^E$ price-cap intensity & $\{0,\dots,1\}$ & $1=$ full freeze \\
@@ -84,9 +83,19 @@ $\bar D^G=5\%$; $\sigma_\varepsilon$ is identified in Section~\ref{sec:taste_id}
 
 The adoption block adds four parameters. The green durable depreciates at
 $\delta_g=0.05$, a five-year life, which fixes the steady-state switching flow at
-$\bar D^{\mathrm{sw}}=\delta_g\bar D^G$. The delivered green/brown operating-cost
-ratio is $\varrho=0.80$, in the heat-pump and EV range. The switching cost $\psi_g$
-is solved to hit a steady-state green share $\bar D^G=5\%$. That leaves one free
+$\bar D^{\mathrm{sw}}=\delta_g\bar D^G$. We anchor the durable to the electric-vehicle
+margin, where the operating-cost gap is measured directly. The delivered green/brown
+ratio is the electricity cost of driving a battery-electric vehicle relative to the
+fuel cost of a comparable gasoline car, $\varrho=(P^G e_G)/(P^B e_B)$. At 2025
+euro-area retail prices---electricity \mbox{0.29 EUR/kWh} and gasoline
+\mbox{1.62 EUR/L}, both inclusive of taxes---and real-world energy use of
+$0.21$~kWh/km for the electric car and $7.0$~L/100km for the gasoline car, this gives
+$\varrho=0.54$. Tax-inclusive prices are the relevant ones here: the baseline carries
+no carbon tax, so the household compares retail prices, and the asymmetric taxation of
+the two fuels is part of the environment the crisis and the ETS act on rather than
+something assumed away. Appendix~\ref{app:rho} lists every input and its source, and
+shows the policy ranking is invariant to $\varrho$ across $[0.48,0.80]$. The switching
+cost $\psi_g$ is solved to hit a steady-state green share $\bar D^G=5\%$. That leaves one free
 parameter, the logit taste scale $\sigma_\varepsilon$, which governs how responsive
 the margin is and which a level target cannot pin. Section~\ref{sec:taste_id}
 disciplines it.
@@ -102,57 +111,21 @@ $\sigma_\varepsilon$ ranges over an order of magnitude and $\psi_g$ with it, fro
 $0.32$ to $1.53$.
 
 What the locus does not leave invariant is the responsiveness of the margin. The
-steady-state adoption elasticity---the response of the green share to a permanent
-improvement in the green/brown operating-cost ratio, at fixed $\psi_g$---falls from
+steady-state adoption elasticity, the response of the green share to a permanent
+improvement in the green/brown operating-cost ratio, at fixed $\psi_g$,falls from
 $2.8$ at $\sigma_\varepsilon=0.02$ to $0.4$ at $0.20$, and the crisis adoption wave
 falls with it, from a peak $\Delta D^G$ of $19.9$ to $2.0$ percentage points
-(Figure~\ref{fig:taste_identification}). The adoption-channel magnitudes are therefore conditional
+(Figure~\ref{fig:taste_identification}, in Appendix~\ref{app:taste}). The adoption-channel magnitudes are therefore conditional
 on $\sigma_\varepsilon$: a level moment cannot discipline them, and a second
-moment---the adoption elasticity---is required.
+moment, the adoption elasticity, is required.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{output/fig_taste_identification.png}
-\caption{Identification of the taste scale. \emph{Left}: the steady-state adoption
-elasticity (green share vs.\ the operating-cost gap) against $\sigma_\varepsilon$.
-\emph{Right}: the crisis adoption magnitude (peak $\Delta D^G$ to the brown-price
-shock). The steady state is held at $\bar D^G=5\%$ by recalibrating $\psi_g$; the
-dashed line marks the baseline $\sigma_\varepsilon=0.05$.}
-\label{fig:taste_identification}
-\end{figure}
-
-\begin{table}[t]
-\centering\small
-\begin{tabular}{lrrrrrr}
-\toprule
-$\sigma_\varepsilon$ & $\psi_g$ & premium \$000 & cost-gap elast. & \%/\$1{,}000 & peak $\Delta D^G$ & $\sum y$ \\
-\midrule
-$0.020$ & $0.323$ & $6.5$ & $2.78$ & $80$ & $19.86$ & $-59.2$ \\
-$0.035$ & $0.430$ & $8.6$ & $1.80$ & $54$ & $12.42$ & $-60.9$ \\
-$0.050$ & $0.538$ & $10.8$ & $1.32$ & $40$ & $8.87$ & $-61.5$ \\
-$0.070$ & $0.680$ & $13.6$ & $0.97$ & $31$ & $6.34$ & $-61.6$ \\
-$0.100$ & $0.888$ & $17.8$ & $0.69$ & $22$ & $4.36$ & $-61.4$ \\
-$0.150$ & $1.220$ & $24.4$ & $0.47$ & $16$ & $2.80$ & $-60.6$ \\
-$0.200$ & $1.534$ & $30.7$ & $0.36$ & $12$ & $2.01$ & $-59.8$ \\
-\bottomrule
-\end{tabular}
-\caption{Identification of the logit taste scale. For each $\sigma_\varepsilon$,
-$\psi_g$ is recalibrated to hold $\bar D^G=5\%$, leaving the steady state invariant.
-Columns: the implied green premium in dollars (one unit $=\$20{,}000$ quarterly
-consumption); the steady-state elasticity of the green share to the operating-cost
-gap at fixed $\psi_g$; the semi-elasticity of the switching flow to a \$1{,}000 cut
-in $\psi_g$, matched to \citet{GallagherMuehlegger2011,Chandra2010,MuehleggerRapson2022}; the peak
-crisis adoption response; and the cumulative output loss, flat while the adoption
-responsiveness varies by an order of magnitude.}
-\label{tab:taste_identification}
-\end{table}
 
 The quasi-experimental vehicle literature provides exactly that moment, on the
 upfront-cost margin. \citet{GallagherMuehlegger2011} and \citet{Chandra2010} estimate that a
 \$1{,}000 tax incentive raises hybrid adoption by 31--38\%, in a population of
 higher-income early adopters; \citet{MuehleggerRapson2022} estimate a demand elasticity of
 $-2.1$ for electric vehicles among low- and middle-income households, roughly 8\% per
-\$1{,}000 at their mean transaction price of \$26{,}000---the mass-market floor on
+\$1{,}000 at their mean transaction price of \$26{,}000: the mass-market floor on
 responsiveness. In the model one unit is quarterly household consumption, taken as
 \$20{,}000, so the baseline $\psi_g=0.538$ is a green premium of about \$10{,}800; a
 \$1{,}000 cut in $\psi_g$ raises the switching flow by 40\% at
@@ -169,8 +142,8 @@ $\sigma_\varepsilon\in[0.05,0.07]$, with an implied green premium of
 \$11{,}000--\$14{,}000 squarely in the heat-pump and EV range, whereas
 $\sigma_\varepsilon\ge 0.10$ would imply premia of \$18{,}000 and above. The baseline
 $\sigma_\varepsilon=0.05$ is the elastic end of that interval, and the mass-market
-estimate is spanned by the sensitivity analysis. The operating-cost margin---the
-channel \citet{BeresteanuLi2011} document for gasoline prices and hybrid demand---then
+estimate is spanned by the sensitivity analysis. The operating-cost margin, the
+channel \citet{BeresteanuLi2011} document for gasoline prices and hybrid demand, then
 implies an elasticity of the green share to the energy-cost gap of $1.3$ at the
 baseline. This responsiveness is a structural property of a rare margin, not an
 artefact of the smoothing method; Appendix~\ref{app:taste} develops the point.
@@ -178,7 +151,7 @@ artefact of the smoothing method; Appendix~\ref{app:taste} develops the point.
 The dollar mapping is the one assumption stated rather than estimated, and its role
 is transparent: a higher consumption unit scales the model's per-\$1{,}000 response
 down and the implied premium up, so the two criteria co-move and the joint interval
-stays tight---at \$16{,}000 the pin is roughly $[0.07,0.10]$, at \$24{,}000
+stays tight, at \$16{,}000 the pin is roughly $[0.07,0.10]$, at \$24{,}000
 $[0.04,0.06]$. Each of these intervals lies inside the sensitivity grid of
 Table~\ref{tab:taste_identification}, over which the steady state and the policy ordering are
 invariant.
@@ -188,5 +161,93 @@ $\sum y$ is flat across the locus (Table~\ref{tab:taste_identification}, last co
 varying by under 4\% while the adoption response varies tenfold, and the policy
 ordering follows from the relative price alone. The taste scale governs how large the
 adoption channel is, not whether the cap switches it off or the transfer preserves
-it. Section~\ref{sec:empirics} brings a European estimate of the same margin to bear,
-complementing the U.S. anchors used here.
+it.
+
+\subsection{The steady state: who adopts}
+\label{sec:ss_adoption}
+
+At the calibrated steady state green durables are $5\%$ of the stock and the
+quarterly switching flow is $0.26\%$, the flow that replaces green depreciation
+(Table~\ref{tab:switch_prob_dist}, Appendix~\ref{app:taste}). Adoption is far from
+uniform across households. Figure~\ref{fig:switch_heatmap} plots the switching
+probability of the median discount-factor type over the wealth--productivity
+grid: the choice \emph{policy function}, not the mass-weighted pool, which mixes
+three types with very different switching rates and is best read as the distribution
+in Table~\ref{tab:switch_prob_dist}. The probability that a brown incumbent
+switches to green rises monotonically in both wealth and idiosyncratic
+productivity. Wealthier households can finance the switching cost $\psi_g$ and more
+productive households expect the higher future income that makes the durable worth
+replacing, so adoption concentrates among wealthy, high-productivity households. The
+surface also makes the rare-margin regime visible: away from that group the
+probability sits far below one: the brown mass occupies the exponential tail of the
+logit, where the semi-elasticity of switching is $1/\sigma_\varepsilon$ household by
+household (Appendix~\ref{app:taste}, Table~\ref{tab:switch_prob_dist}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{output/fig_switch_heatmap.png}
+\caption{Probability of switching from a brown to a green durable, per quarter, for
+the median discount-factor type, as a function of household wealth relative to the
+mean $a/\bar a$ (horizontal, symmetric-log scale) and idiosyncratic productivity $e$
+(vertical), at the baseline steady state. Colour on a log scale. Plotting a single
+type's policy function rather than the mass-weighted pool removes a composition
+artifact: pooling the three discount-factor types, whose switching rates differ by
+orders of magnitude, makes the wealth gradient non-monotone even though each type's
+rule is monotone. The policy function is monotone in both wealth and productivity.}
+\label{fig:switch_heatmap}
+\end{figure}
+
+The wealth gradient is the marginal-switcher condition \eqref{eq:margin} seen
+household by household. Figure~\ref{fig:payoff} prices one switch the way the
+condition does: the upfront cost $\psi_g$ against the energy saving
+$(\bar P^E_B-\bar P^E_G)\,\bar c^{\,G}_E$ accumulated over the durable's life,
+discounted by interest and survival; the limit of the plotted sum is the
+discounted-saving side of \eqref{eq:margin}. Because energy use rises with wealth in
+levels, so does the saving. At mean wealth the saving never reaches $\psi_g$: the
+typical household stays brown not because it discounts the future heavily but
+because its energy bill is too small for the operating saving ever to repay the
+cost. At about $25\,\bar a$ the breakeven arrives at the durable's expected life,
+the accounting margin; at $40\,\bar a$ it arrives within four years, and adoption is
+comfortably worthwhile. The figure is an accounting cut: it holds the green
+incumbent's demand fixed and abstracts from consumption smoothing and the taste
+shocks that make the actual choice probabilistic. But it is the reason the holding
+rate climbs from under three percent to seventy-seven across the wealth distribution
+(Figure~\ref{fig:ss_objects}), and the object the crisis then perturbs: a brown
+price shock scales the saving flow up, moving each household's crossing left.
+
+\begin{figure}[H]\centering
+\IfFileExists{output/fig_adoption_payoff_import.pdf}{\includegraphics[width=.8\textwidth]{output/fig_adoption_payoff_import.pdf}}{\textit{[figure output/fig\_adoption\_payoff\_import.pdf: run run\_adoption\_payoff.py]}}
+\caption{The private economics of one switch, at the steady state. For the median
+discount-factor type at median productivity and three wealth levels, cumulative
+energy saving from operating green, discounted by interest and survival,
+$S(T)=\sum_{t\le T}\bigl[(1-\delta_g)/(1+r)\bigr]^{t}
+(\bar P^E_B-\bar P^E_G)\,\bar c^{\,G}_E(e,a)$, against the switching cost $\psi_g$
+(dashed) and the expected durable life $1/\delta_g$ (dotted). Dots mark the
+breakeven quarter. No shock: the steady-state investment problem.}
+\label{fig:payoff}
+\end{figure}
+
+Two further steady-state objects anticipate the policy results
+(Figure~\ref{fig:ss_objects}). The switching \emph{flow} has a stock counterpart:
+the green-holding rate rises from under $3\%$ at the constraint to $77\%$ at the top
+of the wealth grid, so the durable is held disproportionately by the wealthy. The
+marginal propensity to consume runs the other way, falling from about $0.5$ at the
+constraint to near zero by $a\approx3.5\,\bar a$, with brown incumbents and green holders
+close at each wealth level. These two gradients drive the incidence results of
+Section~\ref{sec:shield}. A transfer to brown households reaches the high-MPC
+constrained tail and stabilises consumption effectively; an energy-indexed transfer
+does not, because the energy bill is flat as a share of spending
+($3.8\%$ at the bottom of the wealth distribution against $3.7\%$ at the top) and so
+rises with wealth in levels, sending the largest payments to the low-MPC wealthy.
+Homothetic energy demand makes energy-indexed targeting regressive; the flat share
+is the assumption behind that result, and the non-homothetic robustness check in
+Section~\ref{sec:shield} relaxes it.
+
+\begin{figure}[H]\centering
+\IfFileExists{output/fig_ss_objects_import.pdf}{\includegraphics[width=\textwidth]{output/fig_ss_objects_import.pdf}}{\textit{[figure output/fig\_ss\_objects\_import.pdf: run run\_ss\_objects.py]}}
+\caption{Steady-state objects, aggregated over discount-factor types. Left:
+green-durable holding rate against wealth (the stock behind the switching flow).
+Right: quarterly MPC against wealth, by durable state. Wealth on a symmetric-log
+scale.}
+\label{fig:ss_objects}
+\end{figure}

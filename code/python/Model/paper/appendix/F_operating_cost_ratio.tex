@@ -1,0 +1,71 @@
+\section{Calibrating the operating-cost ratio \texorpdfstring{$\varrho$}{rho}}
+\label{app:rho}
+
+The single price parameter of the adoption block, $\varrho=\bar P^E_G/\bar P^E_B$,
+is a delivered operating cost: the cost of one unit of energy service (a kilometre)
+from the green durable relative to the brown one. It is not a price per unit of
+energy---per kilowatt-hour electricity is dearer than gasoline---but a cost per unit
+of service, net of each technology's conversion efficiency. The upfront cost of
+switching is a separate object, $\psi_g$.
+
+We calibrate $\varrho$ on the electric-vehicle margin, the durable for which both
+the operating-cost gap and the adoption elasticity (Section~\ref{sec:taste_id}) are
+measured. With $P^G,P^B$ the retail electricity and gasoline prices and $e_G,e_B$
+real-world energy use,
+\[
+  \varrho=\frac{P^G\,e_G}{P^B\,e_B}
+        =\frac{0.290\times0.21}{1.62\times0.070}
+        =\frac{0.0609}{0.1134}=0.54 .
+\]
+
+\begin{table}[H]\centering\small
+\begin{tabular}{llll}
+\toprule
+ & & Value & Source \\
+\midrule
+Electricity price, households & $P^G$ & 0.290 EUR/kWh & Eurostat \texttt{nrg\_pc\_204}, 2025S2, incl.\ taxes \\
+Gasoline price, Euro-95       & $P^B$ & 1.62 EUR/L    & EC Weekly Oil Bulletin, 2025S2, incl.\ taxes \\
+Electric-car energy use       & $e_G$ & 0.21 kWh/km   & IEA \textit{Global EV Outlook 2026} \\
+Gasoline-car fuel use         & $e_B$ & 7.0 L/100km   & National on-road data (e.g.\ FR SDES) \\
+\bottomrule
+\end{tabular}
+\caption{Inputs to $\varrho$. European, tax-inclusive, same semester.}
+\label{tab:rho_inputs}
+\end{table}
+
+Three choices are worth stating. \emph{(i) Tax-inclusive prices.} The baseline has
+no carbon tax, so the household compares retail prices; the gap between the two
+ratios---$0.54$ inclusive against $0.88$ excluding taxes---is the asymmetric
+taxation of the two fuels, which the ETS acts on rather than assumes away.
+\emph{(ii) Real-world energy use.} Both figures are on-road or metered rather than
+type-approval, so charging losses are already in the electricity figure and the two
+sides rest on the same basis. \emph{(iii) Fleet averages.} A matched compact pair
+(electric $17$~kWh/100km, gasoline $6.2$~L/100km) gives $0.49$, so the ratio does
+not turn on vehicle-size composition. As an internal check, $0.21$~kWh/km is
+$2.3$~litres of gasoline equivalent per 100~km, $68\%$ below the gasoline car's
+$7.0$, matching the roughly $70\%$ energy saving the same source reports for a
+comparable electric car. The heating margin---an air-source heat pump against a
+condensing gas boiler at Eurostat household electricity and gas prices---gives a
+nearby $\varrho\approx0.62$, so reading the durable as a heat-pump/EV composite
+would move the ratio only inside the range below.
+
+\paragraph{Sensitivity.} Holding the steady-state green share at $\bar D^G=5\%$,
+$\psi_g$ re-solves as $\varrho$ varies. Across the whole plausible range the policy
+CEV ranking is unchanged (flat transfer $\succ$ Slutsky $\succ$ ex-post cap
+$\succ$ ex-ante ETS $\succ$ laissez-faire $\succ$ green subsidy); only the crisis
+adoption magnitude responds, by about one percentage point of peak green share.
+
+\begin{table}[H]\centering\small
+\begin{tabular}{lccccc}
+\toprule
+$\varrho$                       & 0.48 & 0.54 & 0.62 & 0.70 & 0.80 \\
+\midrule
+$\psi_g$ (solved)               & 0.827 & 0.770 & 0.696 & 0.625 & 0.538 \\
+peak $\Delta D^G$ (pp)          & 7.44  & 7.72  & 8.10  & 8.46  & 8.87 \\
+peak output loss $-y$ (\%)      & 2.85  & 2.86  & 2.87  & 2.88  & 2.90 \\
+\bottomrule
+\end{tabular}
+\caption{Sensitivity of the baseline to $\varrho$. Price shock, import booking.
+$\bar D^G=5\%$ imposed throughout; the policy ordering (not shown) is invariant.}
+\label{tab:rho_sensitivity}
+\end{table}

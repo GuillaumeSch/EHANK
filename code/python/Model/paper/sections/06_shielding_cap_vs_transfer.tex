@@ -10,21 +10,23 @@ this paper adds.
 
 Under the cap the peak green-share response falls from $8.9$ pp to essentially
 zero ($-0.04$ pp) under \emph{both} shocks: the margin is not attenuated, it is
-switched off. The mechanism is direct---the cap holds $P^{E}_{B}$ at its
+switched off. The mechanism is direct: the cap holds $P^{E}_{B}$ at its
 pre-crisis level, and $P^{E}_{B}$ is precisely what determines the return to
-adoption.
+adoption. The full fiscal responses under both shocks are in
+Figures~\ref{fig:policy_price} and~\ref{fig:policy_supply} (no policy, price cap,
+Slutsky transfer).
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.92\textwidth]{output/fig2_policy_price.png}
 \caption{Fiscal response to the \emph{price} shock, adoption open: no policy
-(solid), price cap (dashed), Slutsky transfer (dotted).}
+(solid), price cap (dashed), Slutsky transfer (dash-dotted).}
 \label{fig:policy_price}
 \end{figure}
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.92\textwidth]{output/fig2_policy_supply.png}
 \caption{Fiscal response to the \emph{supply} shock, adoption open: no policy
-(solid), price cap (dashed), Slutsky transfer (dotted).}
+(solid), price cap (dashed), Slutsky transfer (dash-dotted).}
 \label{fig:policy_supply}
 \end{figure}
 
@@ -48,6 +50,33 @@ household's current durable, switching forfeits nothing and the relative-price
 incentive to adopt is left intact. Subsidies destroy the transition margin;
 transfers do not.
 
+\subsection{A second casualty: the expenditure-switching channel}
+\label{sec:exp_switching}
+
+The relative price the cap freezes drives more than adoption. Decomposing the output
+response through the open-economy identity $y=c_H+c_H^{*}$, home-good output equals
+domestic demand for the home good plus exports, makes the point
+(Figure~\ref{fig:output_decomp}). Under no policy the energy shock lifts exports: the
+relative price of the home good falls and foreign demand rises, a partial offset to
+the domestic-demand collapse (cumulatively $+8.7$ against a domestic $-70.1$). The
+cap switches that offset off almost entirely ($+0.7$): holding the retail energy
+price fixed suppresses the relative-price movement expenditure switching runs on,
+exactly as it suppresses the one adoption runs on. The transfer leaves the relative
+price free and preserves the export channel nearly intact ($+7.3$) while supporting
+domestic demand ($-29.6$). The cap and the transfer stabilise comparable amounts of
+output, but the cap does so by suppressing an adjustment margin and the transfer by
+supporting income: the same distinction the paper draws on the adoption share, read
+now through the trade balance.
+
+\begin{figure}[H]\centering
+\IfFileExists{output/fig_output_domestic_external_import.pdf}{\includegraphics[width=\textwidth]{output/fig_output_domestic_external_import.pdf}}{\textit{[figure output/fig\_output\_domestic\_external\_import.pdf: run run\_output\_decomposition.py]}}
+\caption{Output response decomposed as $y=c_H+c_H^{*}$ (domestic demand for the home
+good plus exports), by policy, under the brown-price shock. The export offset
+(green) is positive under no policy and the transfer and switched off under the cap.
+Level deviations $\times100$.}
+\label{fig:output_decomp}
+\end{figure}
+
 \subsection{The cap is a dial, not a switch}
 \label{sec:dial}
 
@@ -56,10 +85,10 @@ Table~\ref{tab:dose} sweeps $\tau^{E}\in[0,1]$. Under the \emph{price} shock the
 adoption loss is almost exactly linear in $\tau^{E}$. Under the \emph{supply}
 shock it is convex: small caps barely touch adoption and the collapse is
 concentrated near the full freeze. A partial shield is therefore much less
-damaging to the transition when supply is inelastic---but, as the next result
+damaging to the transition when supply is inelastic, but, as the next result
 shows, much more damaging to everything else.
 
-\input{output/tab_dose_core_import.tex}
+\input{output/tab_dose_cpi_import.tex}
 
 \subsection{Welfare, and the supply-elasticity sign flip}
 \label{sec:welfare}
@@ -70,6 +99,109 @@ substitution away from energy and pushes the economy towards Leontief. This
 survives the addition of an adoption margin.
 
 
+
+\paragraph{The welfare measure.} We rank scenarios by the discounted utility of a
+household drawn at random before the shock. There are three permanent
+discount-factor types $i\in\{0,1,2\}$ of equal mass; type-$i$ welfare in a scenario
+is
+%
+\begin{equation}
+  \mathcal{W}_i=\sum_{t\ge0}\beta_i^{\,t}\,\bigl(\mathbb{E}_0[u(c_{it})]-v(n_t)\bigr),
+  \label{eq:welfare}
+\end{equation}
+%
+the expectation over the date-$0$ (pre-shock) cross-section of type $i$; the
+distribution then evolves endogenously along the transition, so \eqref{eq:welfare}
+is the expected discounted utility of a household placed behind a date-$0$ veil of
+ignorance. This is the object a welfarist planner evaluates; \citet{DavilaSchaab2025}
+give the general treatment of welfare assessments with heterogeneous individuals.
+\citet{ARS2024}, the model we extend, gauge the distributional effects of energy
+policy through consumption inequality; we complement that with a
+consumption-equivalent welfare ranking. We report $\mathcal{W}_i$ type by type and,
+as a population summary, the equal-weighted mean across the three types. Felicity $u$
+is \eqref{eq:felicity}, evaluated on the bundle the household consumes, so
+$\mathbb{E}_0[u(c_{it})]$ is the exact cross-sectional average, not felicity at the
+average bundle.
+
+\emph{Labour is not a household choice.} The union sets the wage \eqref{eq:wpc} and
+hours $n_t$ are common across households: a household of productivity $e$ earns
+$e\,(1-\tau^L)w\,n_t$ and works the same hours as everyone else. Preferences are
+separable and $n_t$ is taken as given, so the labour-disutility term
+$v(n)=v_\varphi\,n^{1+\varphi}/(1+\varphi)$ does not enter the household's
+consumption--saving problem \eqref{eq:coh}. It is nonetheless a real utility cost of
+the hours worked, common to every type, so the welfare criterion must include it: we
+subtract $v(n_t)$ in \eqref{eq:welfare}. Omitting it would score a policy that raises
+employment as a free lunch---higher consumption with no offsetting toil---which it is
+not.
+
+\paragraph{From the transition to the CEV.} Along a scenario's transition the
+felicity deviations are $\widehat{u}_{it}=u_{it}-u^{\mathrm{ss}}_i$, where
+$u_{it}=\mathbb{E}_t[u(c_{it})]$ is average type-$i$ felicity at date $t$ and
+$u^{\mathrm{ss}}_i$ its reference-steady-state level; the labour term deviates by
+$\Delta v_t=v'(n^{\mathrm{ss}})\,\widehat{n}_t$, with
+$v'(n^{\mathrm{ss}})=v_\varphi\,(n^{\mathrm{ss}})^{\varphi}$. The scenario's welfare
+relative to its own steady state is
+%
+\begin{equation}
+  \Delta\mathcal{W}_i=\sum_{t\ge0}\beta_i^{\,t}\,\bigl(\widehat{u}_{it}-\Delta v_t\bigr).
+  \label{eq:dW}
+\end{equation}
+%
+We express this in consumption units through the consumption-equivalent variation
+$\chi_i$ \citep{Lucas1987}: the permanent proportional consumption supplement that,
+granted to every type-$i$ household in the reference steady state, reproduces
+$\Delta\mathcal{W}_i$. A permanent supplement scales felicity by
+$(1+\chi_i)^{1-\sigma}$ and so raises welfare by
+$[(1+\chi_i)^{1-\sigma}-1]\,u^{\mathrm{ss}}_i/(1-\beta_i)$; equating to
+$\Delta\mathcal{W}_i$ and inverting,
+%
+\begin{equation}
+  \chi_i=
+  \begin{cases}
+    \exp\!\bigl[(1-\beta_i)\,\Delta\mathcal{W}_i\bigr]-1, & \sigma=1,\\[4pt]
+    \Bigl[\,1+(1-\beta_i)\,\Delta\mathcal{W}_i/u^{\mathrm{ss}}_i\,\Bigr]^{1/(1-\sigma)}-1, & \sigma\neq1.
+  \end{cases}
+  \label{eq:cev}
+\end{equation}
+%
+We report $\chi_i$ by type and averaged, in percent of permanent consumption;
+$\chi_i<0$ is a loss, the share of consumption a household would forgo in perpetuity
+to avoid the scenario. Because \eqref{eq:dW}--\eqref{eq:cev} use real felicity, the
+CEV does not depend on the unit of account.
+
+\paragraph{A common reference across steady states.} Scenarios that begin from
+different steady states cannot be compared through \eqref{eq:dW} alone: the
+\emph{ex-post} crisis instruments start at the pre-crisis baseline, whereas the
+\emph{ex-ante} carbon tax has already moved the economy to a greener, permanently
+distorted steady state before the crisis. We fix the baseline steady state as the
+common reference and split each scenario's welfare into a standing and a transition
+term,
+%
+\begin{equation}
+  \Delta\mathcal{W}_i=
+  \underbrace{\frac{u^{\mathrm{pre}}_i-u^{\mathrm{base}}_i-\Delta v^{\mathrm{lvl}}}{1-\beta_i}}_{\text{standing gap vs.\ baseline}}
+  +\underbrace{\sum_{t\ge0}\beta_i^{\,t}\bigl(\widehat{u}_{it}-\Delta v_t\bigr)}_{\text{crisis transition}},
+  \label{eq:cev_total}
+\end{equation}
+%
+where $u^{\mathrm{pre}}_i$ is felicity at the scenario's own pre-crisis steady state,
+$u^{\mathrm{base}}_i$ at the baseline, and
+$\Delta v^{\mathrm{lvl}}=v'(n^{\mathrm{base}})\,(n^{\mathrm{pre}}-n^{\mathrm{base}})$
+the standing labour-disutility difference. The standing gap is zero for scenarios
+that start at the baseline and negative for the ex-ante tax, which gives up
+steady-state consumption to raise adoption; carrying it into $\Delta\mathcal{W}_i$
+places ex-ante and ex-post policies on a single welfare axis. We feed
+\eqref{eq:cev_total} through \eqref{eq:cev} exactly as for any other scenario.
+
+\paragraph{First-order accuracy.} The deviations in \eqref{eq:dW} are first order in
+the shock, so $\chi_i$ is the leading term of the welfare expansion around the
+(distorted) steady state along a deterministic transition. This is not the
+stochastic setting in which a first-order evaluation can reverse welfare rankings
+\citep{KimKim2003,BenignoWoodford2005}: the transition is deterministic and the
+first-order term is nonzero and dominant. Because the shock is large and the
+adoption margin is convex, we bound the neglected second-order terms by recomputing
+every $\chi_i$ on the nonlinear transition (Appendix~\ref{sec:nlcev}); the levels
+move by at most $10$--$15\%$ and no ranking changes.
 
 Table~\ref{tab:summary_price_import} turns to welfare, measured as the total
 consumption-equivalent variation (CEV) relative to the common no-tax steady
@@ -94,7 +226,7 @@ assuming elastic supply, find the French shield effective; \citet{Bayer2026},
 assuming fixed union-wide supply, find subsidies destructive. Our two closures
 reproduce the \emph{sign} each obtains, which locates one source of the contrast
 in a single parameter. The narrow point is that, once the supply elasticity is fixed, the direction of the
-cap's welfare effect is determined---so part of the empirical disagreement reduces
+cap's welfare effect is determined, so part of the empirical disagreement reduces
 to measuring that elasticity at the relevant horizon.
 
 \paragraph{Private welfare and the transition are distinct.} The CEV above is a
@@ -103,7 +235,7 @@ the transition and prices no climate or transition externality. Two results are
 therefore kept separate. On private welfare alone the transfer dominates the cap
 under both shocks; the case for the transfer does not rest on the transition.
 Separately, the transfer preserves the green adoption margin the cap eliminates
-(Section~\ref{sec:cap})---a positive statement about the transition, not a welfare
+(Section~\ref{sec:cap}): a positive statement about the transition, not a welfare
 ranking. We do not aggregate the two into one social-welfare number: that would
 require a social value of adoption (a carbon price times avoided brown-energy use)
 we do not model. A positive such value only reinforces the private ranking; it
@@ -116,8 +248,8 @@ Without policy the impatient (high-MPC) households lose far more than the patien
 (Table~\ref{tab:cev}). This makes the incidence of the transfer a first-order
 design question. The Slutsky transfer indexes the lump sum to each household's
 pre-crisis brown-energy use. Replacing it with an \emph{untargeted} flat transfer
-of the \emph{same aggregate envelope}---the identical outlay ($49.3$ vs.\ $49.3$
-over $H=24$), paid flat rather than indexed---almost halves the welfare loss, from
+of the \emph{same aggregate envelope}, the identical outlay ($49.3$ vs.\ $49.3$
+over $H=24$), paid flat rather than indexed, almost halves the welfare loss, from
 a CEV of $-0.82\%$ to $-0.32\%$ (Table~\ref{tab:summary_price_import}), and even
 improves output ($\sum y=-18.4$ vs.\ $-22.3$), while leaving adoption intact
 ($9.1$ pp). The gain is entirely distributional.
@@ -126,16 +258,16 @@ The mechanism is that energy-indexed targeting is regressive \emph{in this model
 With homothetic CES energy demand the energy share is constant across the wealth
 distribution, so brown-energy use rises with total consumption, hence with
 permanent income and patience. Indexing the transfer to pre-crisis energy use
-therefore hands the largest cheques to the low-MPC, wealthy households---exactly
-where a euro buys the least insurance---while a flat transfer reaches the high-MPC
+therefore hands the largest cheques to the low-MPC, wealthy households, exactly
+where a euro buys the least insurance, while a flat transfer reaches the high-MPC
 households the crisis hits hardest. This speaks to the 2022--23 European energy
 ``brakes,'' which were indexed to historical consumption: within the model the
 indexing is the source of the inefficiency, not a refinement of it.
 
 We flag the caveat plainly. The result rests on the homothetic energy nest: if
-energy were a necessity with a declining Engel curve---the empirically standard
-case---low-income households would spend a \emph{larger} share and the sign could
+energy were a necessity with a declining Engel curve, the empirically standard
+case, low-income households would spend a \emph{larger} share and the sign could
 reverse. The clean statement is conditional: \emph{under constant energy shares,
 energy-indexed targeting is dominated by an equal-value flat transfer}.
 
-\input{output/tab_cev_core_import.tex}
+\input{output/tab_cev_cpi_import.tex}

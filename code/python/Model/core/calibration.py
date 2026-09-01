@@ -54,9 +54,15 @@ BASE = dict(
 # =============================================================================
 DURABLE = dict(
     delta_g=0.05,      # green durable breakdown rate (quarterly)
-    psi_g=0.253,       # switching cost, calibrated to D_GREEN_ss = 0.05
+    psi_g=0.253,       # switching cost initial guess; solved to D_GREEN_ss=0.05
     taste_shock=0.05,  # logit scale on the adoption choice
-    pE_g_ratio=0.8,    # steady-state green/brown energy price ratio
+    # Delivered green/brown operating-cost ratio (EV vs ICE, EU, 2025-S2, TTC):
+    #   rho = (P_elec * e_BEV) / (P_petrol * e_ICE)
+    #       = (0.290 EUR/kWh * 0.21 kWh/km) / (1.62 EUR/L * 0.070 L/km) = 0.54
+    # Prices: Eurostat nrg_pc_204 (electricity), EC Weekly Oil Bulletin (petrol).
+    # Efficiencies: IEA Global EV Outlook 2026 (BEV 21 kWh/100km); national
+    # on-road fuel use (ICE ~7 L/100km, e.g. FR SDES 7.1). Derivation: app:rho.
+    pE_g_ratio=0.54,   # steady-state green/brown operating-cost ratio
     pass_g=0.0,        # pass-through of brown energy price to green price
     green_block=0.0,   # 0 = adoption open; large = adoption shut (counterfactual)
     D_GREEN_ss_target=0.05,

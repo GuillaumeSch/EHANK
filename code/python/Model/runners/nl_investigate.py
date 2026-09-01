@@ -32,7 +32,7 @@ from core.model import build_model, run, shock_price, td_unknowns_targets, froze
 INNER_MAXIT = 100
 Block.solve_impulse_nonlinear_options = dict(tol=1e-8, maxit=INNER_MAXIT, verbose=False)
 
-M = build_model('core', booking='import')
+M = build_model('cpi', booking='import')
 U, T = td_unknowns_targets('import')
 SERIES = ['y', 'C', 'cE', 'D_GREEN', 'D_SWITCH']
 H = 24
@@ -69,7 +69,7 @@ def solve_pair(size, variant='adoption', taste=None, maxit=200):
     # Nonlinear solve must use the SAME dag as the linear one above: the
     # frozen-choice DAG for 'no_adoption' (common SS, but the household internals
     # -- hence the nonlinear residual functions -- differ from the adoption dag).
-    nl_model = frozen_model('core', 'import') if variant == 'no_adoption' else M
+    nl_model = frozen_model('cpi', 'import') if variant == 'no_adoption' else M
     t0 = time.time()
     # SSJ raises on non-convergence, so a returned path is converged by
     # construction. We still record the outer maxit and wall time for provenance.

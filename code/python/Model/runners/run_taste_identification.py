@@ -30,7 +30,7 @@ from core.calibration import make_calibration
 from tools.latex_tables import write_table
 
 H = 24
-NUMERAIRE, BOOKING = 'core', 'import'
+NUMERAIRE, BOOKING = 'cpi', 'import'
 OUT = 'paper/output'
 SIGMAS = [0.02, 0.035, 0.05, 0.07, 0.10, 0.15, 0.20]
 # Dollar mapping for the subsidy moment: one model unit = quarterly household

@@ -26,13 +26,13 @@ from core import blocks as B
 from tools import latex_tables as LT
 
 # See run_experiments.py: caches are tagged by numeraire on purpose.
-NUMERAIRE = 'core'
+NUMERAIRE = 'cpi'
 BOOKING = 'import'          # 'import' baseline, or 'domestic' (green sector)
 
 # See run_experiments.py: cache is keyed by tag only, goes stale silently
 # on model/calibration changes. Wipe on every run; set False to resume a
 # crashed run with an unchanged model.
-CLEAR_CACHE = True
+CLEAR_CACHE = False
 
 OUT, H = 'paper/output', 24
 CDIR = f'cache/cache_dose_{NUMERAIRE}_{BOOKING}'

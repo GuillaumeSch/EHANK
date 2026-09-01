@@ -15,16 +15,16 @@ $1/\sigma_\varepsilon$, so the same parameter that smooths the policy is the
 structural elasticity of the margin. Which of the two readings governs is not a
 matter of taste; it depends on where the population sits on the logit.
 
-If choice probabilities are interior---of order one, as for labor-force
+If choice probabilities are interior, of order one, as for labor-force
 participation, where employment rates and quarterly flows are tens of
-percent---then $P(1-P)$ is bounded, the $\sigma_\varepsilon \to 0$ limit is a
+percent, then $P(1-P)$ is bounded, the $\sigma_\varepsilon \to 0$ limit is a
 well-defined deterministic cutoff, and aggregate responses converge to the
 density of households at the threshold: an object of the wealth and productivity
 distribution, not of $\sigma_\varepsilon$. There the numerical reading is
 legitimate, the economics of the margin is carried by the distribution (and, in
 search applications, by the frictions standing between the choice and the
 outcome), and the smoothing doctrine applies. If instead the margin is
-\emph{rare}---choice probabilities deep in the left tail---the logit is
+\emph{rare}, choice probabilities deep in the left tail, the logit is
 exponential there, $d\log P = d\Delta/\sigma_\varepsilon$ holds for every
 household regardless of its level, and the semi-elasticity of the flow is
 identically $1/\sigma_\varepsilon$. No feature of the distribution can attenuate
@@ -39,8 +39,8 @@ the quarterly switch probability among brown incumbents: the mean is $0.26\%$,
 the median is essentially zero, the 95th percentile is $1.6\%$, and even the
 99.9th percentile stays below $9\%$. Virtually no mass approaches interior
 probabilities. This is the world of rare, lumpy, quasi-irreversible
-adjustment---the regime in which the structural discrete-choice literature
-estimates the scale from choice data \citep{Rust1987}---not the world of
+adjustment, the regime in which the structural discrete-choice literature
+estimates the scale from choice data \citep{Rust1987},not the world of
 participation.
 
 \input{output/tab_switch_prob_dist_import.tex}
@@ -54,7 +54,7 @@ curvature of the margin, so the linearisation error is concentrated in $D^{G}$
 and grows as $\sigma_\varepsilon$ falls; Appendix~\ref{sec:nonlin} quantifies it.
 Third, the steady state and the policy ordering are invariant along the locus, so
 none of the paper's qualitative results turn on the scale. What does turn on
-it---the size of the adoption wave and of the adoption channel---is exactly what
+it, the size of the adoption wave and of the adoption channel, is exactly what
 the elasticity moment disciplines.
 
 \subsection{From micro estimates to the taste scale: the procedure}
@@ -74,12 +74,11 @@ of the file.
 $\{0.02, 0.035, 0.05, 0.07, 0.10, 0.15, 0.20\}$, re-solve the baseline steady
 state with $\psi_g$ as the unknown targeting $\bar D^G = 5\%$. This delivers
 $\psi_g^*(\sigma_\varepsilon)$, rising from $0.32$ to $1.53$, with the steady
-state---shares, flows, prices, distribution---invariant along the locus.
+state, shares, flows, prices, distribution, invariant along the locus.
 
 \item \emph{Switch to the fixed-$\psi$ configuration.} All comparative statics
-below hold $\psi_g$ fixed at $\psi_g^*$ and let $D^G$ float: $\psi_g$ is dropped
-from the steady-state unknowns and the $D^G$ residual from the targets (the same
-configuration that builds the ex-ante ETS economy of
+below hold $\psi_g$ fixed at $\psi_g^*$ and let the green share $D^G$ adjust
+endogenously (the same configuration that builds the ex-ante ETS economy of
 Section~\ref{sec:versionA}). Elasticities are computed as finite differences on
 this configuration around the calibrated point.
 
@@ -89,7 +88,7 @@ $\Delta \ln D^G / \Delta \ln (1-\varrho)$, the elasticity of the green share to
 the operating-cost gap. It falls from $2.8$ to $0.4$ across the grid ($1.32$ at
 the baseline).
 
-\item \emph{Upfront-cost margin---the matched moment.} Perturb $\psi_g$ down by
+\item \emph{Upfront-cost margin: the matched moment.} Perturb $\psi_g$ down by
 $1\%$ at fixed calibration and measure the response of the switching flow
 $P = D^{sw}/(1-D^G)$. Per $1\%$ of $\psi_g$ the semi-elasticity is nearly flat
 in $\sigma_\varepsilon$ ($5.1\%$ to $3.8\%$), because $\psi_g^*$ rises along the
@@ -111,7 +110,7 @@ pass-through of $73$--$85\%$ implies the price faced by the buyer moves nearly
 one-for-one with the subsidy, so the conversion needs no incidence correction.
 The choice between the two anchors is a population statement, not a taste: at a
 $5\%$ green share the model's marginal adopters consume roughly twice the
-average brown household---they are the higher-income early adopters of the
+average brown household, they are the higher-income early adopters of the
 hybrid-era estimates, not the mass-market population of
 \citet{MuehleggerRapson2022}, whose estimate therefore serves as the floor on
 responsiveness rather than the target.
@@ -137,9 +136,46 @@ channel, bounded on the grid by peak responses of $2$ to $20$ pp.
 Two limits of the procedure are worth stating. The anchors come from vehicle
 adoption in the United States in the 2000s--2010s; their external validity for
 heat pumps or for European households is an assumption, and estimating the
-adoption elasticity directly---rather than importing it---is the natural next
+adoption elasticity directly, rather than importing it, is the natural next
 step (Section~\ref{sec:limits}). And the anchors identify the upfront-cost
 margin; the operating-cost margin, the channel documented by
 \citet{BeresteanuLi2011} for gasoline prices and hybrid demand, is disciplined
 here only through the model's internal consistency, which ties the two margins
 together at the calibrated point.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{output/fig_taste_identification.png}
+\caption{Identification of the taste scale. \emph{Left}: the steady-state adoption
+elasticity (green share vs.\ the operating-cost gap) against $\sigma_\varepsilon$.
+\emph{Right}: the crisis adoption magnitude (peak $\Delta D^G$ to the brown-price
+shock). The steady state is held at $\bar D^G=5\%$ by recalibrating $\psi_g$; the
+dashed line marks the baseline $\sigma_\varepsilon=0.05$.}
+\label{fig:taste_identification}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{lrrrrrr}
+\toprule
+$\sigma_\varepsilon$ & $\psi_g$ & premium \$000 & cost-gap elast. & \%/\$1{,}000 & peak $\Delta D^G$ & $\sum y$ \\
+\midrule
+$0.020$ & $0.323$ & $6.5$ & $2.78$ & $80$ & $19.86$ & $-59.2$ \\
+$0.035$ & $0.430$ & $8.6$ & $1.80$ & $54$ & $12.42$ & $-60.9$ \\
+$0.050$ & $0.538$ & $10.8$ & $1.32$ & $40$ & $8.87$ & $-61.5$ \\
+$0.070$ & $0.680$ & $13.6$ & $0.97$ & $31$ & $6.34$ & $-61.6$ \\
+$0.100$ & $0.888$ & $17.8$ & $0.69$ & $22$ & $4.36$ & $-61.4$ \\
+$0.150$ & $1.220$ & $24.4$ & $0.47$ & $16$ & $2.80$ & $-60.6$ \\
+$0.200$ & $1.534$ & $30.7$ & $0.36$ & $12$ & $2.01$ & $-59.8$ \\
+\bottomrule
+\end{tabular}
+\caption{Identification of the logit taste scale. For each $\sigma_\varepsilon$,
+$\psi_g$ is recalibrated to hold $\bar D^G=5\%$, leaving the steady state invariant.
+Columns: the implied green premium in dollars (one unit $=\$20{,}000$ quarterly
+consumption); the steady-state elasticity of the green share to the operating-cost
+gap at fixed $\psi_g$; the semi-elasticity of the switching flow to a \$1{,}000 cut
+in $\psi_g$, matched to \citet{GallagherMuehlegger2011,Chandra2010,MuehleggerRapson2022}; the peak
+crisis adoption response; and the cumulative output loss, flat while the adoption
+responsiveness varies by an order of magnitude.}
+\label{tab:taste_identification}
+\end{table}

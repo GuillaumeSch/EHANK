@@ -19,7 +19,7 @@ import numpy as np
 from core.model import build_model, run
 from tools import latex_tables as LT
 
-NUMERAIRE = 'core'
+NUMERAIRE = 'cpi'
 BOOKING_LIST = ['import', 'domestic']
 H = 24
 OUT, CDIR = 'paper/output', 'cache/cache_bk'

@@ -28,7 +28,7 @@ from tools.latex_tables import write_table
 
 H = 24
 TAU_B = 0.10
-NUMERAIRE, BOOKING = 'core', 'import'
+NUMERAIRE, BOOKING = 'cpi', 'import'
 HALF_LIVES = [4, 8, 12, 16, 24, 32, 48]
 OUT = 'paper/output'
 CEV_OUTS = ['UTIL_0', 'UTIL_1', 'UTIL_2', 'n']

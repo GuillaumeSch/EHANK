@@ -27,7 +27,7 @@ from core.model import (build_model, frozen_model, solve_ss, run, shock_price,
 from core.calibration import make_calibration
 
 BOOKING = 'import'
-NUMERAIRE = 'core'
+NUMERAIRE = 'cpi'
 OUT = 'paper/output'
 CDIR = 'cache_signmap'
 os.makedirs(OUT, exist_ok=True)

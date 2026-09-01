@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 from core.model import build_model, run
 
-NUMERAIRE = 'core'          # 'core' = domestic good (default), 'cpi' = ARS
+NUMERAIRE = 'cpi'          # 'cpi' = ARS CPI numeraire (only supported numeraire)
 BOOKING = 'import'          # 'import' baseline, or 'domestic' (green sector)
 
 # The cache is keyed only by tag string, not by model/calibration content

@@ -1,15 +1,44 @@
-\documentclass[11pt,a4paper]{article}
-\usepackage[margin=2.5cm]{geometry}
-\usepackage{amsmath,amssymb,booktabs,graphicx,hyperref,natbib}
+\documentclass[12pt]{article}
+
+% ---------- encoding & fonts ----------
+\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{float}
-\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
-\title{\textbf{Energy Shocks and the Green Adoption Channel in a Small Open Economy}}
-\author{Boris Chafwehe, Francesca Diluiso, Guillaume Schwegler}
-\date{\today}
+\usepackage{lmodern}
+
+% ---------- layout ----------
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ---------- math ----------
+\usepackage{amsmath,amssymb,amsthm}
 \usepackage{mathtools}
+
+% ---------- tables & figures ----------
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{subcaption}
+
+% ---------- lists ----------
+\usepackage{enumitem}
+
+% ---------- bibliography (author-year) ----------
+\usepackage[authoryear,round]{natbib}
+
+% ---------- links ----------
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{url}
+
+% ---------- misc ----------
 \usepackage{xcolor}
 \usepackage{eurosym}
+
+\title{Energy Shocks and the Green Adoption Channel in a Small Open Economy}
+\author{Boris Chafwehe \and Francesca Diluiso \and Guillaume Schwegler}
+\date{\normalsize This version: \today}
 \newcommand{\I}{\mathbb{I}}
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\num}{\mathrm{num}}
@@ -33,12 +62,29 @@
 \input{sections/07_ex_ante_ex_post}
 \input{sections/08_policy_implications}
 \input{sections/09_conclusion}
+
+\clearpage
+\input{bibliography}
+
+\clearpage
 \appendix
+\section*{Appendix}
+\addcontentsline{toc}{section}{Appendix}
+
+\noindent The appendices collect supporting material. Appendix~\ref{app:booking}
+derives the balance-of-payments booking of the adoption flows and shows how the
+booking convention signs the adoption channel. Appendix~\ref{app:nonlin} reports
+the accuracy of the linearised solution and the nonlinear welfare check. Appendix~\ref{sec:monetary}
+develops the monetary analysis: the adoption margin leaves monetary transmission
+unchanged, while the monetary stance moves the adoption wave only weakly relative to
+the fiscal instruments. Appendix~\ref{app:taste} treats the logit taste scale as both
+a numerical smoothing device and a structural adoption elasticity, and reports its
+identification.
 
 \input{appendix/A_balance_of_payments_booking_of_the_adopt}
 \input{appendix/B_the_linearised_solution_and_the_cpi_defl}
 \input{appendix/C_monetary_policy_taylor_rule_versus_a_con}
 \input{appendix/E_the_logit_taste_scale_smoothing_device_a}
-\input{bibliography}
+\input{appendix/F_operating_cost_ratio}
 
 \end{document}

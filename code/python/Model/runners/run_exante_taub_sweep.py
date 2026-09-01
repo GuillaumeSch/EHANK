@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from core.model import (build_model, run, solve_ss, ss_unknowns_targets_fixed_psi)
 from core.calibration import make_calibration
 
-NUMERAIRE, BOOKING = 'core', 'import'
+NUMERAIRE, BOOKING = 'cpi', 'import'
 H = 24
 TAU_GRID = [0.10, 0.20, 0.30]     # 0.30 is the safe upper bound (fixed-psi SS
                                   # bracket breaks above ~0.30, handoff item 7)

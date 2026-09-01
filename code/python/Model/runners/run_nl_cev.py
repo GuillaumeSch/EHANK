@@ -39,7 +39,7 @@ _SJBlock.solve_impulse_nonlinear_options['maxit'] = 500
 
 H = 24
 TAU_B = 0.10
-NUMERAIRE, BOOKING = 'core', 'import'
+NUMERAIRE, BOOKING = 'cpi', 'import'
 OUT = 'paper/output'
 CACHE = 'cache/cache_nl_cev'
 SIZES = [0.25, 0.5, 0.75]

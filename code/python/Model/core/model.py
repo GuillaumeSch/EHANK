@@ -88,8 +88,13 @@ def build_model(numeraire='cpi', booking='import', ets=False):
     """Assemble the full DAG.
 
     `numeraire` selects the household's unit of account:
-        'core'  domestic good, p_num = pH_P   (DEFAULT since Option C)
-        'cpi'   ARS convention, p_num = 1 (a calibration constant)
+        'cpi'   ARS convention, p_num = 1 (a calibration constant). DEFAULT and
+                the verified configuration since the endogenous-CPI port.
+        'core'  domestic good, p_num = pH_P. WARNING: the CPI port regressed the
+                core TD Jacobian (empty SimpleSparse in composition); the SS
+                still solves but solve_impulse_linear currently raises. Runners
+                hard-coded to 'core' must migrate to 'cpi' or the core path must
+                be repaired before use.
 
     `booking` selects the green-margin balance-of-payments treatment (see the
     module docstring). The calibration must be built with the SAME numeraire
@@ -122,7 +127,7 @@ def build_model(numeraire='cpi', booking='import', ets=False):
 _FROZEN_CACHE = {}
 
 
-def frozen_model(numeraire='core', booking='import', ets=False):
+def frozen_model(numeraire='cpi', booking='import', ets=False):
     """The 'no adoption' counterfactual DAG, common-steady-state version.
 
     Identical to build_model(numeraire, booking, ets) except the household's
@@ -272,7 +277,7 @@ ENERGY_CLOSURE = {
 
 
 def run(model, shock_kind='price', policy='none', model_variant='adoption',
-        monetary='real_rate', shock_kwargs=None, numeraire='core',
+        monetary='real_rate', shock_kwargs=None, numeraire='cpi',
         booking='import', ets=False, ets_kwargs=None, **extra):
     """Solve one experiment end to end. Returns (ss, irf).
 

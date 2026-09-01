@@ -43,7 +43,7 @@ from core.model import (build_model, solve_ss, shock_price,
                          UNKNOWNS_TD, TARGETS_TD)
 from core.calibration import make_calibration
 
-NUMERAIRE = 'core'
+NUMERAIRE = 'cpi'
 SIZES = [0.125, 0.25, 0.5, 1.0]
 H = 24
 OUT = 'paper/output'

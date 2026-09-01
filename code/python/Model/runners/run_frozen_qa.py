@@ -26,7 +26,7 @@ from core.model import (build_model, frozen_model, solve_ss, run, shock_price,
 from core.calibration import make_calibration
 from core import blocks as B
 
-NUMERAIRE, BOOKING = 'core', 'import'
+NUMERAIRE, BOOKING = 'cpi', 'import'
 OUT = 'paper/output'
 H = 24
 H_LONG = 120

@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from core.model import build_model, run
 from core.welfare import cev
 
-NUMERAIRE, BOOKING = 'core', 'import'
+NUMERAIRE, BOOKING = 'cpi', 'import'
 H, OUT = 24, 'paper/output'
 
 POLICIES = [('none', 'Laissez-faire', 'k-'),
