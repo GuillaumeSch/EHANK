@@ -1,0 +1,1205 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,graphicx,hyperref,natbib}
+\usepackage[T1]{fontenc}
+\usepackage{float}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\title{\textbf{Energy Shocks and the Green Adoption Channel in a Small Open Economy}}
+\author{Guillaume, Boris Chafwehe, Francesca Diluiso}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent We add an extensive-margin brown/green durable adoption choice to the
+small open economy HANK model of \citet{ARS2024}. Households choose discretely
+whether to switch to a green durable that insulates them from fossil energy
+prices, paying a resource cost. We study brown energy \emph{price} and
+\emph{supply} shocks under the two fiscal responses studied in the recent
+literature: a retail price cap \citep{Langot2026} and a Slutsky-compensating
+transfer indexed to pre-crisis energy consumption \citep{Bayer2026}. The price
+cap stabilises output but mechanically eliminates the green adoption margin,
+while the transfer delivers comparable stabilisation and leaves adoption
+intact. Shielding consumers from the relative price is therefore not neutral
+for the energy transition. This is our contribution and, we think, its natural
+boundary: the three closest papers---\citet{ARS2024}, \citet{Bayer2026} and
+\citet{Langot2026}---all hold the household's energy technology fixed, and we
+add the one margin they omit rather than the two-country or labour-market
+machinery they contain. The transition loss is linear in the cap's intensity
+under a price shock and convex under a supply shock. As a secondary
+observation, the \emph{sign} of the cap's private-welfare effect flips with the
+elasticity of energy supply, matching the sign each of \citet{Langot2026} and
+\citet{Bayer2026} obtains in its own closure; we read this as locating one axis
+of their contrast, not as nesting their models. The policy \emph{ordering} is
+robust to calibration; the \emph{magnitude} of the adoption channel, and even
+the sign of its output effect under a price shock, depend on the calibrated
+switching cost and taste scale, which we report and discuss.
+\end{abstract}
+
+\section{Introduction}
+
+Three recent papers study fiscal responses to the 2022 European energy crisis
+in HANK frameworks. \citet{ARS2024} study a small open economy and stress the
+negative externality when all importers subsidise simultaneously.
+\citet{Bayer2026} use a two-country HANK with \emph{fixed} euro-area energy
+supply and find subsidies are beggar-thy-neighbour while Slutsky transfers are
+not. \citet{Langot2026} evaluate the French \emph{bouclier tarifaire} assuming
+\emph{perfectly elastic} energy supply and find the price cap performs well.
+All three treat the household's energy technology as fixed.
+
+We relax exactly that margin, and only that margin. Households can adopt a
+green durable that insulates them from the fossil price, at a resource cost.
+The energy shock raises the return to adoption, so the crisis itself can
+accelerate the transition---unless policy removes the price signal that drives
+it. This is the contribution: an endogenous green-adoption margin, absent from
+all three references. We deliberately do \emph{not} try to nest the two-country
+spillovers of \citet{Bayer2026} or the labour-cost employment channel of
+\citet{Langot2026}. A small open economy with an exogenous foreign block
+contains neither, and competing on that machinery is not the point; our single
+comparative advantage is the margin the literature leaves out, and we play only
+that.
+
+Because the price-versus-supply distinction turns out to matter for the
+adoption margin, we do let the energy-supply elasticity vary: with
+$\varepsilon^{E}=\infty$ the economy is a price taker (elastic supply, as in
+Langot); with $\varepsilon^{E}$ finite the quantity is fixed and the world
+price clears the market (as in Bayer). Both closures are reported below. This
+is a modelling convenience for our own question, not a claim to reconcile the
+two papers: the supply elasticity is one dimension along which they differ, and
+not the one that carries their headline mechanisms (Section~\ref{sec:lit}).
+
+\section{Model}
+
+\subsection{Environment}
+
+The aggregate structure is \citet{ARS2024}: a small open economy with sticky
+wages, a CES consumption basket nesting energy against a home/foreign bundle,
+imported energy and foreign goods with sticky retail prices, and a mutual fund
+holding claims on domestic firms, importers and a share $\zeta^{E}$ of the
+energy endowment. We build the model literally on the ARS aggregate blocks and
+replace its representative, homothetic household with a heterogeneous-agent
+household that carries a discrete durable state; everything else in the
+aggregate economy is inherited unchanged.
+
+\subsection{Model at a glance: the maintained assumptions}
+\label{sec:assumptions}
+
+Because the household block departs from ARS in several coupled ways, we list
+the maintained assumptions explicitly before deriving anything. A reader who
+accepts this list can reconstruct every result.
+
+\begin{enumerate}\itemsep2pt
+\item \textbf{One new margin.} The only structural addition to \citet{ARS2024}
+is a discrete brown/green durable adoption choice. Conditional on the durable
+state, preferences are ARS's: the same CES energy nest ($\alpha_E$, $\eta_E$)
+and the same home/foreign nest. There is no within-durable-type
+energy-share heterogeneity.
+\item \textbf{Green insulates from the fossil price.} A green adopter buys
+energy at $P^{E}_{G}$, which in the baseline ($\rho_g=0$) is constant and does
+\emph{not} respond to the fossil shock. Adoption is therefore, in the baseline,
+full insulation---an upper bound on the channel.
+\item \textbf{Green is resource-cheaper; brown is imported.} The energy an
+adopter uses comes from a technology whose marginal cost is near zero once the
+durable is installed---photovoltaic electricity, or the ambient heat a heat
+pump moves per unit of electricity (its coefficient of performance)---whereas
+brown energy is imported. How this physical saving enters the balance of
+payments is a modelling \emph{choice}, made explicit and varied in
+Section~\ref{sec:bop}, not an identity: under the baseline \emph{import} booking
+all energy is imported at the world brown price and only the adopter's price
+saving $(P^{E}_{B}-P^{E}_{G})\,C^{G}_{E}$ is netted off as an external import
+reduction, so green remains partly in the import bill and the switching cost
+$\psi_g D^{sw}$ is itself booked as an import; under the \emph{domestic} booking
+green energy and installation are domestic value added and only brown is
+imported. Whether the switch reduces net imports \emph{on balance} is therefore
+not assumed here---it is the object of Section~\ref{sec:signmap}. We do not
+model the technology that supplies the green energy (no green production sector,
+no green investment).
+\item \textbf{The switching cost is a resource cost; under the baseline it is
+booked externally.} Adopting costs $\psi_g$ units, entered in the current
+account as an import under the baseline import booking---by accounting necessity
+given ARS's markup/capitalised-profits convention, since booking it as domestic
+demand would create a dividend owned by nobody. The domestic booking instead
+rebates it as domestic value added (Section~\ref{sec:bop}).
+\item \textbf{Unit of account is the domestic good.} We set $p^{num}=p_H$
+(Section~\ref{sec:num}). This is a measurement choice, orthogonal to the
+nominal anchor; it keeps the resource constraint independent of how the CPI
+weights brown and green energy.
+\item \textbf{Energy supply is a single dial.} $\varepsilon^{E}=\infty$ gives
+the price-taking closure (exogenous world price, price shock);
+$\varepsilon^{E}$ finite fixes the quantity and lets the world price clear
+(supply shock). The steady state is identical under both.
+\item \textbf{Monetary baseline is the constant-real-rate rule} of
+\citet{ARS2024}. Under this rule the real exchange rate is pinned, so a
+domestic transfer has no terms-of-trade effect; we also report a Taylor rule.
+\item \textbf{First order throughout.} All impulse responses are first-order
+(sequence-space Jacobian). The steady state is common to every experiment,
+since both policy instruments are zero at the steady state.
+\end{enumerate}
+
+\subsection{Unit of account}
+\label{sec:num}
+
+The household block is numeraire-generic: it reads a price of the unit of
+account relative to the CPI, $p^{num}$, a real return
+$1+r^{num}=(1+r)\,p^{num}_{-1}/p^{num}$, and after-tax labour income
+$atw^{num}=atw/p^{num}$, and returns asset holdings converted by
+$A^{CPI}=A\,p^{num}$ before meeting CPI-denominated objects in asset market
+clearing and the current account. We set $p^{num}=p_{H}$, the domestic good.
+This makes the resource constraint independent of how the CPI weights brown
+and green energy, which matters once the two coexist (Section~\ref{sec:cpi}).
+Everything contractually written in CPI units---fiscal transfers, the ARS
+subsistence term, and the switching cost $\psi_g$---is divided by $p^{num}$
+on the way into the budget.
+
+Two remarks make the convention transparent. First, the choice of numeraire is
+the choice of nominal anchor, not of deflator: the Fisher equation is written
+once in CPI terms ($1+r^{ante}=(1+i)/(1+\pi)$), and $p^{num}=p_H$ then delivers,
+after the relative-price conversion, a household discount factor deflated by
+\emph{core} (domestic-good) inflation, $1+r^{num}=(1+i_{-1})/(1+\pi^H)$.
+Second, output $y$ is a physical quantity of the domestic good and is therefore
+already expressed in numeraire units---no re-deflation is needed to read it as a
+real quantity; CPI-deflated GDP would be $p_{H/P}\,y$, and the two differ only
+by the (energy-driven) movement in $p_{H/P}$.
+
+\subsection{The durable state}
+
+Each household carries two binary durable indicators: the technology it
+operates this period, $g\in\{B,G\}$, and the technology it held last period,
+$g_{-}\in\{B,G\}$. The switching cost $\psi_g$ is incurred exactly in the
+transition $g_{-}=B\to g=G$---a household that is green now but was brown last
+period. Brown is absorbing; a green durable breaks down to brown at rate
+$\delta_g$, so a permanent green share is sustained by a flow of switchers.
+These are \emph{two} states, each taking two values; \emph{computationally}
+we collapse the pair $(g,g_{-})$ into a single four-valued index, because the
+sequence-space household block carries one durable dimension. Of the four
+combinations, $(g,g_{-})=(B,G)$---brown now, green last period---never occurs on
+the equilibrium path: no household abandons the cheaper technology, and green
+is lost only through breakdown, which is already recorded as $g_{-}=B$. It
+therefore carries zero mass and the effective state is three-point. This is an
+artefact of the collapse, not an economic assumption: the model has two binary
+technology states, not one four-way categorical state.
+Stages, in forward order, are \texttt{[dep, prod, durables, consav]}:
+breakdown, idiosyncratic productivity, the discrete adoption choice (a logit
+with taste scale $\sigma_{\varepsilon}$), and the EGM consumption--savings
+step. The adoption stage uses the discrete-continuous structure of
+\citet{DCEGM2017}.
+
+Three subtleties are worth making explicit, because the calibration and the
+sign results depend on them. (i) The choice compares continuation values across
+durable states; the fiscal transfer enters cash-on-hand \emph{identically}
+across durable states, so it shifts adoption only through the curvature of the
+value function, which is why the transfer barely moves the green share.
+(ii) The asymmetry ``brown absorbing, green depreciating at $\delta_g$'' means
+green ownership requires \emph{active} re-adoption each time the durable breaks
+down, so a permanent green share is sustained by a flow of switchers
+$D^{sw}=\delta_g D^{G}$ in steady state. (iii) The logit taste scale
+$\sigma_\varepsilon$ smooths the choice: at exact indifference the model assigns
+a structurally fixed switching probability (not one half), a consequence of the
+asymmetric choice sets across states. The magnitude of the adoption response is
+governed jointly by $\psi_g$ and $\sigma_\varepsilon$; see
+Section~\ref{sec:limits}.
+
+\subsection{Energy prices}
+
+We distinguish three prices, all relative to the CPI:
+\begin{align*}
+p^{E} &\quad\text{wholesale/retail market price of brown energy, before any subsidy}\\
+P^{E}_{B} &= (1-\tau^{E})\,p^{E}+\tau^{E}\bar p^{E}
+&&\text{price paid by a \emph{brown} household}\\
+P^{E}_{G} &= \varrho\,\bar p^{E}\left(P^{E}_{B}/\bar P^{E}_{B}\right)^{\rho_g}
+&&\text{price paid by a \emph{green} adopter}
+\end{align*}
+with $\varrho$ the steady-state green/brown ratio and $\rho_g$ the
+pass-through of the fossil shock to the green price. In the baseline
+$\rho_g=0$, so $P^{E}_{G}$ is constant: adopters are fully insulated.
+
+\subsection{How the durable enters the budget}
+
+Households of different durable types face different energy prices, hence
+different \emph{consumption bundle prices}. We give each type its own exact
+CES cost-of-living index, reusing ARS's own energy-nest parameters
+($\alpha_E$, $\eta_E$):
+\[
+p^{E}_{d}=P^{E}_{B}+\mathbb{I}[d\ \text{green}]\,(P^{E}_{G}-P^{E}_{B}),
+\qquad
+p_{d}=\Big[1+\alpha_E\big((p^{E}_{d})^{1-\eta_E}-(P^{E}_{B})^{1-\eta_E}\big)\Big]^{\frac{1}{1-\eta_E}},
+\]
+and the budget constraint is $(p_{d}/p^{num})\,c+a'=\mathrm{coh}(d)$. The
+second expression is exact given the CES identity enforced by the equilibrium
+block, so brown households have $p_d\equiv 1$ at every date. With
+type-specific prices, aggregate energy demand is $\sum_d c_E(d)$, not the CES
+demand evaluated at the aggregate index---the two differ by Jensen's
+inequality (0.5\% here)---so aggregate $c_H$, $c_F$, $c_E$ are built from
+the household block's own heterogeneous-agent outputs.
+
+\subsection{What the CPI measures}
+\label{sec:cpi}
+
+With two energy prices in the economy, the energy leg of the CPI could be
+anchored on the brown price alone or on the share-weighted index
+$[(1-D^{G})(P^{E}_{B})^{1-\eta_E}+D^{G}(P^{E}_{G})^{1-\eta_E}]$. We anchor on
+the brown price: it is what statistical agencies do (the energy basket is not
+reweighted quarterly for technology adoption), it preserves $p_{d}\equiv 1$
+for brown households exactly, and feeding $D^{G}$ back into the CPI would
+close a DAG cycle requiring the CPI to be promoted to a model unknown. Because
+the unit of account is the domestic good, this choice does not touch the
+resource constraint; it affects only the measured deflator and, through it,
+the monetary rule. The gap between the share-weighted and brown-anchored CPI
+has closed form
+\[
+\phi^{1-\eta_E}=1+\alpha_E\,D^{G}\Big[(P^{E}_{G})^{1-\eta_E}-(P^{E}_{B})^{1-\eta_E}\Big],
+\]
+computed ex post outside the model. On the price shock without policy it
+reaches 0.14 annualised percentage points, about 1.5\% of the amplitude of
+measured CPI inflation (0.23 pp, 2.3\%, on the supply shock; Figure~\ref{fig:deflator}).
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.7\textwidth]{output/fig8_deflator_gap.png}
+\caption{Measurement gap from anchoring the CPI on $P^{E}_{B}$ alone: true
+minus measured annualised inflation, computed ex post.}
+\label{fig:deflator}
+\end{figure}
+
+\subsection{Balance of payments}
+\label{sec:bop}
+
+Both objects below are required, not optional. Once households pay a switching
+cost and pay two different energy prices, their summed budget constraints carry
+resource flows that must have an aggregate counterpart, or Walras' law fails
+and the current account and asset market do not clear. The two terms are those
+counterparts.
+
+We implement two internally consistent bookings of these flows, selectable by a
+single switch, and report both; the choice has a first-order effect on the
+adoption channel's output sign (Section~\ref{sec:signmap}), so it is a result,
+not a nuisance.
+
+\paragraph{Import booking (baseline).} The \textbf{switching cost} is booked as
+an import, $\text{imports}_{dur}=\psi_g D^{sw}$: booking it as domestic demand
+here creates a marginal dividend owned by nobody, since with $\mu_{ss}>1$ and
+capitalised profits extra demand for the home good is not competitively
+supplied. The \textbf{energy saving} of adopters,
+$(P^{E}_{B}-P^{E}_{G})\,C^{G}_{E}$, is booked as a real import saving---cheaper
+energy for adopters is treated as a genuine external resource saving, giving the
+windfall an external counterpart consistent with asset-market clearing. All
+energy, brown and green, is imported at the world brown price and the green
+gap is netted off, so green energy remains partly an import.
+
+\paragraph{Domestic booking (green as a domestic industry).} We also model green
+explicitly as a domestic sector. Brown energy is imported at the world price;
+green energy is supplied by a domestic, competitive, near-zero-marginal-cost
+technology---photovoltaic electricity, or the ambient heat a heat pump moves per
+unit of electricity---and the green durable is installed by the same domestic
+sector at zero profit. Both flows, the green energy bill $P^{E}_{G}C^{G}_{E}$
+and the installation $\psi_g D^{sw}$, are domestic value added, rebated to
+households lump-sum; only \emph{brown} energy is imported and only brown clears
+against the world supply. This resolves the phantom-dividend problem that
+motivates the import convention (the rebate is a competitive, zero-profit
+sector, so there is no dividend owned by nobody), and the steady state clears to
+machine precision. The two bookings are genuinely non-equivalent: the import
+booking leaves green partly in the import bill, the domestic booking removes it
+entirely and credits the economy with $P^{E}_{G}C^{G}_{E}$ of domestic value
+added, a difference of about $0.16\%$ of GDP at the steady state. Because green
+production is modelled as costless value added (no green investment, no factor
+use), the domestic booking is an \emph{upper bound} on the adoption benefit
+(Section~\ref{sec:limits}); the robust object is the sign of the channel, which
+differs across the two bookings.
+
+\subsection{Policy instruments}
+
+Both instruments are the extreme (full-compensation) versions, as in
+\citet{Bayer2026}.
+\begin{align}
+\text{Price cap:}\quad & P^{E}_{B,t}=(1-\tau^{E})p^{E}_{t}+\tau^{E}\bar p^{E},
+&& \tau^{E}=1 \Rightarrow \text{retail price fixed at pre-crisis level}\\
+\text{Slutsky transfer:}\quad & tr_{it}=\iota\,(p^{E}_{t}-\bar p^{E})\,\bar c^{B}_{E,i},
+&& \iota=1 \Rightarrow \text{full compensation on \emph{pre-crisis brown} use}
+\end{align}
+Both are debt financed and repaid through the distortionary labour tax. The
+transfer base $\bar c^{B}_{E,i}$ is household $i$'s steady-state \emph{brown}
+energy demand, not its total energy demand: the shock raises only the brown
+price ($P^{E}_{G}$ is fixed under $\rho_g=0$), so the exact Slutsky compensation
+is indexed on brown consumption alone; indexing on total energy would
+over-compensate the $5\%$ steady-state green mass, whose price does not rise.
+Crucially the transfer is a genuine \emph{lump sum}: the base is the pre-crisis
+brown bill and it is paid identically whatever durable the household currently
+holds, so it leaves the current brown--green relative price intact. Making it
+durable-state-contingent instead---paying only households currently brown, and
+so nothing to a household that switches---would tax the switching margin and
+spuriously shut the adoption channel down; it is precisely the lump-sum indexing
+that lets the transfer preserve adoption (Section~\ref{sec:transfer}) where the
+cap eliminates it. Aggregated over the stationary distribution the base equals
+the economy's pre-crisis brown energy bill, so the government's outlay matches
+what households receive and the current account clears.
+
+The cap's fiscal base is booking-dependent. Only the brown price is capped, so
+under the domestic booking, where green is a domestic industry, the subsidy is
+indexed on brown consumption alone; under the import booking, where the green
+part of the subsidy has an import counterpart, it is indexed on total
+energy---the same brown/total distinction as the transfer, reflecting the
+$0.16\%$-of-GDP green import content that separates the two bookings
+(Section~\ref{sec:bop}). The cap operates directly on $P^{E}_{B}$, exactly the
+price entering the brown--green gap, and therefore compresses the adoption
+incentive.
+
+\section{Calibration}
+
+\begin{table}[H]\centering
+\small
+\begin{tabular}{lll}
+\toprule
+Parameter & Value & Source / target \\
+\midrule
+$\alpha_E$ energy expenditure share & 0.04 & \citet{ARS2024} \\
+$\eta_E$ energy substitution & 0.10 & \citet{ARS2024} \\
+$r$, $\mu_{ss}$ & 0.01, 1.03 & \citet{ARS2024} \\
+$\beta$ heterogeneity (3 types) & spread 0.06 & fixed; implied MPC $\approx0.30$ \\
+\midrule
+$\delta_g$ green breakdown rate & 0.05 & assumption (5\,yr life) \\
+$\varrho=P^{E}_{G}/P^{E}_{B}$ steady-state gap & 0.80 & heat-pump / EV delivered-cost ratio \\
+$\psi_g$ switching cost & 0.538 & targets $D^{G}_{ss}=0.05$ \\
+$\sigma_{\varepsilon}$ taste scale & 0.05 & calibrated jointly with $\psi_g$ \\
+$\rho_g$ pass-through to green price & 0 & upper bound on the channel \\
+\bottomrule
+\end{tabular}
+\caption{Calibration. The steady state is identical across all experiments.
+$\psi_g$ and $\sigma_\varepsilon$ are calibrated jointly to the level target
+$D^{G}_{ss}=0.05$; $\sigma_\varepsilon$ is not separately pinned down by an
+adoption-elasticity moment (Section~\ref{sec:limits}). The gross markup carries
+ARS's home-endowment normalisation $\mu_{ss}\!\leftarrow\!\mu_{ss}(1-\zeta^E\alpha_E)$,
+so the value entering firm profits is $\approx1.016$; $1.03$ is the
+pre-normalisation primitive.}
+\end{table}
+
+\paragraph{Robustness to the green--brown cost ratio $\varrho$.} The one
+durable-side parameter with a direct empirical counterpart is the steady-state
+green/brown cost ratio $\varrho$. We anchor it at $0.80$ from the relative cost
+of delivered energy service under adoption: a heat pump with a coefficient of
+performance near three delivers heat from roughly a third of the fuel-equivalent
+input, which at 2019--21 electricity-to-gas price ratios places the delivered
+green cost around $0.7$--$0.8$ of brown; the per-kilometre cost of an electric
+against a comparable internal-combustion vehicle is in the same range.
+Table~\ref{tab:rho} re-solves the model across $\varrho\in\{0.6,0.7,0.8\}$,
+re-calibrating $\psi_g$ each time to hold $D^{G}_{ss}=0.05$. The \emph{ordering}
+is invariant: the cap collapses the peak green-share response to essentially
+zero at every $\varrho$, the transfer leaves it at its no-policy value, the cap
+cushions cumulative output and the transfer boosts it. Only magnitudes move, and
+modestly (the no-policy peak green share ranges over $8.4$--$9.2$ pp). The
+limiting case $\varrho=1$---green no cheaper than brown---is degenerate for the
+level target: no positive switching cost can sustain a $5\%$ green steady state
+when adoption confers no cost advantage, so adoption collapses, which is exactly
+the sanity check one wants.
+
+\begin{table}[H]\centering\small
+\begin{tabular}{lrrrr}
+\toprule
+$\varrho$ & $\psi_g$ (re-solved) & no policy peak $D^{G}$ & cap peak $D^{G}$ & transfer peak $D^{G}$\\
+\midrule
+0.60 & 0.714 & 8.39 & 0.03 & 8.53\\
+0.70 & 0.624 & 8.81 & 0.02 & 8.95\\
+0.80 & 0.538 & 9.18 & 0.01 & 9.32\\
+\bottomrule
+\end{tabular}
+\caption{Robustness to the green--brown cost ratio $\varrho$ (price shock; peak
+green-share response, pp over 24 quarters; $\psi_g$ re-solved each row to
+$D^{G}_{ss}=0.05$). Cumulative output moves monotonically but the ordering does
+not: no policy $-27.9\!\to\!-30.1$, cap $-21.1\!\to\!-20.9$, transfer
+$+14.9\!\to\!+12.7$ as $\varrho$ rises from $0.6$ to $0.8$.}
+\label{tab:rho}
+\end{table}
+
+\section{Experiments and results}
+
+The \emph{price} shock is a 100 log-point rise in the world energy price with
+a 16-quarter half-life, as in \citet{ARS2024}. The \emph{supply} shock is a 10\%
+cut in available energy for 6 quarters, after which the world price clears
+the market endogenously. Impulse responses are reported as $100\times$ the
+level deviation from steady state. Variables whose steady state is one (prices,
+$w$, $n$, and the population shares $D^{G}$, $D^{sw}$) read directly as percent
+or percentage-point deviations, and $C$ (steady state $\approx0.997$) is within
+rounding of a percent; $y$ and $\mathrm{gdp}$ have steady state
+$\approx0.985$, so their entries are level deviations $\times100$, within about
+1.5\% of the exact percentage. Energy quantities are a share of the energy
+steady state ($\approx0.040$).
+
+\input{output/tab_summary_core_import.tex}
+
+\subsection{The crisis moves the transition, in a shock-dependent direction}
+
+With no policy, the green share rises by up to 9.2 percentage points under
+the price shock (from 5.0\% to 14.2\% of households) and 2.3 pp under the
+supply shock (Figure~\ref{fig:baseline}). The output effect of the adoption
+margin, however, is not one-signed. Under the \textbf{supply} shock it is
+expansionary ($+0.38$ points of cumulative output with no policy, $+1.67$
+under the transfer): adopters escape the energy bill and their real income
+falls less. Under the \textbf{price} shock it is contractionary ($-1.60$
+points with no policy, $-4.65$ under the transfer): the switching cost is
+booked as an import in exactly the periods household income is falling
+hardest (Section~\ref{sec:bop}), and at the calibrated $\psi_g$ this resource
+cost outweighs the energy-bill saving. The sign of the adoption channel's
+contribution to output is therefore not a general property of the model---it
+depends on the calibrated switching cost, on which shock is driving
+adoption, and (Section~\ref{sec:limits}) on the accounting of $\psi_g$.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{output/fig1_price_shock.png}
+\caption{Brown energy \emph{price} shock (elastic supply), adoption open
+(solid) vs.\ shut (dashed), no policy.}
+\label{fig:baseline}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{output/fig1_supply_shock.png}
+\caption{Brown energy \emph{supply} shock ($-10\%$ for 6 quarters, fixed
+quantity), adoption open (solid) vs.\ shut (dashed), no policy.}
+\label{fig:baseline_supply}
+\end{figure}
+
+\subsection{A sign condition for the adoption channel}
+\label{sec:signmap}
+
+The shock-dependence of the adoption channel's output contribution is not
+accidental; it follows from a race between two resource flows, which we can
+characterise and then verify. Write the contribution to cumulative output over
+horizon $H$ as $\Delta_H\equiv\sum_{t<H}\big(y^{\text{adopt}}_t-y^{\text{no-adopt}}_t\big)$.
+Adoption moves two things in the resource constraint (Section~\ref{sec:bop}):
+
+\begin{itemize}\itemsep2pt
+\item a \textbf{switching cost} $\psi_g D^{sw}_t$, booked as an import---a
+resource \emph{outflow}, hence contractionary---which is \emph{front-loaded}
+(paid once, up front, by each switcher) and scales with the adoption
+\emph{volume} $D^{sw}$;
+\item a \textbf{flow energy saving} $(P^{E}_{B}-P^{E}_{G})\,C^{G}_{E,t}$, booked
+as reduced imports---a resource \emph{inflow}, hence expansionary---which
+accrues \emph{gradually} over the life of the green durable.
+\end{itemize}
+
+\noindent The sign of $\Delta_H$ is the sign of the second flow, cumulated over
+the window, minus the first. Two comparative statics follow.
+
+\paragraph{Persistence (price closure).} A more persistent brown-price shock
+raises the return to switching and therefore the adoption volume $D^{sw}$
+steeply (peak $D^{G}$ rises from $1$ to $22$ pp as the half-life goes from $2$
+to $256$ quarters). The front-loaded import cost thus grows faster than the
+windowed saving, so $\Delta_H$ is \emph{decreasing} in persistence and crosses
+zero at a finite half-life---about $11$ quarters in our calibration
+(Figure~\ref{fig:signmap}). Short-lived shocks trigger little adoption whose
+quick saving dominates ($\Delta_H>0$); persistent shocks trigger a large
+adoption wave whose front-loaded cost dominates within the window
+($\Delta_H<0$). This is the opposite of the naive intuition that more
+persistence, by raising the per-switcher saving, should make adoption more
+expansionary: the per-switcher calculus is dominated by the response of the
+switcher \emph{count}.
+
+\paragraph{Closure.} Under the fixed-quantity (supply) closure a third,
+expansionary term appears that is absent under the price closure: adoption
+lowers fossil demand against a fixed supply, so the market-clearing price
+falls, relaxing the scarcity for \emph{all} households. This shifts $\Delta_H$
+upward, which is why the supply shock's adoption contribution is positive
+($+0.38$) at a persistence where the price shock's is negative.
+
+\paragraph{Booking.} Both statics are conditional on the import booking of the
+adoption flows. We solve the model under the alternative domestic booking of
+Section~\ref{sec:bop}---green energy and green installation as competitive,
+zero-profit domestic value added rebated to households, with only brown energy
+imported---which resolves the phantom-dividend problem and clears to machine
+precision. Under this booking neither the switching cost nor the green energy
+bill is a leakage, and the adoption channel's contribution to cumulative output
+($\Delta_{24}$) flips sign:
+\input{output/tab_signmap_booking.tex}
+The adoption wave itself is essentially unchanged across bookings (peak $D^{G}$
+$9.18\to9.46$ pp on the price shock, $2.33\to1.34$ on the supply shock): only
+the booking of its resource flows moves, not the margin. The domestic-booking
+magnitudes are an \emph{upper bound}---green value added is modelled as costless,
+maximally stimulative---but the \emph{sign reversal} is robust and confirms the
+characterisation: the sign of the adoption channel is a property of how its
+resource cost is booked, not of the adoption margin itself. Finally, the marginal switcher's steady-state indifference,
+$\psi_g\approx(\bar P^{E}_{B}-\bar P^{E}_{G})\,\bar C^{G}_{E}/(r+\delta_g)$,
+ties the threshold to the cost ratio $\varrho$ and reproduces the direction of
+the $\psi_g(\varrho)$ mapping in Table~\ref{tab:rho}. A closed-form threshold
+via the full Keynesian-cross algebra of the adoption block is left for the next
+draft; the characterisation above is verified numerically in
+Figure~\ref{fig:signmap}.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.68\textwidth]{output/fig_signmap.png}
+\caption{Adoption's contribution to cumulative output, $\Delta_{24}$, against
+the brown-price-shock half-life (price closure, orange), with the supply-shock
+value marked (blue). The contribution is expansionary for transitory shocks,
+crosses zero near an $11$-quarter half-life, and turns increasingly
+contractionary as the shock---and hence the adoption wave whose front-loaded
+switching cost it imports---becomes more persistent.}
+\label{fig:signmap}
+\end{figure}
+
+\subsection{The price cap eliminates the adoption margin}
+\label{sec:cap}
+
+Under the cap, the peak green share response falls to essentially zero under
+both shocks (from $+9.18$ to $+0.01$ pp on the price shock, from $+2.33$ to
+$+0.01$ on the supply shock): the adoption channel is not attenuated, it is
+switched off. With the margin shut its contribution to cumulative output
+collapses toward zero accordingly. The mechanism is direct: the cap holds
+$P^{E}_{B}$ at its pre-crisis level, and $P^{E}_{B}$ is precisely what determines
+the return to adoption.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{output/fig2_policy_price.png}
+\caption{Fiscal response to the \emph{price} shock, adoption open: no policy
+(solid), price cap (dashed), Slutsky transfer (dotted).}
+\label{fig:policy_price}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{output/fig2_policy_supply.png}
+\caption{Fiscal response to the \emph{supply} shock, adoption open: no policy
+(solid), price cap (dashed), Slutsky transfer (dotted).}
+\label{fig:policy_supply}
+\end{figure}
+
+\subsection{The transfer preserves adoption, at a cost to output}
+\label{sec:transfer}
+
+The Slutsky transfer leaves the green share response essentially unchanged
+($9.46$ vs.\ $9.18$ pp under the price shock, $3.35$ vs.\ $2.33$ under the
+supply shock) while delivering more output stabilisation than the cap, at
+similar fiscal cost: subsidies destroy the transition margin, transfers do
+not. This preservation is a direct consequence of the transfer's lump-sum
+indexing (Section~\ref{sec:bop}): because it does not condition on the
+household's current durable, switching forfeits nothing and the relative-price
+incentive to adopt is left intact. Leaving adoption intact is not free for output under the price shock,
+however: the transfer's cumulative-output gain is \emph{smaller} with
+adoption open than shut ($-4.65$ points from the margin, Table~\ref{tab:summary}),
+for the same resource-cost reason as above.
+
+\subsection{Fixed supply makes the cap destructive}
+
+Under the supply shock the cap yields cumulative output of $-46.9$ against
+$-8.2$ with no policy: with inelastic supply, capping the price prevents
+substitution away from energy and pushes the economy towards Leontief. This
+survives the addition of an adoption margin. It is also precisely the
+configuration in which \citet{Langot2026}, assuming elastic supply, find the
+cap effective: our elastic-supply column agrees with them ($-20.9$ vs.\
+$-30.1$ for cap vs.\ no policy under the price shock).
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig3_policy_adoption.png}
+\caption{Policy and the adoption margin. Under both shocks the price cap
+(dashed) flattens the green share response to zero; the transfer (dotted)
+leaves it intact.}
+\end{figure}
+
+\subsection{The cap is a dial, not a switch}
+
+Table~\ref{tab:summary} used $\tau^{E}=1$, a complete price freeze. Table~\ref{tab:dose}
+sweeps $\tau^{E}\in[0,1]$. Under the \emph{price} shock the adoption loss is
+almost exactly linear in $\tau^{E}$ (half a cap costs a bit under half the
+transition: 4.53 against 9.18 pp). Under the \emph{supply} shock it is convex:
+small caps barely touch adoption and the collapse is concentrated near the
+full freeze. A partial shield is therefore much less damaging to the
+transition when supply is inelastic---but, as the next result shows, much
+more damaging to everything else.
+
+\input{output/tab_dose_core_import.tex}
+
+\subsection{The welfare effect of the cap flips sign with the supply elasticity}
+
+This is the sharpest result in the paper. Under the price shock, tightening
+the cap \emph{raises} welfare monotonically, from $-1.30\%$ to $-0.57\%$;
+under the supply shock it \emph{lowers} welfare monotonically, from $-0.59\%$
+to $-1.28\%$. The sign of the cap's welfare effect therefore hinges on the
+supply elasticity. \citet{Langot2026}, assuming elastic supply, find the French
+shield effective; \citet{Bayer2026}, assuming fixed union-wide supply, find
+subsidies destructive. Our two closures reproduce the \emph{sign} each obtains,
+which locates one source of the contrast in a single parameter. We do not claim
+to reconcile the two papers fully: Langot's result also runs through a
+labour-cost channel and Bayer's through cross-border spillovers in a monetary
+union, and our small open economy nests neither. The narrower point we
+establish is that, once the supply elasticity is fixed, the direction of the
+cap's welfare effect is determined---so part of the empirical disagreement
+reduces to measuring that elasticity at the relevant horizon.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig6_dose_response.png}
+\caption{Dose-response in $\tau^{E}$ (orange) against the Slutsky transfer
+benchmark (dotted). Note the sign reversal of the welfare panel between the
+two shocks.}
+\end{figure}
+
+\paragraph{Private welfare and the transition are distinct.} The CEV above is a
+\emph{private} household-welfare measure: it values consumption and leisure
+along the transition and prices no climate or transition externality. Two
+results should therefore be kept separate. First, on private welfare alone the
+Slutsky transfer dominates the cap under \emph{both} shocks ($-0.25$ vs.\
+$-0.57$ under the price shock, $-0.16$ vs.\ $-1.28$ under the supply shock,
+Table~\ref{tab:dose}); the case for the transfer over the cap does not rest on
+the transition. Second, and separately, the transfer preserves the green
+adoption margin that the cap eliminates (Section~4.3)---a positive statement
+about the energy transition, not a welfare ranking. We deliberately do not
+aggregate the two into a single social-welfare number: that would require a
+social value of adoption (a carbon price times avoided brown-energy use) that
+we do not model. A positive such value only reinforces the private ranking; it
+cannot reverse it here, since the transfer already dominates.
+
+\subsection{Distributional incidence}
+
+\input{output/tab_cev_core_import.tex}
+
+Without policy the impatient lose far more than the patient ($-2.10$ vs.\
+$-0.14$, roughly $15\times$). The patient remain the least-hurt group
+throughout the cap sweep. One clear distributional result: under the
+transfer, the \textbf{patient type's CEV turns positive} ($+0.17\%$) while
+impatient and middle types remain negative. Indexed to pre-crisis energy use,
+the Slutsky compensation over-compensates low-MPC, low-energy-exposure
+households relative to their true loss---a symptom of the fiscal block's
+lack of investment margin to crowd out the transfer (Section~\ref{sec:limits}).
+
+% =====================================================================
+% Section 5 -- Ex ante greening versus ex post insurance
+% Paste into ehank_results.tex after the Experiments section (Sec. 4)
+% and before Relation to the literature. All numbers below are the
+% taste_shock = 0.05 / import-booking calibration; the \input-ed tables
+% and figures regenerate them from run_summary_table.py,
+% run_exante_expost.py and run_persistence.py.
+% =====================================================================
+\section{Ex ante greening versus ex post insurance}
+\label{sec:exante}
+
+The instruments in Section~\ref{sec:cap}--\ref{sec:transfer} are all
+\emph{ex post}: they are deployed once the price shock has landed. Because the
+adoption margin responds to the same relative price the crisis moves, a natural
+alternative is to act \emph{ex ante}---to lean on the margin in the steady state
+with a permanent carbon tax $\tau_b$ on brown energy, leaving the economy greener
+and, one might hope, less exposed when the shock arrives. This section prices
+that hope. The answer is that ex ante greening is a poor substitute for ex post
+insurance, and the reason is intrinsic to the channel this paper adds: the
+adoption margin is an endogenous shock absorber, and pre-greening spends it.
+
+Table~\ref{tab:summary_price_import} collects the instruments on one axis. The
+welfare metric is the total consumption-equivalent variation (CEV) of each full
+scenario relative to the common no-tax steady state, by discount-factor type and
+averaged, computed ex post from the cached impulse response
+(\texttt{welfare.cev\_total}); a permanent policy enters through the standing gap
+between its steady state and the baseline, a crisis-time policy through the
+transition alone, so the two are directly comparable.
+
+\input{output/tab_summary_import.tex}
+
+\subsection{Targeting energy transfers is regressive}
+\label{sec:flat}
+
+The Slutsky transfer of Section~\ref{sec:transfer} indexes the lump sum to each
+household's pre-crisis brown-energy use. Replacing it with an
+\emph{untargeted} transfer of the \emph{same aggregate envelope}---the identical
+outlay ($49.3$ vs.\ $49.3$ over $H=24$), paid flat across the distribution rather
+than indexed---almost halves the welfare loss, from a CEV of $-0.82\%$ to
+$-0.32\%$ (Table~\ref{tab:summary_price_import}). The gain is entirely
+distributional. By type, the flat transfer moves the impatient (high-MPC)
+household from $-0.68\%$ to $+0.10\%$---it is made \emph{better off} than in the
+no-shock steady state---while the patient household bears more of the burden
+($-0.77\%$); the Slutsky transfer, by contrast, spreads the loss almost evenly
+($-0.68$, $-0.89$, $-0.88$).
+
+The mechanism is that energy-indexed targeting is regressive \emph{in this
+model}. With homothetic CES energy demand the energy share is constant across the
+wealth distribution, so brown-energy use rises with total consumption, hence with
+permanent income and patience. Indexing the transfer to pre-crisis energy use
+therefore hands the largest cheques to the low-MPC, wealthy households, exactly
+where a euro buys the least insurance. A flat transfer reaches the high-MPC
+households the crisis hits hardest. This speaks directly to the design of the
+2022--23 European energy-price ``brakes,'' which were indexed to historical
+consumption: within the model, the indexing is the source of the inefficiency,
+not a refinement of it.
+
+We flag the caveat plainly. The result rests on the homothetic energy nest: if
+energy were a necessity with a declining Engel curve---the empirically standard
+case---low-income households would spend a \emph{larger} share on energy and the
+sign could reverse. The clean statement is conditional: \emph{under constant
+energy shares, energy-indexed targeting is dominated by an equal-value flat
+transfer}. Making the nest non-homothetic is the right robustness check and is
+left to the calibration section's agenda.
+
+\subsection{A welfare-optimal permanent carbon tax}
+\label{sec:carbontax}
+
+Before comparing ex ante and ex post, we characterise the steady state a
+permanent $\tau_b$ delivers. Holding $\psi_g$ fixed at its no-tax value and
+letting $D^{G}_{ss}$ float, a carbon tax raises the effective brown/green price
+ratio and lifts steady-state adoption: $D^{G}_{ss}$ moves from $5\%$ at
+$\tau_b=0$ to $8.9\%$ at $\tau_b=0.10$ and $20.1\%$ at $\tau_b=0.30$
+(Figure~\ref{fig:carbon_optimal}, right). The carbon revenue is rebated
+lump-sum, so the exercise is budget-neutral and isolates the allocative effect.
+
+Steady-state welfare is hump-shaped in $\tau_b$
+(Figure~\ref{fig:carbon_optimal}, left): the standing CEV rises to a peak of
+$+0.043\%$ at $\tau_b^{*}\approx 10\%$ and turns negative beyond
+$\tau_b\approx 25\%$. The model contains \emph{no} climate externality, so this
+interior optimum is not Pigouvian. It is a second-best correction of the
+adoption friction: green energy is structurally cheaper
+($\bar P^{E}_{G}=0.8<\bar P^{E}_{B}=1$) but the logit taste-shock scale
+$\sigma_\varepsilon$ and the switching cost $\psi_g$ leave green under-adopted, so
+a modest tax that pushes households toward the cheaper technology raises welfare
+until the tax distortion dominates. That the optimum is positive at all is a
+property of this friction, and we treat it as a diagnostic of the channel rather
+than a policy recommendation---it would be swamped by any explicitly modelled
+externality or abatement cost.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig_carbon_optimal_import.pdf}
+\caption{The welfare-optimal permanent carbon tax. Left: standing CEV of the
+$\tau_b$ steady state relative to the no-tax baseline (no crisis), hump-shaped
+with an interior optimum near $\tau_b^{*}\approx10\%$. Right: the induced
+steady-state green share $D^{G}_{ss}$. $\psi_g$ is held fixed and $D^{G}_{ss}$
+floats; the carbon revenue is rebated lump-sum.}
+\label{fig:carbon_optimal}
+\end{figure}
+
+\subsection{Ex ante greening barely insures against the crisis}
+\label{sec:versionA}
+
+We now hit two economies with the \emph{same} price shock: the baseline
+($D^{G}_{ss}=5\%$) and a ``prepared'' economy carrying the welfare-optimal
+$\tau_b=0.10$ ($D^{G}_{ss}=8.9\%$). Table~\ref{tab:exante_expost_import}
+reports the total CEV of each, alongside the ex post cap and transfer on the
+baseline economy.
+
+\input{output/tab_exante_expost_import.tex}
+
+The prepared economy is essentially no better insured than the unprepared one:
+its crisis CEV is $-1.85\%$ against $-1.87\%$ for laissez-faire, a difference of
+two basis points, and both are far worse than either ex post instrument (cap
+$-1.15\%$, transfer $-0.82\%$). Adding the standing benefit of the tax
+($+0.04\%$, Section~\ref{sec:carbontax}) does not change the ranking. The
+greening the tax buys is real---$D^{G}_{ss}$ is $78\%$ higher---but too small a
+share of the economy to move aggregate exposure appreciably, and the tax's
+crisis-time value is a rounding error next to a transfer that puts cash in
+high-MPC hands exactly when it binds. Consistent with Section~\ref{sec:cap}, the
+combination ``ETS $+$ cap'' tracks the cap alone: once the price is frozen the
+adoption margin is shut and the greener starting point is irrelevant.
+
+The green \emph{subsidy} of Section~\ref{sec:cap}\footnote{The transitory
+switching subsidy $s_g$, financed by debt over the crisis window.} is worth a
+line as a crisis instrument in its own right. It doubles the adoption response
+(peak $D^{G}$ of $18.0$ vs.\ $8.9$ pp) at trivial fiscal cost, yet its CEV is
+the worst in the table, $-2.03\%$, below laissez-faire. Paying households to
+incur the real switching cost $\psi_g D^{sw}$---booked as an import
+(Section~\ref{sec:bop})---in the middle of a consumption crisis destroys welfare
+even as it greens the economy. The adoption margin is valuable, but not as
+something to force at the trough.
+
+\subsection{Persistence exhausts the adoption absorber}
+\label{sec:routeA}
+
+The obvious defence of the ex ante case is persistence: a longer-lived shock
+should let the greener economy's lower exposure compound over more periods.
+Figure~\ref{fig:persistence} and Table~\ref{tab:persistence_import} test it by
+sweeping the shock half-life and re-solving only the impulse response (the steady
+state does not move with persistence), decomposing the ex ante number into its
+constant standing part and a \emph{crisis-only greening dividend}, defined as the
+prepared economy's crisis CEV minus the standing $+0.04\%$ minus laissez-faire.
+
+\input{output/tab_persistence_import.tex}
+
+The defence fails, and in an instructive way. The greening dividend does not grow
+with persistence---it \emph{turns negative}, from $+0.01\%$ at a four-quarter
+half-life to $-0.09\%$ at a twelve-year one, crossing zero near a three-year
+half-life. The ex post cap moves the other way: its crisis protection rises
+monotonically, from $+0.24\%$ to $+1.36\%$, as a longer freeze shields more of
+the transition.
+
+The reason is the adoption margin itself. A persistent brown-price shock makes
+switching attractive for many quarters, so the \emph{browner} laissez-faire
+economy adopts heavily \emph{during} the crisis and reaps that windfall over the
+whole episode---the margin is an endogenous shock absorber. The prepared economy
+has already spent much of that absorber in the steady state: with fewer brown
+households left at the switching margin, it has less adoption to do when the shock
+arrives, and less of the crisis-time windfall to collect. Pre-greening does not
+merely fail to insure against a persistent shock; it \emph{consumes the very
+margin} that would have cushioned it. This is the sharpest form of the paper's
+thesis. The instruments that freeze the adoption technology---the cap here, and
+by construction the frozen-technology models of \citet{Bayer2026},
+\citet{Langot2026} and \citet{ARS2024}---miss an absorber that works best when
+left loaded, i.e.\ when the economy enters the crisis with room to green rather
+than already green.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig_persistence_import.pdf}
+\caption{Persistence and the two policies. Left: total CEV of laissez-faire, the
+ex post cap and the ex ante ETS as the shock half-life rises. Right: the
+crisis-only gain over laissez-faire---the cap's protection grows with
+persistence, while the ex ante \emph{greening dividend} turns negative, because a
+more persistent shock lets the browner economy exploit the adoption absorber the
+prepared economy has already spent.}
+\label{fig:persistence}
+\end{figure}
+
+\paragraph{Takeaway.} Three results point the same way. Energy-indexed targeting
+is dominated by a flat transfer of equal budget (Section~\ref{sec:flat}); a
+permanent carbon tax is mildly welfare-improving in the steady state through a
+non-Pigouvian adoption correction, but essentially worthless as crisis insurance
+(Sections~\ref{sec:carbontax}--\ref{sec:versionA}); and its insurance value turns
+negative as shocks become persistent, because greening ex ante exhausts the
+adoption absorber (Section~\ref{sec:routeA}). The margin this paper adds is not a
+lever a planner should pre-pull; it is a stabiliser that pays off precisely when
+the economy is left free to adopt in the crisis.
+
+
+\section{Relation to the literature}
+\label{sec:lit}
+
+This section is written for the coauthors: it states, paper by paper, what our
+setup changes relative to the reference and what that change does to the
+results. Compact one-page summaries of each reference are in
+Appendix~\ref{sec:summaries}.
+
+\subsection{Relative to \citet{ARS2024}}
+
+\paragraph{Setup.} We inherit the entire ARS aggregate economy---the CES
+energy nest, sticky import prices, the mutual fund, the energy suppliers with
+intertemporal arbitrage, the real-wage-stabilising wage Phillips curve, and the
+constant-real-rate monetary baseline---and change the household in four coupled
+ways. (i) ARS's household is homothetic with a fixed energy technology: every
+household shares one CES basket and one CPI, and energy demand is
+$\alpha_E(P_E/P)^{-\eta_E}c$. We add a discrete brown/green durable state and a
+DC-EGM adoption choice, so the energy technology becomes an endogenous,
+household-level object. (ii) ARS has a single household energy price; we have
+two ($P^E_B$, $P^E_G$) and a type-specific cost-of-living index. (iii) ARS uses
+the CPI as unit of account; we use the domestic good, so that the resource
+constraint is invariant to how the CPI weights brown and green energy. (iv) We
+add two current-account terms absent in ARS---the switching cost as an import,
+the adopters' energy saving as an import saving. The energy-supply closure is a
+generalisation of ARS: their baseline is our $\varepsilon^E=\infty$
+price-taking case, and their coordinated world equilibrium (endogenous world
+price) is the two-country analogue of our $\varepsilon^E$-finite case.
+
+\paragraph{Results.} ARS's central mechanism---low $\chi$ makes the energy
+price shock contractionary through the real-income channel---is preserved and
+operates in the background of every one of our experiments. Where we depart is
+that ARS's fiscal ranking is entirely about output, inflation and inequality:
+in ARS the subsidy is a domestic ``silver bullet'' that stabilises all three,
+and its only drawback is a \emph{cross-country} externality (coordinated
+subsidies spike the world price and become self-defeating). Our model adds an
+orthogonal cost of the same subsidy that ARS cannot see: capping $P^E_B$
+eliminates the green adoption margin (peak $D^G$ from 9.18 to 0.01 pp), so the
+subsidy is not neutral for the transition. Two further connections are worth
+flagging to the coauthors. First, our supply-shock result---the cap is
+destructive under inelastic supply---is the \emph{single-country} counterpart
+of ARS's coordination result: in both, capping the price under an
+endogenous/scarce energy price prevents the necessary substitution and deepens
+the recession. Second, our monetary baseline being ARS's constant-real-rate
+rule is what pins the real exchange rate, so a domestic transfer has no
+terms-of-trade effect; this is inherited, not assumed anew.
+
+\subsection{Relative to \citet{Bayer2026}}
+
+\paragraph{Setup.} Bayer et al.\ is a two-country HANK monetary union (Germany
+one-third, rest of the union two-thirds), with a fixed nominal exchange rate,
+built to study \emph{spillovers}. Our economy is a single small open economy
+with an exogenous foreign block, so by construction we cannot represent their
+central object---the cross-border, beggar-thy-neighbour transmission of a
+national subsidy. Three further setup differences matter. (i) Supply: Bayer
+fix the union-wide energy \emph{quantity} and let a common price clear; this is
+exactly our $\varepsilon^E$-finite closure, so our supply-shock experiments are
+the natural comparison. Our shock is smaller (a 10\% cut for 6 quarters against
+their 20\% cut for 6 quarters), chosen for first-order reliability. (ii) Supply
+side: Bayer has a rich medium-scale block---two assets (liquid bonds, illiquid
+capital), an investment margin with capacity utilisation, energy in production
+as well as consumption, and GHH preferences. We have a single asset, no
+capital, and energy in consumption only in the baseline. (iii) Heterogeneity:
+Bayer's headline distributional mechanism is \emph{within-country
+energy-share heterogeneity}---poor households have systematically higher energy
+shares (a high/low-intensity Markov type correlated with income), so they
+suffer larger real-income losses. We assume homothetic energy demand
+conditional on the durable type, so we cannot speak to their energy-exposure
+distributional results; our heterogeneity is over discount factors and over the
+adoption margin instead. Finally, their monetary policy is a standard Taylor
+rule, not the constant-real-rate rule; they show this matters, because under a
+Taylor rule the subsidy also suppresses \emph{intertemporal} substitution
+through household-specific real rates.
+
+\paragraph{Results.} Under the supply closure we reproduce the qualitative
+core of Bayer et al.: the Slutsky/Hicks transfer welfare-dominates the price
+cap (our private CEV $-0.16$ vs.\ $-1.28$), and capping the price under a fixed
+quantity is inefficient because it prevents the substitution the scarcity
+requires---our ``cap pushes towards Leontief'' is their ``subsidising under a
+supply contraction is inefficient.'' What we add is the adoption margin, which
+Bayer et al.\ do not have: the same cap that is inefficient for output also
+switches off the transition, and the transfer that is welfare-superior also
+preserves it. What we \emph{cannot} deliver is their spillover result: with no
+second country, we have nothing to say about whether one country's subsidy
+harms its neighbours. This is the reason we are careful (Section~4.6, and the
+abstract) not to claim that a single parameter ``reconciles'' Bayer and Langot;
+we reproduce the domestic sign, not the cross-border mechanism.
+
+\subsection{Relative to \citet{Langot2026}}
+
+\paragraph{Setup.} Langot et al.\ study France as a single economy inside the
+euro area, with an ECB Taylor rule down-weighted for France's size. Two
+structural choices distinguish their model from ours. (i) They take the energy
+price as \emph{exogenous} (fed from the government's official forecasts), so
+France is a price taker facing a perfectly elastic supply at that price---this
+is our $\varepsilon^E=\infty$ closure, and their price-shock scenario is the
+right comparison. (ii) Their energy substitution elasticity is $\eta_E=0.5$,
+five times ours, and they add an \emph{incompressible} (subsistence) level of
+energy consumption, which delivers non-homotheticity: poor households have a
+larger incompressible share, hence a higher effective energy share and a lower
+price elasticity. This is their distributional mechanism, analogous in spirit
+to Bayer's energy-share heterogeneity but generated by subsistence rather than
+by types. Our model buys energy substitution on a different margin: we keep the
+\emph{intensive} elasticity low ($\eta_E=0.1$, as in ARS) and obtain
+substitution from the \emph{extensive} adoption margin instead. A third,
+methodological difference matters for how the results should be read: Langot et
+al.\ conduct an \emph{ex-ante, conditional-forecast} evaluation---they back out
+the sequence of structural shocks that makes the HANK reproduce the French
+government's published forecasts for output, inflation and debt, then run
+counterfactual policies holding those shocks fixed. Ours (like ARS and Bayer)
+is a clean MIT-shock impulse-response exercise, not a fit to a specific
+historical episode.
+
+\paragraph{Results.} Under the elastic (price) closure we agree with Langot's
+headline: the cap cushions output ($\sum y = -20.9$ vs.\ $-30.1$ with no
+policy) and, on private welfare, tightening the cap raises the CEV
+($-1.30\to-0.57$)---consistent with their finding that the shield supports
+growth and curbs inflation. But two qualifications are important for the
+coauthors. First, Langot's pro-shield result rests substantially on a
+\emph{labour-cost} channel: by containing the retail energy price the shield
+prevents the price--wage spiral, holds down the cost of labour, and thereby
+supports employment; in their comparison the shield beats both wage indexation
+and a targeted transfer precisely on this employment margin. Our wage block and
+our lack of an investment/employment margin mean we reproduce the \emph{sign}
+of their result but not the full mechanism---hence we do not claim the
+Langot--Bayer contrast is ``only'' about the supply elasticity. Second, Langot
+et al.\ hold the energy technology fixed, so like ARS and Bayer they do not see
+the cap's cost to the transition, which is our contribution.
+
+\section{Limitations}
+\label{sec:limits}
+
+\begin{enumerate}\itemsep3pt
+
+\item \textbf{The taste scale $\sigma_{\varepsilon}$ is calibrated, not
+estimated.} $\psi_g$ and $\sigma_\varepsilon$ jointly hit $D^G_{ss}=0.05$, but
+one level moment cannot separately identify both a switching cost and a taste
+scale: a second moment (e.g.\ the semi-elasticity of adoption to a purchase
+subsidy) is needed and would discipline the sign found in
+Section~4.1 along with the magnitudes throughout. The \emph{ordering} of the
+cap-vs-transfer results does not depend on it, since it follows from the
+relative price alone.
+
+\item \textbf{The switching cost is booked as an import by accounting
+necessity.} Under ARS's $\mu_{ss}>1$ with capitalised profits, booking
+$\psi_g D^{sw}$ as domestic demand creates a marginal dividend owned by nobody
+and breaks asset-market clearing; we therefore book it externally
+(Section~\ref{sec:bop}). This convention is what makes the adoption channel
+\emph{contractionary} under the price shock, since the cost lands in the
+periods household income is falling hardest (Section~4.1). The \emph{ordering}
+of the policy results does not depend on it---it follows from the relative
+price alone---but the sign of the adoption channel's output contribution under
+a price shock does, and should be read as conditional on this booking.
+
+\item \textbf{Zero pass-through to the green price} ($\rho_g=0$) means
+adopters are completely insulated from the fossil shock: an upper bound on
+the adoption channel. A partial pass-through calibrated to observed
+electricity--gas co-movement would be more defensible.
+
+\item \textbf{No modelled green technology.} The adopters' resource saving
+rests on the domestic/imported interpretation of Section~\ref{sec:bop} rather
+than on a green sector with its own capacity, cost curve and investment. We
+have implemented the minimal version---a competitive, zero-profit installer
+sector that books the switching cost as domestic value added rebated to
+households---and it clears to machine precision and flips the sign of the
+adoption channel (Section~\ref{sec:signmap}); what remains unmodelled is the
+green energy \emph{supply} technology (capacity, cost curve, investment) and a
+distribution of installer income more realistic than the lump-sum rebate.
+
+\item \textbf{No within-country energy-share heterogeneity.}
+\citet{Bayer2026}'s central distributional mechanism is that poor households
+have higher energy shares; we have homothetic energy demand conditional on
+the durable type, so we cannot speak to their distributional results.
+
+\item \textbf{No investment margin.} Both \citet{Bayer2026} and
+\citet{ARS2024} have richer supply sides. Its absence here likely makes the
+transfer look more expansionary, and the supply shock more inflationary, than
+it would be with capital to smooth the adjustment.
+
+\end{enumerate}
+
+\appendix
+
+\section{Summaries of the three reference papers}
+\label{sec:summaries}
+
+These summaries are in our own words, for internal reference. They are
+deliberately compact---roughly one page each---and emphasise the features that
+matter for our comparison in Section~\ref{sec:lit}.
+
+\subsection{\citet{ARS2024}, ``Managing an Energy Shock''}
+
+\citet{ARS2024} ask how an energy-importing economy should respond to an energy
+price shock, and whether household heterogeneity changes the answer. The model
+is a small open economy HANK built on the exchange-rate model of Auclert,
+Rognlie, Souchier and Straub (2021), extended with an energy good. There are
+three goods: a domestically produced home good, an imported foreign good, and
+imported energy. Households face idiosyncratic productivity risk, cannot insure
+it, and hold a single asset through a mutual fund; preferences are CRRA in a
+CES consumption basket that nests energy against a home/foreign bundle, with a
+low energy substitution elasticity ($\eta_E=0.1$) and a total substitution
+index $\chi=0.3$. Crucially, all households share the \emph{same} basket and
+the \emph{same} price index---the energy technology is fixed and homothetic.
+Wages are sticky with a real-wage-stabilisation motive; the monetary baseline
+is a rule that holds the real interest rate constant. Energy is supplied by
+price-taking foreign firms with an intertemporal extraction margin, so in the
+single-country equilibrium the world energy price is exogenous.
+
+The analytical core is a decomposition of the output response into an
+expenditure-switching channel (positive) and a real-income channel (negative)
+scaled by the matrix of intertemporal MPCs. In the complete-markets
+representative-agent benchmark only expenditure switching survives, so the
+shock is expansionary; with realistic MPCs and low $\chi$ the real-income
+channel dominates and the shock is contractionary---their central result, and
+the one we inherit. A neutrality result holds at $\chi=1$, where the two
+channels cancel. With real wage rigidity a wage--price spiral can appear, but
+the real wage still falls.
+
+On policy, ARS study monetary tightening and three fiscal tools---energy
+subsidies, targeted transfers (indexed to counterfactual energy use), and
+untargeted transfers, all deficit-financed and repaid by a labour tax. For a
+country acting alone, subsidies are the most effective domestic stabiliser and
+tame inflation (they cap the price that drives the real-wage loss); transfers
+support demand but are more inflationary. The decisive twist is
+\emph{cross-country}: monetary tightening has a positive externality (it lowers
+world energy demand and price), while subsidies have a large negative
+externality (coordinated subsidies make world energy demand nearly inelastic,
+spike the world price, and become self-defeating). Their policy recommendation
+is coordinated tightening plus transfers targeted to the poor, avoiding
+subsidies. They also show the impulse responses are not strongly nonlinear at
+empirically relevant shock sizes.
+
+For our purposes the key features are: fixed homothetic energy technology, a
+single energy price and CPI, the constant-real-rate monetary rule, and the fact
+that the only ``cost'' of a subsidy in their world is a cross-country
+externality---there is no transition margin.
+
+\subsection{\citet{Bayer2026}, ``Hicks in HANK'' / ``Redistribution Within and
+Across Borders''}
+
+\citet{Bayer2026} evaluate the fiscal response to the European energy crisis in
+a two-country HANK model of a monetary union, calibrated with Germany as
+``Home'' (one-third of the union) and the rest of the area as ``Foreign''
+(calibrated to Italy). The model is a medium-scale, two-asset HANK: households
+hold a liquid union-wide bond and illiquid capital, face idiosyncratic income
+risk, and have GHH preferences; there is an investment margin with capacity
+utilisation. Energy enters both production (a CES bundle with the
+capital--labour aggregate, elasticity 0.2) and household consumption (a CES
+bundle with the physical good, elasticity 0.1). A distinctive and, for them,
+central feature is within-country heterogeneity in the \emph{energy share}:
+households are of high- or low-energy-intensity type, following a persistent
+Markov process correlated with income, so that poorer households spend a larger
+share on energy and suffer larger real-income losses. Monetary policy is a
+standard union-wide Taylor rule; each national fiscal authority taxes labour
+and profits and stabilises its debt.
+
+The defining assumption is that the total union energy supply is
+\emph{inelastic}: import capacity is fixed in the short run, so a fixed quantity
+is set exogenously and a common price clears the market. The crisis is a 20\%
+cut in supply for six quarters, in response to which the energy price rises
+roughly fivefold, inflation rises about four points, and output falls around
+one percent, with consumption falling most for poor, high-energy households.
+
+They compare two policies, each implemented in Home only so that spillovers can
+be measured: a subsidy that caps the retail energy price at its pre-crisis
+level, and a Hicks/Slutsky transfer indexed to pre-crisis energy consumption
+(to households and firms). The subsidy is the more effective domestic
+stabiliser but is fiscally expensive and \emph{beggar-thy-neighbour}: by
+holding Home's energy demand up it pushes the common price higher, amplifying
+the crisis in Foreign. The transfer stabilises less at Home but generates
+essentially no spillover and is cheaper. On welfare (consumption-equivalent
+variation), the subsidy \emph{reduces} Home welfare---subsidising energy under a
+supply contraction is inefficient because it suppresses both intratemporal and
+intertemporal substitution---while the transfer \emph{raises} Home welfare, its
+cost being mostly the distortion of the taxes that finance it. Their headline
+contrast with ARS (subsidy more stabilising than transfer for output) they
+attribute to the Taylor rule and the two-country structure, versus ARS's
+constant-real-rate rule.
+
+For our purposes the key features are: fixed union-wide quantity (our inelastic
+closure), the two-country spillover mechanism that we cannot represent, the
+within-country energy-share heterogeneity that we do not have, and the
+substitution-preserving property of the transfer, which we share.
+
+\subsection{\citet{Langot2026}, ``The Macroeconomic and Redistributive Effects
+of the French Tariff Shield''}
+
+\citet{Langot2026} evaluate the French \emph{bouclier tarifaire}---the 2022--23
+cap on gas and electricity prices---in a HANK model of France as a single
+economy within the euro area. The model extends Auclert, Rognlie, Souchier and
+Straub with energy in both household consumption and production. Households face
+idiosyncratic productivity risk and hold a single asset; preferences are CRRA
+with a CES energy nest, and the energy substitution elasticity is $\eta_E=0.5$,
+markedly higher than in ARS or Bayer. A distinctive feature is an
+\emph{incompressible} (subsistence) level of energy consumption: only energy
+above the subsistence level yields utility. This generates non-homotheticity
+without non-homothetic preferences---poorer households devote a larger share to
+incompressible energy and have a lower price elasticity of energy demand, which
+is the source of the distributional results. The ECB Taylor rule is
+down-weighted to reflect France's small weight in euro-area inflation. In the
+policy simulations the energy price is taken as exogenous (from the
+government's forecasts), so France is effectively a price taker facing
+perfectly elastic supply.
+
+The methodology is distinctive and worth flagging: rather than clean MIT-shock
+impulse responses, the paper performs an \emph{ex-ante, conditional-forecast}
+evaluation. Using the sequence-space Jacobian, the authors back out the
+sequence of structural shocks (energy price, government spending, transfers,
+plus latent demand, markup and fiscal shocks) that makes the model reproduce
+the French government's official published forecasts for output, inflation and
+the debt ratio through 2027. Policies are then evaluated as counterfactuals
+that hold this shock sequence fixed and change one instrument.
+
+The main finding is that the tariff shield supports growth (about 1.9\% average
+over 2022--23 against 1.0\% without it) and curbs inflation (5.6\% against
+7.2\%), at a fiscal cost near 2\% of GDP per year and a modest rise in the debt
+ratio, while containing---though not eliminating---the rise in consumption
+inequality even though it is untargeted. The mechanism behind its effectiveness
+is a \emph{labour-cost} channel: by holding down the retail energy price the
+shield prevents the price--wage spiral, contains the cost of labour, and
+thereby supports employment and output. On this macro criterion the shield
+beats both a faster wage indexation (more inflationary, worse for output) and a
+targeted transfer to finance incompressible energy consumption; the targeted
+transfer, however, reduces inequality by more.
+
+For our purposes the key features are: exogenous/elastic energy price (our
+price-taking closure), the labour-cost channel behind the pro-shield result
+(which our wage block only partly captures), the higher intensive substitution
+elasticity, and again a fixed energy technology with no transition margin.
+
+\begin{thebibliography}{9}
+
+\bibitem[Auclert et al.(2024)]{ARS2024}
+Auclert, A., H. Monnery, M. Rognlie, and L. Straub (2024).
+``Managing an Energy Shock: Fiscal and Monetary Policy.''
+In \emph{Heterogeneity in Macroeconomics: Implications for Monetary Policy},
+Series on Central Banking, Analysis, and Economic Policies, Vol. 30,
+Central Bank of Chile, 39--108.
+
+\bibitem[Bayer et al.(2026)]{Bayer2026}
+Bayer, C., A. Kriwoluzky, G. J. M\"uller, and F. Seyrich (2026).
+``Redistribution Within and Across Borders: The Fiscal Response to an Energy
+Shock.'' \emph{Journal of Political Economy Macroeconomics}, forthcoming.
+Earlier version: ``Hicks in HANK,'' CEPR DP 18557.
+
+\bibitem[Iskhakov et al.(2017)]{DCEGM2017}
+Iskhakov, F., T. H. J{\o}rgensen, J. Rust, and B. Schjerning (2017).
+``The Endogenous Grid Method for Discrete-Continuous Dynamic Choice Models with
+(or without) Taste Shocks.'' \emph{Quantitative Economics} 8(2), 317--365.
+
+\bibitem[Langot et al.(2026)]{Langot2026}
+Langot, F., S. Malmberg, F. Tripier, and J.-O. Hairault (2026).
+``The Macroeconomic and Redistributive Effects of the French Tariff Shield.''
+\emph{Journal of Political Economy Macroeconomics}, forthcoming.
+Earlier version: CEPREMAP Working Paper 2305.
+
+\end{thebibliography}
+
+\end{document}

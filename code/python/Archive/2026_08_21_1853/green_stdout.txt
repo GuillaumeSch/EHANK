@@ -1,0 +1,6 @@
+policy               peakDG  peakDsw     cumY     cumC   fiscal     CEV%
+Laissez-faire         8.871    1.047   -61.46  -105.61     0.00   -1.871
+Price cap            -0.036   -0.032   -53.04   -78.88    53.86   -1.147
+Slutsky transfer      9.146    1.076   -22.27   -43.43    49.27   -0.816
+Green subsidy        18.018    2.291   -70.10  -118.50     2.05   -2.032
+[figure] output/fig_green_subsidy_import.pdf

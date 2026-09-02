@@ -1,0 +1,188 @@
+% =====================================================================
+% Section 5 -- Ex ante greening versus ex post insurance
+% Paste into ehank_results.tex after the Experiments section (Sec. 4)
+% and before Relation to the literature. All numbers below are the
+% taste_shock = 0.05 / import-booking calibration; the \input-ed tables
+% and figures regenerate them from run_summary_table.py,
+% run_exante_expost.py and run_persistence.py.
+% =====================================================================
+\section{Ex ante greening versus ex post insurance}
+\label{sec:exante}
+
+The instruments in Section~\ref{sec:cap}--\ref{sec:transfer} are all
+\emph{ex post}: they are deployed once the price shock has landed. Because the
+adoption margin responds to the same relative price the crisis moves, a natural
+alternative is to act \emph{ex ante}---to lean on the margin in the steady state
+with a permanent carbon tax $\tau_b$ on brown energy, leaving the economy greener
+and, one might hope, less exposed when the shock arrives. This section prices
+that hope. The answer is that ex ante greening is a poor substitute for ex post
+insurance, and the reason is intrinsic to the channel this paper adds: the
+adoption margin is an endogenous shock absorber, and pre-greening spends it.
+
+Table~\ref{tab:summary_price_import} collects the instruments on one axis. The
+welfare metric is the total consumption-equivalent variation (CEV) of each full
+scenario relative to the common no-tax steady state, by discount-factor type and
+averaged, computed ex post from the cached impulse response
+(\texttt{welfare.cev\_total}); a permanent policy enters through the standing gap
+between its steady state and the baseline, a crisis-time policy through the
+transition alone, so the two are directly comparable.
+
+\input{output/tab_summary_import.tex}
+
+\subsection{Targeting energy transfers is regressive}
+\label{sec:flat}
+
+The Slutsky transfer of Section~\ref{sec:transfer} indexes the lump sum to each
+household's pre-crisis brown-energy use. Replacing it with an
+\emph{untargeted} transfer of the \emph{same aggregate envelope}---the identical
+outlay ($49.3$ vs.\ $49.3$ over $H=24$), paid flat across the distribution rather
+than indexed---almost halves the welfare loss, from a CEV of $-0.82\%$ to
+$-0.32\%$ (Table~\ref{tab:summary_price_import}). The gain is entirely
+distributional. By type, the flat transfer moves the impatient (high-MPC)
+household from $-0.68\%$ to $+0.10\%$---it is made \emph{better off} than in the
+no-shock steady state---while the patient household bears more of the burden
+($-0.77\%$); the Slutsky transfer, by contrast, spreads the loss almost evenly
+($-0.68$, $-0.89$, $-0.88$).
+
+The mechanism is that energy-indexed targeting is regressive \emph{in this
+model}. With homothetic CES energy demand the energy share is constant across the
+wealth distribution, so brown-energy use rises with total consumption, hence with
+permanent income and patience. Indexing the transfer to pre-crisis energy use
+therefore hands the largest cheques to the low-MPC, wealthy households, exactly
+where a euro buys the least insurance. A flat transfer reaches the high-MPC
+households the crisis hits hardest. This speaks directly to the design of the
+2022--23 European energy-price ``brakes,'' which were indexed to historical
+consumption: within the model, the indexing is the source of the inefficiency,
+not a refinement of it.
+
+We flag the caveat plainly. The result rests on the homothetic energy nest: if
+energy were a necessity with a declining Engel curve---the empirically standard
+case---low-income households would spend a \emph{larger} share on energy and the
+sign could reverse. The clean statement is conditional: \emph{under constant
+energy shares, energy-indexed targeting is dominated by an equal-value flat
+transfer}. Making the nest non-homothetic is the right robustness check and is
+left to the calibration section's agenda.
+
+\subsection{A welfare-optimal permanent carbon tax}
+\label{sec:carbontax}
+
+Before comparing ex ante and ex post, we characterise the steady state a
+permanent $\tau_b$ delivers. Holding $\psi_g$ fixed at its no-tax value and
+letting $D^{G}_{ss}$ float, a carbon tax raises the effective brown/green price
+ratio and lifts steady-state adoption: $D^{G}_{ss}$ moves from $5\%$ at
+$\tau_b=0$ to $8.9\%$ at $\tau_b=0.10$ and $20.1\%$ at $\tau_b=0.30$
+(Figure~\ref{fig:carbon_optimal}, right). The carbon revenue is rebated
+lump-sum, so the exercise is budget-neutral and isolates the allocative effect.
+
+Steady-state welfare is hump-shaped in $\tau_b$
+(Figure~\ref{fig:carbon_optimal}, left): the standing CEV rises to a peak of
+$+0.043\%$ at $\tau_b^{*}\approx 10\%$ and turns negative beyond
+$\tau_b\approx 25\%$. The model contains \emph{no} climate externality, so this
+interior optimum is not Pigouvian. It is a second-best correction of the
+adoption friction: green energy is structurally cheaper
+($\bar P^{E}_{G}=0.8<\bar P^{E}_{B}=1$) but the logit taste-shock scale
+$\sigma_\varepsilon$ and the switching cost $\psi_g$ leave green under-adopted, so
+a modest tax that pushes households toward the cheaper technology raises welfare
+until the tax distortion dominates. That the optimum is positive at all is a
+property of this friction, and we treat it as a diagnostic of the channel rather
+than a policy recommendation---it would be swamped by any explicitly modelled
+externality or abatement cost.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig_carbon_optimal_import.pdf}
+\caption{The welfare-optimal permanent carbon tax. Left: standing CEV of the
+$\tau_b$ steady state relative to the no-tax baseline (no crisis), hump-shaped
+with an interior optimum near $\tau_b^{*}\approx10\%$. Right: the induced
+steady-state green share $D^{G}_{ss}$. $\psi_g$ is held fixed and $D^{G}_{ss}$
+floats; the carbon revenue is rebated lump-sum.}
+\label{fig:carbon_optimal}
+\end{figure}
+
+\subsection{Ex ante greening barely insures against the crisis}
+\label{sec:versionA}
+
+We now hit two economies with the \emph{same} price shock: the baseline
+($D^{G}_{ss}=5\%$) and a ``prepared'' economy carrying the welfare-optimal
+$\tau_b=0.10$ ($D^{G}_{ss}=8.9\%$). Table~\ref{tab:exante_expost_import}
+reports the total CEV of each, alongside the ex post cap and transfer on the
+baseline economy.
+
+\input{output/tab_exante_expost_import.tex}
+
+The prepared economy is essentially no better insured than the unprepared one:
+its crisis CEV is $-1.85\%$ against $-1.87\%$ for laissez-faire, a difference of
+two basis points, and both are far worse than either ex post instrument (cap
+$-1.15\%$, transfer $-0.82\%$). Adding the standing benefit of the tax
+($+0.04\%$, Section~\ref{sec:carbontax}) does not change the ranking. The
+greening the tax buys is real---$D^{G}_{ss}$ is $78\%$ higher---but too small a
+share of the economy to move aggregate exposure appreciably, and the tax's
+crisis-time value is a rounding error next to a transfer that puts cash in
+high-MPC hands exactly when it binds. Consistent with Section~\ref{sec:cap}, the
+combination ``ETS $+$ cap'' tracks the cap alone: once the price is frozen the
+adoption margin is shut and the greener starting point is irrelevant.
+
+The green \emph{subsidy} of Section~\ref{sec:cap}\footnote{The transitory
+switching subsidy $s_g$, financed by debt over the crisis window.} is worth a
+line as a crisis instrument in its own right. It doubles the adoption response
+(peak $D^{G}$ of $18.0$ vs.\ $8.9$ pp) at trivial fiscal cost, yet its CEV is
+the worst in the table, $-2.03\%$, below laissez-faire. Paying households to
+incur the real switching cost $\psi_g D^{sw}$---booked as an import
+(Section~\ref{sec:bop})---in the middle of a consumption crisis destroys welfare
+even as it greens the economy. The adoption margin is valuable, but not as
+something to force at the trough.
+
+\subsection{Persistence exhausts the adoption absorber}
+\label{sec:routeA}
+
+The obvious defence of the ex ante case is persistence: a longer-lived shock
+should let the greener economy's lower exposure compound over more periods.
+Figure~\ref{fig:persistence} and Table~\ref{tab:persistence_import} test it by
+sweeping the shock half-life and re-solving only the impulse response (the steady
+state does not move with persistence), decomposing the ex ante number into its
+constant standing part and a \emph{crisis-only greening dividend}, defined as the
+prepared economy's crisis CEV minus the standing $+0.04\%$ minus laissez-faire.
+
+\input{output/tab_persistence_import.tex}
+
+The defence fails, and in an instructive way. The greening dividend does not grow
+with persistence---it \emph{turns negative}, from $+0.01\%$ at a four-quarter
+half-life to $-0.09\%$ at a twelve-year one, crossing zero near a three-year
+half-life. The ex post cap moves the other way: its crisis protection rises
+monotonically, from $+0.24\%$ to $+1.36\%$, as a longer freeze shields more of
+the transition.
+
+The reason is the adoption margin itself. A persistent brown-price shock makes
+switching attractive for many quarters, so the \emph{browner} laissez-faire
+economy adopts heavily \emph{during} the crisis and reaps that windfall over the
+whole episode---the margin is an endogenous shock absorber. The prepared economy
+has already spent much of that absorber in the steady state: with fewer brown
+households left at the switching margin, it has less adoption to do when the shock
+arrives, and less of the crisis-time windfall to collect. Pre-greening does not
+merely fail to insure against a persistent shock; it \emph{consumes the very
+margin} that would have cushioned it. This is the sharpest form of the paper's
+thesis. The instruments that freeze the adoption technology---the cap here, and
+by construction the frozen-technology models of \citet{Bayer2026},
+\citet{Langot2026} and \citet{ARS2024}---miss an absorber that works best when
+left loaded, i.e.\ when the economy enters the crisis with room to green rather
+than already green.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig_persistence_import.pdf}
+\caption{Persistence and the two policies. Left: total CEV of laissez-faire, the
+ex post cap and the ex ante ETS as the shock half-life rises. Right: the
+crisis-only gain over laissez-faire---the cap's protection grows with
+persistence, while the ex ante \emph{greening dividend} turns negative, because a
+more persistent shock lets the browner economy exploit the adoption absorber the
+prepared economy has already spent.}
+\label{fig:persistence}
+\end{figure}
+
+\paragraph{Takeaway.} Three results point the same way. Energy-indexed targeting
+is dominated by a flat transfer of equal budget (Section~\ref{sec:flat}); a
+permanent carbon tax is mildly welfare-improving in the steady state through a
+non-Pigouvian adoption correction, but essentially worthless as crisis insurance
+(Sections~\ref{sec:carbontax}--\ref{sec:versionA}); and its insurance value turns
+negative as shocks become persistent, because greening ex ante exhausts the
+adoption absorber (Section~\ref{sec:routeA}). The margin this paper adds is not a
+lever a planner should pre-pull; it is a stabiliser that pays off precisely when
+the economy is left free to adopt in the crisis.

@@ -1,0 +1,16 @@
+
+=== Panel A: price shock (baseline D_GREEN=0.0500, ETS D_GREEN=0.0894) ===
+scenario                   y(0)     cumY   peakDG    grossF      CEV
+--------------------------------------------------------------------
+Laissez-faire            -2.751   -61.46    8.871      0.00   -1.871
+Ex-post cap              -1.662   -53.04   -0.036     53.86   -1.147
+Slutsky transfer         -0.625   -22.27    9.146     49.27   -0.816
+Flat transfer            -0.306   -18.38    9.103     49.26   -0.317
+Green subsidy            -3.192   -70.10   18.018      2.05   -2.032
+Ex-ante ETS ($\tau_b=0.1$)   -2.852   -62.21   14.983      0.08   -1.852
+
+=== Monetary-policy shock: IRF figure (100bp annualised tightening) ===
+  Taylor rule            i(0)=+0.36  y(0)=-0.852  pi(0)=-0.431  C(0)=-0.954
+  Constant real rate     i(0)=+0.63  y(0)=-1.130  pi(0)=-0.501  C(0)=-1.272
+[figure] output/fig_monetary_import.pdf
+[table] output/tab_summary_import.tex  (Panel A; monetary shock is now fig_monetary_import.pdf)

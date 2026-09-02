@@ -1,0 +1,576 @@
+\documentclass[11pt]{article}
+
+% ----------------------------------------------------------------------------
+% E-HANK: baseline model note (self-contained).
+% Documents ONLY the configuration actually run: core (domestic-good) numeraire,
+% import booking of the green margin, with the current calibration. Switched-off
+% ARS features (energy in production, subsistence, GHH, DCP export pricing,
+% importer weights in the fund return, monetary inertia / wage-inflation
+% response, pass-through to the green price) and the alternative numeraire /
+% booking are omitted. epsT (untargeted lump sum) and ishock (monetary shock)
+% are retained as hooks even though zero in the baseline experiments.
+% ----------------------------------------------------------------------------
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\I}{\mathbb{I}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\num}{\mathrm{num}}
+\newcommand{\stst}{\mathrm{ss}}
+\newcommand{\dsw}{D^{\mathrm{sw}}}
+\newcommand{\DG}{D^{G}}
+\newcommand{\PEB}{P^{E}_{B}}
+\newcommand{\PEG}{P^{E}_{G}}
+\newcommand{\pE}{p^{E}}
+\newcommand{\coh}{\mathrm{coh}}
+
+\title{\textbf{E-HANK: baseline model and equations}\\[2pt]
+\large A small open economy HANK with a brown/green durable adoption margin}
+\author{Guillaume Schwegler, Boris Chafwehe, Francesca Diluiso}
+\date{Working note --- \today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent This note states the baseline model implemented in the code, with all
+equilibrium equations. The aggregate structure is \cite{ARS2024} (henceforth
+ARS): a small open economy with sticky wages, imported energy and foreign goods
+with sticky retail prices, and a mutual fund holding claims on domestic firms,
+importers and a share of the energy endowment. The only structural addition is
+a \emph{discrete brown/green durable adoption choice} in the household block;
+the aggregate blocks follow ARS's quantitative model (including foreign-owned
+importers). The note documents the baseline
+configuration only: domestic-good numeraire and import booking of the green
+margin. Sections~\ref{sec:hh}--\ref{sec:agg} give the household problem and its
+aggregation; Sections~\ref{sec:firms}--\ref{sec:clearing} give firms, prices,
+the open economy, policy and market clearing; Section~\ref{sec:ss} gives the
+steady state, shocks and calibration.
+\end{abstract}
+
+% ============================================================================
+\section{Conventions and notation}
+% ============================================================================
+
+Time is quarterly. A subscript $t$ is suppressed where unambiguous; $x(-1)$ and
+$x(+1)$ denote lag and (expected) lead. A bar denotes a steady-state value,
+e.g.\ $\bar\pE$. All \emph{relative prices} carry the subscript ``\,$/P$\,''
+where $P$ is the CPI, e.g.\ $\PEB\equiv \PEB{}_{,t}/P_t$; these are the objects
+the CES demand system uses.
+
+\paragraph{Unit of account.} The unit of account is the domestic good. The
+household reads, solves in units of account, and returns assets converted to CPI
+units by $A^{CPI}=A\,p^{\num}$, with
+\begin{equation}
+p^{\num}=p_{H/P},\qquad
+1+r^{\num}=(1+r)\,\frac{p_{H/P}(-1)}{p_{H/P}},\qquad
+atw^{\num}=\frac{atw}{p_{H/P}} .
+\end{equation}
+Objects contractually denominated in the CPI---fiscal transfers and the
+switching cost $\psi_g$---are divided by $p^{\num}$ on the way into the budget.
+Taking the domestic good rather than the CPI as unit of account makes the
+resource constraint independent of how the CPI weights brown and green energy.
+
+% ============================================================================
+\section{Households}\label{sec:hh}
+% ============================================================================
+
+There are three permanent discount-factor types $i\in\{0,1,2\}$ of equal mass,
+with $\beta_i$ (Section~\ref{sec:cal}); within a type, households face
+idiosyncratic labour productivity and hold a discrete durable technology.
+
+\subsection{Idiosyncratic productivity and the durable state}
+
+Labour productivity $e$ follows a Rouwenhorst discretisation of an AR(1) in
+logs, $\log e' = \rho_e \log e + \varepsilon$, with $n_e$ points, persistence
+$\rho_e$ and innovation s.d.\ $\sigma_e$; transition matrix $\Pi$, mean-one grid.
+
+Each household carries two binary durable indicators: the technology it
+\emph{operates this period} $g\in\{B,G\}$ and the technology it \emph{held last
+period} $g_-\in\{B,G\}$. We collapse the pair into a four-point index
+\begin{equation}
+d\in\{\,BB,\ BG,\ GB,\ GG\,\},\qquad
+\text{(now, before)}=\{(B,B),(B,G),(G,B),(G,G)\}.
+\end{equation}
+Define the indicators
+\begin{equation}
+\mathrm{IS\_GREEN}(d)=\I[g=G]=(0,0,1,1),\qquad
+\mathrm{PAYS\_SWITCH}(d)=\I[g=G,\,g_-=B]=(0,0,1,0).
+\end{equation}
+The switching cost $\psi_g$ is incurred exactly in the transition $g_-=B\to g=G$
+(state $GB$). Brown is \emph{absorbing}; a green durable \emph{breaks down} to
+brown at rate $\delta_g$. The breakdown Markov (applied in the \texttt{dep}
+stage, rows = state this period, columns = state next period) is
+\begin{equation}
+M_{\mathrm{dep}}=
+\begin{pmatrix}
+1 & 0 & 0 & 0\\
+1 & 0 & 0 & 0\\
+\delta_g & 0 & 0 & 1-\delta_g\\
+\delta_g & 0 & 0 & 1-\delta_g
+\end{pmatrix}.
+\end{equation}
+On the equilibrium path $BG$ carries zero mass (green is lost only through
+breakdown, recorded as $g_-=B$), so the effective state is three-point. In
+steady state a permanent green share is sustained by a flow of switchers,
+\begin{equation}
+\dsw=\delta_g\,\DG. \label{eq:stockflow}
+\end{equation}
+
+Forward stage order within a period is
+$\texttt{[dep, prod, durables, consav]}$: breakdown, productivity, the discrete
+adoption choice, and the EGM consumption--savings step. The adoption stage uses
+the discrete--continuous structure of \cite{DCEGM2017}.
+
+\subsection{Preferences and the type-specific bundle price}
+
+Flow felicity is CRRA over a consumption bundle $c$ with disutility of labour
+handled at the union level (Section~\ref{sec:union}):
+\begin{equation}
+u(c)=\begin{cases}\log c & \text{eis}=1\\[2pt]
+\dfrac{c^{1-1/\text{eis}}}{1-1/\text{eis}} & \text{eis}\neq 1.\end{cases}
+\end{equation}
+The bundle $c$ is a CES nest of energy against a home/foreign composite, with
+ARS parameters $(\alpha_E,\eta_E)$. Because a green adopter buys energy at $\PEG$
+and a brown household at $\PEB$, each durable type faces its own energy price and
+hence its own \emph{exact} cost-of-living index:
+\begin{align}
+\pE_d &= \PEB + \mathrm{IS\_GREEN}(d)\,\bigl(\PEG-\PEB\bigr),\\
+p_d &= \Bigl[\,1+\alpha_E\bigl((\pE_d)^{1-\eta_E}-(\PEB)^{1-\eta_E}\bigr)\Bigr]^{\frac{1}{1-\eta_E}}
+\quad(\eta_E\neq 1),\qquad
+p_d=\bigl(\pE_d/\PEB\bigr)^{\alpha_E}\ (\eta_E=1).
+\label{eq:pd}
+\end{align}
+Equation~\eqref{eq:pd} uses the equilibrium CES identity
+$\alpha_E(\PEB)^{1-\eta_E}+(1-\alpha_E)p_{HF/P}^{1-\eta_E}=1$
+(the block \texttt{CESprices}, eq.~\eqref{eq:innernest}), so \emph{brown}
+households have $p_d\equiv 1$ at every date (exact nesting). $p_d$ is
+CPI-relative; the budget uses $p_d^{\num}\equiv p_d/p^{\num}$.
+
+\subsection{Cash on hand}\label{sec:coh}
+
+Let $a$ be beginning-of-period assets (in units of account, on a grid with lower
+bound $a\ge \underline a$, $\underline a=0$). Cash on hand of a household in
+durable state $d$ with productivity $e$ is
+\begin{equation}
+\coh(d,e,a)=(1+r^{\num})\,a+atw^{\num}\,e
++\frac{T^{\text{fisc}}}{p^{\num}}
+-\frac{\psi_g}{p^{\num}}\,\mathrm{PAYS\_SWITCH}(d),
+\label{eq:coh}
+\end{equation}
+with the (CPI-denominated) transfer
+\begin{equation}
+T^{\text{fisc}} = \epsilon^{T}+\iota\,(\pE-\bar\pE)\,\bar c^{B}_{E,i}(e,a)
+\qquad\text{(untargeted lump sum $\epsilon^{T}$ + Slutsky transfer).}
+\end{equation}
+Here $\iota=\texttt{insE}$ scales the Slutsky transfer, $\epsilon^{T}=\texttt{epsT}$
+is an untargeted lump sum, and $\bar c^{B}_{E,i}(e,a)$ is household $i$'s
+steady-state \emph{brown} energy demand, collapsed over the durable axis and
+broadcast identically across durable states (so a switcher keeps the same
+transfer; the switching margin is undistorted). Both instruments are zero in the
+baseline. The switching cost enters cash on hand only in state $GB$.
+
+\subsection{Discrete adoption choice}\label{sec:logit}
+
+In the \texttt{durables} stage the household chooses its current technology $g$
+given the technology it holds (post-breakdown), by a logit over continuation
+values with taste scale $\sigma_\varepsilon=\texttt{taste\_shock}$. Feasible
+transitions carry the flow payoff
+\begin{equation}
+f(d\mid d_-)=
+\begin{cases}
+0 & \text{stay/renew brown: } (BB\mid BB),(BB\mid BG),\\
+-\,\texttt{green\_block}\ \ (\text{masked to }-\infty\text{ if }\coh(GB)\le 0)
+& \text{switch to green: } (GB\mid BB),(GB\mid BG),\\
+0 & \text{stay/renew green: } (GG\mid GB),(GG\mid GG),\\
+-\infty & \text{otherwise (infeasible).}
+\end{cases}
+\end{equation}
+The switching cost itself is already in $\coh(GB)$ through
+eq.~\eqref{eq:coh}. \texttt{green\_block} is a counterfactual wedge, $0$ in the
+baseline (margin open) and $+\infty$ (large) in the ``no-adoption'' variant
+(margin shut, used for the adoption-channel decomposition). Given post-choice
+values $V(d)$, the choice probabilities and the expected (pre-shock) value are
+the standard logit / log-sum-exp:
+\begin{equation}
+\Pr(d\mid d_-)=\frac{\exp\!\bigl([f(d\mid d_-)+V(d)]/\sigma_\varepsilon\bigr)}
+{\sum_{d'}\exp\!\bigl([f(d'\mid d_-)+V(d')]/\sigma_\varepsilon\bigr)},
+\qquad
+\tilde V(d_-)=\sigma_\varepsilon\log\!\sum_{d'}\exp\!\Bigl(\tfrac{f(d'\mid d_-)+V(d')}{\sigma_\varepsilon}\Bigr).
+\end{equation}
+
+\subsection{Consumption--savings (EGM)}
+
+Conditional on the durable state, the household solves a standard
+consumption--savings problem with the type-specific bundle price $p_d^{\num}$.
+The budget, Euler and envelope are
+\begin{align}
+p_d^{\num}\,c + a' &= \coh(d), & a'&\ge \underline a, \label{eq:budget}\\
+u'(c) &= \beta_i\,p_d^{\num}\,\E\,V_a(a',e',d') & &\text{(Euler)},\\
+V_a &= (1+r^{\num})\,u'(c)/p_d^{\num} & &\text{(envelope)},\\
+V &= u(c)+\beta_i\,\E\,V(a',e',d') & &\text{(value)},
+\end{align}
+solved by the endogenous grid method, with $u'(c)=c^{-1/\text{eis}}$.
+
+\subsection{Household outputs (hetoutputs)}\label{sec:hetout}
+
+Given the policy $c(d,e,a)$, the household's \emph{exact} CES demand split by
+durable type is
+\begin{align}
+c_E(d) &= \alpha_E\bigl(\pE_d/p_d\bigr)^{-\eta_E} c, &
+c_{HF}(d) &= (1-\alpha_E)\bigl(p_{HF/P}/p_d\bigr)^{-\eta_E} c, \label{eq:demand}\\
+c_E^{B}(d) &= c_E(d)\,\bigl(1-\mathrm{IS\_GREEN}(d)\bigr), &
+c_E^{G}(d) &= c_E(d)\,\mathrm{IS\_GREEN}(d).
+\end{align}
+(Prices in \eqref{eq:demand} are CPI-relative; the denominator is $p_d$, not
+$p_d^{\num}$.) The block also returns $d_G(d)=\mathrm{IS\_GREEN}(d)$,
+$d_{sw}(d)=\mathrm{PAYS\_SWITCH}(d)$, the MPC, and flow utility $u(c)$.
+
+% ============================================================================
+\section{Aggregation}\label{sec:agg}
+% ============================================================================
+
+For each type $i$, SSJ aggregates the hetoutputs over the stationary
+distribution $\Lambda_i$ into $C_i,A_i,\mathrm{MPC}_i,\DG_i,\dsw_i,
+C^{B}_{E,i},C^{G}_{E,i},C_{HF,i},U_i$, and the model averages equally across the
+three types:
+\begin{equation}
+X=\tfrac13\textstyle\sum_i X_i,\qquad
+X\in\{C,A,\mathrm{MPC},\DG,\dsw,C^{B}_{E},C^{G}_{E},C_{HF},\ldots\},
+\qquad \beta=\tfrac13\textstyle\sum_i\beta_i .
+\end{equation}
+Assets in units of account are converted to CPI units, $A^{CPI}=A\,p^{\num}$.
+Aggregate demands for the home good, the foreign good and energy are then built
+from the household aggregates (block \texttt{hh\_outputs\_dur}), applying on top
+only the inner home/foreign nest, common to all households:
+\begin{equation}
+c_E = C^{B}_{E}+C^{G}_{E},\qquad
+c_H = (1-\alpha_F)\,p_{H/HF}^{-\eta}\,C_{HF},\qquad
+c_F = \alpha_F\,p_{F/HF}^{-\eta}\,C_{HF}. \label{eq:cHcF}
+\end{equation}
+Using $\sum_d c_E(d)$ rather than the CES demand at the aggregate index avoids a
+Jensen bias of order $0.5\%$.
+
+% ============================================================================
+\section{Firms and domestic production}\label{sec:firms}
+% ============================================================================
+
+A competitive final domestic good is produced from labour. With productivity $Z$
+and a constant gross markup $\mu_{\stst}$,
+\begin{equation}
+y = Z\,n,\qquad
+\mathrm{gdp}=Z\,n,\qquad
+\text{btw}_n = w\,n,\qquad
+atw_n = (1-\tau^{Y})\,w\,n,
+\end{equation}
+where $y$ is home-good output, $n$ hours, $w$ the real wage. Monopolistic
+profits are capitalised into the mutual fund:
+\begin{equation}
+\mathrm{div}=(\mu_{\stst}-1)\,w\,n,\qquad
+J=\mathrm{div}+\frac{J(+1)}{1+r^{\text{ante}}},\qquad
+j=\frac{J(+1)}{1+r^{\text{ante}}}.
+\end{equation}
+
+\subsection{Wage setting (sticky wages)}\label{sec:union}
+
+A union sets the nominal wage subject to Calvo frictions $\theta_w$, giving a
+wage Phillips curve. With $\kappa_w=(1-\theta_w)(1-\beta\theta_w)/\theta_w$,
+labour-disutility shifter $\varphi$ (\texttt{vphi}), Frisch elasticity
+$\texttt{frisch}$, and a real-wage-rigidity term controlled by $w_{BG}$,
+\begin{align}
+\pi^{w}(1+\pi^{w})
+&=\beta\,\pi^{w}(+1)\bigl(1+\pi^{w}(+1)\bigr)
++\frac{\kappa_w}{\varphi\,n^{1/\text{frisch}}}\;\Xi,\\
+\Xi &= \varphi\,n^{1/\text{frisch}}
+-\frac{atw\,C^{-1/\text{eis}}}{\mu_{\stst}}
+- w_{BG}\,\underbrace{\frac{(w-\bar w)\,w\,\bar C^{-1/\text{eis}}\,\bar n}{\mu_{\stst}\,n\,\bar w}}_{\text{real-wage rigidity}},
+\end{align}
+and the nominal and real wage evolve as $W=(1+\pi^{w})W(-1)$, $w=W/P$. Here
+$atw=atw_n/n$ is the after-tax wage per hour.
+
+% ============================================================================
+\section{Prices}\label{sec:prices}
+% ============================================================================
+
+All retail prices are relative to the CPI $P$; $Q$ is the real exchange rate
+(price of the foreign basket in home units), $P^{*}_{F},P^{E*}$ are exogenous
+world prices.
+
+\paragraph{Domestic good.}
+\begin{equation}
+P_H=\frac{\mu_{\stst}}{Z}\,W,\qquad
+p_{H/P}=P_H/P,\qquad
+\pi^{H}=P_H/P_H(-1)-1,\qquad w=W/P.
+\end{equation}
+
+\paragraph{Imported foreign good (Calvo $\theta_F$).} With
+$\kappa_F=(1-\theta_F)(1-\beta_F\theta_F)/\theta_F$, $\beta_F=1/(1+\bar r^{\text{ante}})$,
+\begin{equation}
+\kappa_F\Bigl(\frac{Q P^{*}_{F}}{p_{F/P}}-1\Bigr)
++\beta_F\,\pi^{F}(+1)\bigl(1+\pi^{F}(+1)\bigr)
+-\pi^{F}(1+\pi^{F})=0,\qquad p_{F/P}=P_F/P .
+\end{equation}
+
+\paragraph{Energy retail price and the price cap (Calvo $\theta_E$).} The
+wholesale/retail brown energy price $\pE=P_E/P$ satisfies a NKPC, and the
+\emph{household} brown price applies the cap:
+\begin{align}
+\kappa_E\Bigl(\frac{Q P^{E*}}{\pE}-1\Bigr)
++\beta_E\,\pi^{E}(+1)\bigl(1+\pi^{E}(+1)\bigr)
+-\pi^{E}(1+\pi^{E})&=0,
+& \kappa_E&=(1-\theta_E)(1-\beta_E\theta_E)/\theta_E,\\
+\PEB &= (1-\tau^{E})\,\pE+\tau^{E}\,\bar\pE,
+&& \tau^{E}=1\Rightarrow \PEB\ \text{pinned at }\bar\pE .
+\label{eq:cap}
+\end{align}
+
+\paragraph{Green energy price.} With green/brown ratio $\varrho=\texttt{pE\_g\_ratio}$,
+the green price is fixed relative to the pre-crisis brown price:
+\begin{equation}
+\PEG=\varrho\,\bar\pE . \label{eq:pEG}
+\end{equation}
+
+\paragraph{CPI (brown-anchored; ``Option~C'').} The energy leg of the CPI is
+anchored on the brown price alone. With $\alpha=\alpha_E+(1-\alpha_E)\alpha_F$,
+the inner (energy vs home/foreign) and outer (home vs foreign) CES identities
+that define $p_{HF/P}$ and $p_{H/HF}$ are
+\begin{align}
+(1-\alpha_E)\,p_{HF/P}^{1-\eta_E}+\alpha_E\,(\PEB)^{1-\eta_E}&=1, \label{eq:innernest}\\
+(1-\alpha_F)\,p_{H/HF}^{1-\eta}+\alpha_F\,p_{F/HF}^{1-\eta}&=1, \label{eq:outernest}
+\end{align}
+with $p_{F/HF}=p_{F/P}/p_{HF/P}$, $p_{H/P}=p_{H/HF}\,p_{HF/P}$, $p_H^{*}=p_{H/P}/Q$.
+The gap between this measured CPI and the share-weighted (``true'') deflator is
+computed \emph{ex post}, outside the model:
+\begin{equation}
+\phi^{1-\eta_E}=1+\alpha_E\,\DG\bigl[(\PEG)^{1-\eta_E}-(\PEB)^{1-\eta_E}\bigr].
+\end{equation}
+Under the domestic-good numeraire this choice affects only the measured deflator
+and the monetary rule, not the resource constraint.
+
+\paragraph{Aggregate price level and inflation.}
+\begin{equation}
+P=(1+\pi)P(-1),\qquad
+\pi^{\text{ann}}=(1+\pi)^4-1,\ \text{etc.}
+\end{equation}
+
+% ============================================================================
+\section{Open economy}\label{sec:open}
+% ============================================================================
+
+\paragraph{Foreign demand for the home good.} With foreign demand shifter
+$\alpha^{*}$, trade elasticity $\gamma$, and world demand $C^{*}$,
+\begin{equation}
+c_H^{*}=\alpha^{*}\,\bigl(p_H^{*}\bigr)^{-\gamma}\,C^{*}.
+\end{equation}
+
+\paragraph{Uncovered interest parity.} The real exchange rate solves
+\begin{equation}
+\frac{Q}{Q(+1)}\,(1+r^{\text{ante}})=1+r^{*}. \label{eq:uip}
+\end{equation}
+
+\paragraph{Importer margins (foreign-owned).} Retail importers of the foreign
+good and of energy are \emph{owned by foreigners} (ARS, \S4.1), so their margins
+over the world price accrue abroad and are \emph{not} capitalised into domestic
+wealth. They enter the model only by valuing the import bill at the retail (not
+world) price in the balance of payments below:
+\begin{equation}
+D_F = \bigl(p_{F/P}-Q P^{*}_{F}\bigr)c_F,\qquad
+D_E = \bigl(\pE-Q P^{E*}\bigr)c_E .
+\end{equation}
+Both margins are zero in steady state ($p_{F/P}=Q P^{*}_{F}$, $\pE=Q P^{E*}$), so
+this convention leaves the steady state unchanged.
+
+\paragraph{World energy supply (IEA block).} World supply is a fixed quantity
+$E^{\text{shock}}$ plus intertemporal stock arbitrage with cost $\Gamma_{\text{arb}}$:
+\begin{equation}
+E_{\text{stock}} = \frac{P^{E*}(+1)/(1+r^{*})-P^{E*}}{\Gamma_{\text{arb}}},\qquad
+E^{\text{supply}} = E^{\text{shock}}+\bigl(E_{\text{stock}}(-1)-E_{\text{stock}}\bigr).
+\end{equation}
+In the baseline the home economy owns \emph{none} of the world energy endowment
+($\zeta^{E}=0$: a pure importer), so the associated rents are not capitalised
+into domestic wealth. The endowment-ownership channel ($\zeta^{E}>0$, ARS
+\S3.4/\S4.1) is retained in the code and used only as a robustness/energy-independence
+experiment.
+
+\paragraph{Fund return (revaluation).} The realised (ex post) return on the
+fund's claims defines $r$:
+\begin{equation}
+1+r=\frac{J}{j(-1)}.
+\end{equation}
+Importers are foreign-owned and the energy endowment is not held domestically
+($\zeta^{E}=0$), so the only domestically held risky claim is domestic firms:
+$A^{\text{dom}}=j$, with return $r^{\text{dom}}=r$; $A^{\text{dom}}$ enters only
+the current-account revaluation term below.
+
+\paragraph{Balance of payments.}\label{sec:bop}
+The green margin enters the import booking through two terms,
+\begin{equation}
+\text{imports}_{\text{dur}}=\psi_g\,\dsw
+\quad\text{(switching cost booked as import)},\qquad
+\text{energy\_gap}=(\PEB-\PEG)\,C^{G}_{E}
+\quad\text{(adopters' import saving)}.
+\end{equation}
+Exports, imports and net exports are
+\begin{align}
+\text{exports}&=Q\,p_H^{*}c_H^{*},\\
+\text{imports}&=p_{F/P}\,c_F+\pE\,c_E+\text{imports}_{\text{dur}}-\text{energy\_gap},\\
+nx&=Q\,p_H^{*}c_H^{*}-p_{F/P}\,c_F-\pE\,c_E-\text{imports}_{\text{dur}}+\text{energy\_gap}.
+\end{align}
+Net foreign assets accumulate with a revaluation term:
+\begin{align}
+\text{reval} &= (r-r^{\text{ante}}(-1))A^{CPI}(-1)-(r^{\text{dom}}-r^{\text{ante}}(-1))A^{\text{dom}}(-1),\\
+\mathrm{nfa} &= nx+\text{reval}+(1+r^{\text{ante}}(-1))\,\mathrm{nfa}(-1),
+\qquad nx/\mathrm{gdp}=nx/y. \label{eq:nfa}
+\end{align}
+
+% ============================================================================
+\section{Policy}\label{sec:policy}
+% ============================================================================
+
+\subsection{Monetary policy}
+
+The nominal rate rule and the Fisher ex-ante real rate are
+\begin{equation}
+1+i = (1+\bar r^{*})\,(1+\phi_\pi\pi)\,(1+\phi_{\pi e}\pi(+1))+\text{ishock},
+\qquad
+r^{\text{ante}} = \frac{1+i}{1+\pi(+1)}-1.
+\end{equation}
+The baseline is the ARS \emph{constant real rate} rule
+$(\phi_\pi,\phi_{\pi e})=(0,1)\Rightarrow r^{\text{ante}}=\bar r^{*}$; a standard
+Taylor rule sets $(\phi_\pi,\phi_{\pi e})=(1.5,0)$. \texttt{ishock} is a monetary
+policy shock (zero unless a monetary experiment is run).
+
+\subsection{Fiscal policy}\label{sec:fiscal}
+
+The government runs the two energy-crisis instruments and an untargeted lump sum,
+all debt financed, with debt stabilised through the distortionary labour tax:
+\begin{align}
+\text{Subsidy} &= \tau^{E}\,(\pE-\bar\pE)\,c_E
+&& \text{price cap (cost scales with actual use),}\\
+\text{Ttargeted} &= \iota\,(\pE-\bar\pE)\,\bar C^{B}_{E}
+&& \text{Slutsky transfer (cost scales with pre-crisis brown use),}\\
+\text{Tuntargeted} &= \epsilon^{T}, &&\\[2pt]
+\text{spending} &= \text{Tuntargeted}+\text{Ttargeted}+\text{Subsidy},\qquad
+\text{taxation}=\tau^{Y}\,w\,n. &&
+\end{align}
+The government budget constraint and the debt-stabilising tax rule are
+\begin{align}
+B &= (1+r^{\text{ante}}(-1))\,B(-1)+\text{spending}-\text{taxation},
+\label{eq:gbc}\\
+\tau^{Y} &= \psi_B\bigl(B(-1)-\bar B\bigr),\qquad \psi_B=\texttt{psiB}.
+\label{eq:taurule}
+\end{align}
+In the baseline $\bar B=0$ (no steady-state government debt): crisis outlays are
+deficit-financed and repaid by raising the labour tax in proportion to the debt's
+deviation from zero. Government debt $B$ is a genuine transition unknown (it moves
+in the dynamics) and enters household wealth through asset-market clearing,
+eq.~\eqref{eq:assets}.
+
+% ============================================================================
+\section{Market clearing and equilibrium}\label{sec:clearing}
+% ============================================================================
+
+The equilibrium residuals are
+\begin{align}
+\text{goods:}&\quad c_H+c_H^{*}-y=0, \label{eq:goods}\\
+\text{assets (Walras):}&\quad A^{CPI}-\mathrm{nfa}-j-B=0, \label{eq:assets}\\
+\text{energy:}&\quad
+\begin{cases}
+P^{E*}-P^{E*,\text{shock}}=0 & \varepsilon^{E}=\infty\ \text{(price taker; price shock)},\\
+c_E-E^{\text{supply}}=0 & \varepsilon^{E}<\infty\ \text{(fixed quantity; supply shock).}
+\end{cases}\label{eq:energy}
+\end{align}
+Equation~\eqref{eq:assets} is a Walras'-law residual (not itself a solved
+target); it is monitored to machine precision as a consistency check.
+
+\paragraph{Transition unknowns/targets.} The linear (SSJ) transition solves for
+$\{y,\pi,r,\tau^{Y},P^{E*},w\}$ against
+$\{\text{goods},\ \pi\text{ residual},\ r\text{ residual},\ \tau^{Y}\text{ residual},
+\ \text{energy},\ w\text{ residual}\}$.
+
+% ============================================================================
+\section{Steady state, shocks, calibration}\label{sec:ss}
+% ============================================================================
+
+\subsection{Openness normalisations}
+
+With $\zeta^{E}=0$ (pure importer) the ARS home-endowment rescaling is inactive,
+so the normalisations reduce to
+\begin{equation}
+\alpha_F=\frac{\alpha-\alpha_E}{1-\alpha_E},\qquad
+\gamma=\frac{\chi_{\text{tgt}}-(1-\alpha)(1-\alpha_F)\eta_E}{(1-\alpha)\alpha_F+\alpha},\quad \eta=\gamma,\ \ \chi_{\text{tgt}}=0.3,
+\end{equation}
+\begin{equation}
+y=1,\qquad Z=\mu_{\stst}=1.03,\qquad \alpha^{*}=\alpha,\qquad E^{\text{shock}}=\alpha_E .
+\end{equation}
+(For the robustness runs with $\zeta^{E}>0$ the endowment rescaling
+$y=1-\zeta^{E}\alpha_E$, $\mu_{\stst}\leftarrow\mu_{\stst}(1-\zeta^{E}\alpha_E)$,
+$\alpha^{*}=\alpha-\zeta^{E}\alpha_E$ applies.)
+
+\subsection{Steady-state unknowns/targets}
+
+The steady state solves for $\{\varphi,\ \beta_{\max},\ y,\ \psi_g\}$ against
+$\{\pi^{w}\text{ res},\ \mathrm{nfa}\text{ res},\ \text{goods},\ \DG-0.05\}$: $\psi_g$
+is calibrated to the level target $\DG_{\stst}=0.05$ and $\beta_{\max}$ closes net
+foreign assets. In the ``no-adoption'' counterfactual ($\texttt{green\_block}$
+large) $\DG\equiv 0$ for every $\psi_g$, so $\psi_g$ is not identifiable and is
+carried over, fixed, from the matching adoption steady state.
+
+\subsection{Shocks}
+
+\begin{align}
+\text{Brown-price shock (requires }\varepsilon^{E}=\infty):&\quad
+P^{E*,\text{shock}}_t=\text{size}\cdot\rho^{t},\quad \rho=2^{-1/\text{half-life}},\\
+\text{Brown-supply shock (requires }\varepsilon^{E}<\infty):&\quad
+E^{\text{shock}}_t=\bar E^{\text{shock}}-\text{drop}\cdot\bar E^{\text{shock}}\ \text{for }t<\text{quarters},\ \text{else }\bar E^{\text{shock}} .
+\end{align}
+The baseline price shock is $\text{size}=1$ (world price doubles on impact),
+half-life $16$; the baseline supply shock is $-10\%$ for $6$ quarters.
+
+\subsection{Calibration}\label{sec:cal}
+
+\begin{table}[h]\centering\small
+\begin{tabular}{lll}
+\toprule
+Parameter & Value & Source / target\\
+\midrule
+$\alpha_E$ energy expenditure share & 0.04 & ARS\\
+$\eta_E$ energy substitution & 0.10 & ARS\\
+$\alpha$ total import share & 0.30 & ARS\\
+$r$, $\mu_{\stst}$ (primitive) & 0.01, 1.03 & ARS\\
+eis, Frisch & 1, 0.5 & ARS\\
+$\rho_e,\sigma_e,n_e$ & 0.92, 0.57, 7 & ARS\\
+$\beta$ types (3), spread & 0.06 & implied MPC $\approx 0.30$\\
+$\theta_w,\theta_E,\theta_F$ (Calvo) & 0.938, 0.65, 0.90 & ARS\\
+$w_{BG}$ real-wage rigidity & 5 & ARS\\
+$\zeta^{E}$ home energy-rent share & 0 & pure importer (baseline); $>0$ for robustness\\
+\midrule
+$\delta_g$ green breakdown rate & 0.05 & assumption ($\approx 5$-yr life)\\
+$\varrho=\PEG/\PEB$ steady-state gap & 0.80 & heat-pump / EV delivered-cost ratio\\
+$\psi_g$ switching cost & 0.538 & \emph{solved} to $\DG_{\stst}=0.05$\\
+$\sigma_\varepsilon$ logit taste scale & 0.05 & calibrated jointly with $\psi_g$\\
+\midrule
+$\tau^{E},\iota,\epsilon^{T}$ policy & 0 & laissez-faire baseline\\
+$B$ steady-state debt & 0 & no SS government debt\\
+$\psi_B$ debt-feedback in $\tau^{Y}$ & 0.04 & \\
+\bottomrule
+\end{tabular}
+\caption{Baseline calibration. $\psi_g$ and $\sigma_\varepsilon$ are jointly
+calibrated to the \emph{level} target $\DG_{\stst}=0.05$ and are not separately
+identified by an adoption-\emph{elasticity} moment (an open item).}
+\end{table}
+
+% ============================================================================
+\begin{thebibliography}{9}
+\bibitem{ARS2024} Auclert, A., Monnery, H., Rognlie, M., Straub, L. (2024).
+\emph{Managing an Energy Shock}. Working paper.
+\bibitem{DCEGM2017} Iskhakov, F., J{\o}rgensen, T., Rust, J., Schjerning, B.
+(2017). \emph{The endogenous grid method for discrete-continuous dynamic choice
+models with (or without) taste shocks}. Quantitative Economics 8(2), 317--365.
+\end{thebibliography}
+
+\end{document}

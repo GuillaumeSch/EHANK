@@ -1,0 +1,66 @@
+\section{Balance-of-payments booking of the adoption flows}
+\label{app:booking}
+
+The sign and magnitude of the adoption channel's contribution to output depend
+on how the green-margin resource flows, the switching cost $\psi_g D^{sw}$ and
+the green energy bill, are booked in the balance of payments. The main text
+reports the import booking throughout. This appendix collects the two results
+that hinge on that choice: the domestic-booking sign comparison, and the
+carbon-revenue recycling experiment, which is naturally a booking-conditional
+statement about where the switching subsidy lands.
+
+\subsection{Import versus domestic booking of the adoption flows}\label{app:booking_flows}
+Both statics of Section~\ref{sec:signmap} are conditional on the import booking of the
+adoption flows. We solve the model under the alternative domestic booking of
+Section~\ref{sec:bop}, green energy and green installation as competitive,
+zero-profit domestic value added rebated to households, with only brown energy
+imported, which resolves the phantom-dividend problem and clears to machine
+precision. Under this booking neither the switching cost nor the green energy
+bill is a leakage, and the adoption channel's contribution to cumulative output
+($\Delta_{24}$) flips sign, as Table~\ref{tab:signmap} reports:
+\IfFileExists{output/tab_signmap_booking.tex}{\input{output/tab_signmap_booking.tex}}
+
+
+\subsection{Recycling the carbon revenue: rebate versus green subsidy}
+\label{sec:recycle}
+
+The welfare-optimal carbon tax of Section~\ref{sec:carbontax} returns its
+revenue lump sum. An alternative earmarks it to the transition itself, paying a
+share $s_g$ of the green switching cost. We compare the two recyclings across
+carbon-tax rates $\tau_b\in\{0.10,0.20,0.30\}$, holding $\psi_g$ at its no-tax
+value so the steady-state green share floats (Figures~\ref{fig:taub_rebate}
+and~\ref{fig:taub_green}). Under the lump-sum rebate the steady-state green
+share rises from $8.9\%$ to $20.1\%$ across the grid, and the whole brown-price
+path in the crisis shifts up by the factor $(1+\tau_b)$: the pre-tax price
+passes the world shock through identically, while households pay the
+tax-inclusive price. Under \emph{budget-neutral} green-subsidy recycling, $s_g$
+solved so that the switching subsidy exactly exhausts the carbon revenue
+($T^{\mathrm{reb}}=0$),the revenue funds a subsidy covering $35$--$40\%$ of
+the switching cost and lifts the steady-state green share to $27$--$46\%$.
+
+Two features are worth flagging. First, the carbon base is self-eroding: at
+$\tau_b=0.10$ the revenue is a third smaller under green-subsidy recycling than
+under the rebate, because the greener economy holds less brown-durable stock to
+tax. Second, the crisis-time greening response is \emph{smaller}, not larger,
+from the greener starting point under the subsidy: recycling that greens the
+economy through a lower switching \emph{cost} preferentially converts the
+households nearest the logit margin, leaving a residual brown pool that is less
+responsive to the shock: the mirror image of the rebate, which greens through a
+higher permanent brown \emph{price} and leaves the residual pool closer to the
+margin. This is the adoption-absorber exhaustion of Section~\ref{sec:routeA}
+seen across policy instruments rather than across shock persistence.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig_exante_taub_rebate.png}
+\caption{Carbon-tax sweep, lump-sum rebate: laissez-faire and ex-post cap
+against the ex-ante ETS economy at $\tau_b\in\{0.10,0.20,0.30\}$.}
+\label{fig:taub_rebate}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{output/fig_exante_taub_greensub_bn.png}
+\caption{Carbon-tax sweep, budget-neutral green-subsidy recycling
+($T^{\mathrm{reb}}=0$, $s_g$ endogenous). Same axes as
+Figure~\ref{fig:taub_rebate}.}
+\label{fig:taub_green}
+\end{figure}
