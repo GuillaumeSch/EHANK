@@ -73,7 +73,7 @@ def _cum(x):
 
 IRF_VARS = [
     ('y', r'Output $y$'), ('C', r'Consumption $C$'),
-    ('CE_DUR_B', r'Brown energy $C^B_E$'), ('pi_ann', r'CPI inflation (ann.)'),
+    ('CE_B', r'Brown energy $C^B_E$'), ('pi_ann', r'CPI inflation (ann.)'),
     ('D_GREEN', r'Green share $D^G$'), ('D_SWITCH', r'Switchers $D^{sw}$'),
     ('pE_B_P', r'Brown price $P^E_B/P$'), ('nx_gdp', r'Net exports / GDP'),
 ]

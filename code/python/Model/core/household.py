@@ -47,7 +47,7 @@ def hh_income(e_grid, atw_n_num, r_num, p_num, pE_B_P, cbarE, scale_w, markup_ss
     Tf = - pE_B_P * cbarE * (atw_n * markup_ss) * scale_w - pE_B_P * cbarE * (1 - scale_w)
     # Slutsky transfer, indexed to pre-crisis brown energy; epsT is the untargeted sum.
     Tfiscal = epsT + insE * (pE_P - pE_P_ss) * cE_ss_grid
-    # green subsidy: government pays fraction s_g of the switching cost
+
     Tswitch = - (1 - s_g) * psi_g * PAYS_SWITCH
 
     coh = ((1 + r_num) * a_grid + atw_n_num * e_grid[:, np.newaxis]
@@ -120,24 +120,26 @@ def compute_weighted_mpc(c, a_grid, r_num, e_grid, p_num):
     return mpc
 
 
-def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E):
+def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E, psi_g_bar):
     """Population shares, switching flow, and CES demand by durable type."""
     d_green = np.zeros_like(c) + IS_GREEN[:, np.newaxis, np.newaxis]
     d_switch = np.zeros_like(c) + PAYS_SWITCH[:, np.newaxis, np.newaxis]
 
+    cHF_switch = psi_g_bar * d_switch
+
     pE_d = pE_B_P + IS_GREEN * (pE_G_P - pE_B_P)
     p_rel_bc = p_rel[:, np.newaxis, np.newaxis]
     cE_dur = alpha_E * (pE_d[:, np.newaxis, np.newaxis] / p_rel_bc) ** (-eta_E) * c
-    cHF_dur = (1 - alpha_E) * (pHF_P / p_rel_bc) ** (-eta_E) * c
+    cHF = (1 - alpha_E) * (pHF_P / p_rel_bc) ** (-eta_E) * c
 
-    cE_dur_b = cE_dur * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
-    cE_dur_g = cE_dur * IS_GREEN[:, np.newaxis, np.newaxis]
+    cE_b = cE_dur * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
+    cE_g = cE_dur * IS_GREEN[:, np.newaxis, np.newaxis]
     # split bundle consumption by current technology
     c_green = c * IS_GREEN[:, np.newaxis, np.newaxis]
     c_brown = c * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
     c_switch = c * PAYS_SWITCH[:, np.newaxis, np.newaxis]   # new adopters (state GB)
     p_times_c = p_rel_bc * c
-    return d_green, d_switch, cE_dur_b, cE_dur_g, cHF_dur, c_green, c_brown, c_switch, p_times_c
+    return d_green, d_switch, cE_b, cE_g, cHF, c_green, c_brown, c_switch, p_times_c, cHF_switch
 
 
 def flow_utility(c, ghh, eis):
@@ -158,7 +160,7 @@ hh_one = StageBlock([dep_stage, prod_stage, durables_stage, consav_stage], name=
                     backward_init=hh_init,
                     hetinputs=[make_grids, energy_price_bundle, hh_income])
 
-GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_DUR_B', 'CE_DUR_G', 'CHF_DUR', 'UTIL', 'C_GREEN', 'C_BROWN', 'C_SWITCH', 'P_TIMES_C']
+GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_B', 'CE_G', 'CHF', 'UTIL', 'C_GREEN', 'C_BROWN', 'C_SWITCH', 'P_TIMES_C', 'CHF_SWITCH']
 
 
 @sj.simple
@@ -172,26 +174,28 @@ def group_betas(beta_spread, beta_max):
 @sj.simple
 def aggregate_groups(C_0, C_1, C_2, A_0, A_1, A_2, MPC_0, MPC_1, MPC_2,
                      D_GREEN_0, D_GREEN_1, D_GREEN_2, D_SWITCH_0, D_SWITCH_1, D_SWITCH_2,
-                     CE_DUR_B_0, CE_DUR_B_1, CE_DUR_B_2, CE_DUR_G_0, CE_DUR_G_1, CE_DUR_G_2,
-                     CHF_DUR_0, CHF_DUR_1, CHF_DUR_2,
+                     CE_B_0, CE_B_1, CE_B_2, CE_G_0, CE_G_1, CE_G_2,
+                     CHF_0, CHF_1, CHF_2,
                      C_GREEN_0, C_GREEN_1, C_GREEN_2, C_BROWN_0, C_BROWN_1, C_BROWN_2,
                      C_SWITCH_0, C_SWITCH_1, C_SWITCH_2,
                      P_TIMES_C_0, P_TIMES_C_1, P_TIMES_C_2,
+                     CHF_SWITCH_0, CHF_SWITCH_1, CHF_SWITCH_2,
                      beta_0, beta_1, beta_2):
     C = (C_0 + C_1 + C_2) / 3
     A = (A_0 + A_1 + A_2) / 3
     MPC = (MPC_0 + MPC_1 + MPC_2) / 3
     D_GREEN = (D_GREEN_0 + D_GREEN_1 + D_GREEN_2) / 3
     D_SWITCH = (D_SWITCH_0 + D_SWITCH_1 + D_SWITCH_2) / 3
-    CE_DUR_B = (CE_DUR_B_0 + CE_DUR_B_1 + CE_DUR_B_2) / 3
-    CE_DUR_G = (CE_DUR_G_0 + CE_DUR_G_1 + CE_DUR_G_2) / 3
-    CHF_DUR = (CHF_DUR_0 + CHF_DUR_1 + CHF_DUR_2) / 3
+    CE_B = (CE_B_0 + CE_B_1 + CE_B_2) / 3
+    CE_G = (CE_G_0 + CE_G_1 + CE_G_2) / 3
+    CHF = (CHF_0 + CHF_1 + CHF_2) / 3
     C_GREEN = (C_GREEN_0 + C_GREEN_1 + C_GREEN_2) / 3
     C_BROWN = (C_BROWN_0 + C_BROWN_1 + C_BROWN_2) / 3
     C_SWITCH = (C_SWITCH_0 + C_SWITCH_1 + C_SWITCH_2) / 3
     beta = (beta_0 + beta_1 + beta_2) / 3
     P_times_C = (P_TIMES_C_0 + P_TIMES_C_1 + P_TIMES_C_2) / 3
-    return C, A, MPC, D_GREEN, D_SWITCH, CE_DUR_B, CE_DUR_G, CHF_DUR, C_GREEN, C_BROWN, C_SWITCH, P_times_C, beta
+    CHF_SWITCH = (CHF_SWITCH_0 + CHF_SWITCH_1 + CHF_SWITCH_2) / 3
+    return C, A, MPC, D_GREEN, D_SWITCH, CE_B, CE_G, CHF, C_GREEN, C_BROWN, C_SWITCH, P_times_C, CHF_SWITCH, beta
 
 
 def hh_ha_durable(n_beta=3):

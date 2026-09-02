@@ -12,14 +12,12 @@ T = 300
 _UNKNOWNS_TD_BASE = {'y', 'pi', 'r', 'tauY', 'PEstar', 'w'}
 _TARGETS_TD_BASE = {'goods_clearing', 'pires', 'r_res', 'tauY_res', 'E_clearing', 'w_res'}
 
-_SS_UNKNOWNS_BASE = {'vphi': 1, 'beta_max': 0.984, 'y': 0.9868, 'psi_g': 0.253, 'Z': 1.03}
+_SS_UNKNOWNS_BASE = {'vphi': 1, 'beta_max': 0.984, 'y': 0.9868, 'psi_g_bar': 0.253, 'Z': 1.03}
 _SS_TARGETS_BASE = ['piwres', 'nfares', 'goods_clearing', 'D_GREEN_res', 'pires']
 
 
 def td_unknowns_targets(booking='import', ets=False):
     u, t = set(_UNKNOWNS_TD_BASE), set(_TARGETS_TD_BASE)
-    if booking == 'domestic':
-        u.add('Tgreen'); t.add('Tgreen_res')
     if ets:
         u.add('Trebate'); t.add('Trebate_res')
     return u, t
@@ -27,9 +25,6 @@ def td_unknowns_targets(booking='import', ets=False):
 
 def ss_unknowns_targets(booking='import', ets=False):
     u, t = dict(_SS_UNKNOWNS_BASE), list(_SS_TARGETS_BASE)
-    if booking == 'domestic':
-        u = dict(u); u['Tgreen'] = 0.002
-        t = t + ['Tgreen_res']
     if ets:
         u = dict(u); u['Trebate'] = 0.0
         t = t + ['Trebate_res']
@@ -41,13 +36,12 @@ SS_UNKNOWNS, SS_TARGETS = ss_unknowns_targets('import')
 
 
 def dissolve_list(booking='import'):
-    ca = 'CA_dom' if booking == 'domestic' else 'CA'
-    return ['unions', 'UIP', ca, 'piW_to_W', 'pitop']
+    return ['unions', 'UIP', 'CA', 'piW_to_W', 'pitop']
 
 
 def ss_unknowns_targets_fixed_psi(booking='import', ets=False):
     u, t = ss_unknowns_targets(booking, ets=ets)
-    u = {k: v for k, v in u.items() if k != 'psi_g'}
+    u = {k: v for k, v in u.items() if k != 'psi_g_bar'}
     t = [x for x in t if x != 'D_GREEN_res']
     return u, t
 
@@ -58,16 +52,12 @@ SS_UNKNOWNS_FIXED_PSI, SS_TARGETS_FIXED_PSI = ss_unknowns_targets_fixed_psi('imp
 def build_model(numeraire='cpi', booking='import', ets=False):
     """Assemble the full DAG."""
     num = B.numeraire_cpi
-    if booking == 'domestic':
-        margin = [B.green_sector]
-        ca, imp, eqm = B.CA_dom, B.importProfits_dom, B.eqm_cond_dom
-    else:
-        margin = [B.switching_imports, B.energy_gap]
-        ca, imp, eqm = B.CA, B.importProfits, B.eqm_cond
+    margin = [B.energy_gap]
+    ca, imp, eqm = B.CA, B.importProfits, B.eqm_cond
     return sj.combine([
         hh_ha_durable(),
         num, B.assets_convert,
-        B.hh_outputs_dur, B.green_energy_price, *margin,
+        B.hh_outputs, *margin,
         B.income, B.profitcenters, B.importPrices, imp,
         B.revaluation, B.revaluation_dom, B.foreign_c, B.UIP, B.IEA, ca,
         B.unions, B.piW_to_W, B.CESprices, B.price_levels, B.pitop,
@@ -98,8 +88,7 @@ def solve_ss(model, calib, verbose=False, unknowns=None, targets=None,
 
 def _energy_demand(ss, booking):
     """SS energy demand clearing against fixed world supply."""
-    return (float(ss['CE_DUR_B'] + ss['prodE']) if booking == 'domestic'
-            else float(ss['cE'] + ss['prodE']))
+    return float(ss['cE'] + ss['prodE'])
 
 
 def _calibrate_supply(model, calib, unknowns, targets, booking, iters=6, tol=1e-10):
@@ -198,7 +187,7 @@ def run(model, shock_kind='price', policy='none', model_variant='adoption',
             k: v for k, v in ov.items()
             if k not in ('tau_b', 'tau_g', 's_g_ets', 's_g')})
         ss_base = solve_ss(model, base_calib, booking=booking)
-        calib['psi_g'] = float(ss_base['psi_g'])
+        calib['psi_g_bar'] = float(ss_base['psi_g_bar'])
         unknowns, targets = ss_unknowns_targets_fixed_psi(booking, ets=True)
     else:
         unknowns, targets = ss_unknowns_targets(booking)

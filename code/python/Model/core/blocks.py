@@ -4,42 +4,25 @@ import sequence_jacobian as sj
 
 
 @sj.simple
-def hh_outputs_dur(CE_DUR_B, CE_DUR_G, CHF_DUR, pH_PHF, pF_PHF, eta, alpha_F,
+def hh_outputs(CE_B, CE_G, CHF, CHF_SWITCH, pH_PHF, pF_PHF,
+                   pH_PHF_SWITCH, pF_PHF_SWITCH, eta, alpha_F, alpha_F_switch,
                    cbarE, scale_w, atw_n, markup_ss):
-    """Household energy and non-energy aggregates (replaces ARS hh_outputs)."""
-    cE = cbarE * (atw_n * markup_ss) * scale_w + cbarE * (1 - scale_w) + CE_DUR_B + CE_DUR_G
-    cH = (1 - alpha_F) * pH_PHF ** (-eta) * CHF_DUR
-    cF = alpha_F * pF_PHF ** (-eta) * CHF_DUR
-    return cH, cF, cE
+    """Household energy/non-energy aggregates and the adoption-bundle CES split.
+    alpha_F_switch = 1 gives the pure-import booking (cH_switch = 0); lower
+    values route adoption spending onto the home good (into goods clearing)."""
+    cE = cbarE * (atw_n * markup_ss) * scale_w + cbarE * (1 - scale_w) + CE_B + CE_G
+    cH = (1 - alpha_F) * pH_PHF ** (-eta) * CHF
+    cF = alpha_F * pF_PHF ** (-eta) * CHF
+    cH_switch = (1 - alpha_F_switch) * pH_PHF_SWITCH ** (-eta) * CHF_SWITCH
+    cF_switch = alpha_F_switch * pF_PHF_SWITCH ** (-eta) * CHF_SWITCH
+    return cH, cF, cE, cH_switch, cF_switch
 
 
 @sj.simple
-def green_energy_price(pE_B_P, pE_P, pE_g_ratio, pass_g, tau_g):
-    """Green energy price with explicit pass-through."""
-    pE_G_P = pE_g_ratio * pE_P.ss * (1 + tau_g) * (pE_B_P / pE_B_P.ss) ** pass_g
-    return pE_G_P
-
-
-@sj.simple
-def switching_imports(psi_g, D_SWITCH):
-    """Resource cost of brown->green switching, booked as an import."""
-    imports_dur = psi_g * D_SWITCH
-    return imports_dur
-
-
-@sj.simple
-def energy_gap(pE_B_pretax_P, pE_G_P, tau_g, CE_DUR_G):
-    """Balance-of-payments counterpart of adopters' cheaper energy."""
-    pE_G_pretax_P = pE_G_P / (1 + tau_g)
-    energy_gap_agg = (pE_B_pretax_P - pE_G_pretax_P) * CE_DUR_G
+def energy_gap(pE_B_pretax_P, pE_G_pretax_P, CE_G):
+    """Balance-of-payments counterpart of adopters' cheaper energy (pretax)."""
+    energy_gap_agg = (pE_B_pretax_P - pE_G_pretax_P) * CE_G
     return energy_gap_agg
-
-
-@sj.simple
-def green_sector(pE_G_P, CE_DUR_G, psi_g, D_SWITCH, Tgreen):
-    """Domestic green sector (booking='domestic')."""
-    Tgreen_res = Tgreen - (pE_G_P * CE_DUR_G + psi_g * D_SWITCH)
-    return Tgreen_res
 
 
 
@@ -63,7 +46,7 @@ def assets_convert(A, p_num):
 
 @sj.solved(unknowns={'J': 15., 'j': 15.}, targets=['Jres', 'jres'], solver="broyden_custom")
 def income(y, w, Z, pH_P, pE_P, J, j, rante, dividend_X, tauY, pcX_home,
-           markup_ss, prodE_share, prodE_es):
+           markup_ss, prodE_share, prodE_es, psi_g_bar, pHF_SWITCH_P):
     prodE = prodE_share * (pH_P / pE_P) ** prodE_es * y
     if prodE_share == 0:
         n = y / Z
@@ -79,7 +62,8 @@ def income(y, w, Z, pH_P, pE_P, J, j, rante, dividend_X, tauY, pcX_home,
         div_tot += dividend_X
     Jres = div_tot + J(1) / (1 + rante) - J
     jres = J(1) / (1 + rante) - j
-    return jres, Jres, atw_n, dividend, gdp, atw, n, btw_n, prodE
+    psi_g = psi_g_bar * pHF_SWITCH_P   # switching cost = real bundle priced at pHF_SWITCH_P
+    return jres, Jres, atw_n, dividend, gdp, atw, n, btw_n, prodE, psi_g
 
 
 @sj.simple
@@ -100,8 +84,11 @@ def foreignPrices(piF, PF, P, Q, PFstar, rante, theta_F):
 
 
 @sj.solved(unknowns={'piE': 0., 'PE': 1.}, targets=['piE_res', 'PEres'], solver="broyden_custom")
-def energyPrices(piE, PE, P, Q, PEstar, rante, theta_E, tauE, tau_b):
-    """Sticky retail energy price, price cap, and carbon tax."""
+def energyPrices(piE, PE, P, Q, PEstar, PEGstar, rante, theta_E, tauE, tau_b, tau_g):
+    """Sticky retail brown energy price with cap and carbon tax; green energy at
+    the exogenous world price Q*PEGstar, plus its own carbon tax tau_g. Both
+    household prices are tax-inclusive (pE_B_P, pE_G_P); pretax prices feed the
+    resource cost (BoP) and the ETS carbon account."""
     PEres = (1 + piE) * PE(-1) - PE
     pE_P = PE / P
     beta_E = 1 / (1 + rante.ss)
@@ -112,7 +99,9 @@ def energyPrices(piE, PE, P, Q, PEstar, rante, theta_E, tauE, tau_b):
     pE_B_pretax_P = (1 - tauE) * pE_P + tauE * pE_P.ss
     pE_B_P = pE_B_pretax_P * (1 + tau_b)
     pE_B = pE_B_P * P
-    return piE_res, PEres, pE_P, pE_P_ss, pE_B_P, pE_B, pE_B_pretax_P
+    pE_G_pretax_P = Q * PEGstar
+    pE_G_P = pE_G_pretax_P * (1 + tau_g)
+    return piE_res, PEres, pE_P, pE_P_ss, pE_B_P, pE_B, pE_B_pretax_P, pE_G_P, pE_G_pretax_P
 
 
 importPrices = sj.combine([foreignPrices, energyPrices])
@@ -123,14 +112,6 @@ def importProfits(pF_P, pE_P, Q, PFstar, PEstar, cF, cE, prodE):
     # diagnostic
     DF = (pF_P - Q * PFstar) * cF
     DE = (pE_P - Q * PEstar) * (cE + prodE)
-    return DF, DE
-
-
-@sj.simple
-def importProfits_dom(pF_P, pE_P, Q, PFstar, PEstar, cF, CE_DUR_B, prodE):
-    # diagnostic
-    DF = (pF_P - Q * PFstar) * cF
-    DE = (pE_P - Q * PEstar) * (CE_DUR_B + prodE)
     return DF, DE
 
 
@@ -172,26 +153,11 @@ def IEA(J_Esupply, PEstar, P, rstar, Gamma_arb, E_supply_shock, rante, Q, zetaEs
 
 
 @sj.solved(unknowns={'nfa': (-2, 2)}, targets=['nfares'], solver="brentq")
-def CA(nfa, Q, pHstar, cHstar, pF_P, cF, pE_P, cE, prodE, rante, r, A_cpi,
-       rdom, Adom, zetaEsupply, PEstar, E_supply, y, imports_dur, energy_gap_agg):
+def CA(nfa, Q, pHstar, cHstar, pF_P, cF, cF_switch, pE_P, cE, prodE, rante, r, A_cpi,
+       rdom, Adom, zetaEsupply, PEstar, E_supply, y, energy_gap_agg):
     """Balance of payments (import booking)."""
     exports = Q * (pHstar * cHstar + PEstar * zetaEsupply * E_supply)
-    imports = pF_P * cF + pE_P * (cE + prodE) + imports_dur - energy_gap_agg
-    imports_pc = imports / imports.ss
-    exports_pc = exports / exports.ss
-    netexports = exports - imports
-    revaluation_term = (r - rante(-1)) * A_cpi(-1) - (rdom - rante(-1)) * Adom(-1)
-    nfares = netexports + revaluation_term + (1 + rante(-1)) * nfa(-1) - nfa
-    nx_gdp = netexports / y
-    return nfares, netexports, revaluation_term, exports, imports, nx_gdp, imports_pc, exports_pc
-
-
-@sj.solved(unknowns={'nfa': (-2, 2)}, targets=['nfares'], solver="brentq")
-def CA_dom(nfa, Q, pHstar, cHstar, pF_P, cF, pE_P, CE_DUR_B, prodE, rante, r,
-           A_cpi, rdom, Adom, zetaEsupply, PEstar, E_supply, y):
-    """Balance of payments (domestic booking: only brown energy imported)."""
-    exports = Q * (pHstar * cHstar + PEstar * zetaEsupply * E_supply)
-    imports = pF_P * cF + pE_P * (CE_DUR_B + prodE)
+    imports = pF_P * cF + pF_P * cF_switch + pE_P * (cE + prodE) - energy_gap_agg
     imports_pc = imports / imports.ss
     exports_pc = exports / exports.ss
     netexports = exports - imports
@@ -218,7 +184,8 @@ def piW_to_W(piw, W):
 
 
 @sj.simple
-def CESprices(Q, eta, alpha_F, gamma, eta_E, alpha_E, pE_B_P, pE_G_P, pF_P, markup_ss, Z, w):
+def CESprices(Q, eta, alpha_F, gamma, eta_E, alpha_E, pE_B_P, pE_G_P, pF_P, markup_ss, Z, w,
+              alpha_F_switch):
     alpha = alpha_E + (1 - alpha_E) * alpha_F
     pH_P = markup_ss / Z * w
     if eta == 1:
@@ -238,8 +205,15 @@ def CESprices(Q, eta, alpha_F, gamma, eta_E, alpha_E, pE_B_P, pE_G_P, pF_P, mark
     else:
         pB_P = ((1 - alpha_E) * pHF_P ** (1 - eta_E) + alpha_E * pE_B_P ** (1 - eta_E)) ** (1 / (1 - eta_E))
         pG_P = ((1 - alpha_E) * pHF_P ** (1 - eta_E) + alpha_E * pE_G_P ** (1 - eta_E)) ** (1 / (1 - eta_E))
+    # Adoption-bundle price index (home/foreign CES, import share alpha_F_switch).
+    if eta == 1:
+        pHF_SWITCH_P = pH_P ** (1 - alpha_F_switch) * pF_P ** alpha_F_switch
+    else:
+        pHF_SWITCH_P = ((1 - alpha_F_switch) * pH_P ** (1 - eta) + alpha_F_switch * pF_P ** (1 - eta)) ** (1 / (1 - eta))
+    pF_PHF_SWITCH = pF_P / pHF_SWITCH_P
+    pH_PHF_SWITCH = pH_P / pHF_SWITCH_P
     chi_tilde = (1 - alpha) * (alpha_F * eta + (1 - alpha_F) * eta_E) + alpha * gamma
-    return chi_tilde, pF_PHF, pH_PHF, pHstar, pHF_P, alpha, outer_nest, pH_P, pB_P, pG_P
+    return chi_tilde, pF_PHF, pH_PHF, pHstar, pHF_P, alpha, outer_nest, pH_P, pB_P, pG_P, pHF_SWITCH_P, pF_PHF_SWITCH, pH_PHF_SWITCH
 
 
 @sj.simple
@@ -271,16 +245,16 @@ def mon_policy(ishock, rstar, pi, phi_pi, phi_pie, rho_i, inom, phi_piw, w, P, i
 
 
 @sj.solved(unknowns={'B': (-1, 1)}, targets=['B_res'])
-def fiscal(B, rante, btw_n, psiB, tauY, epsT, insE, pE_P, cE, CE_DUR_B, tauE, bb,
-           subsidy_brown_only, s_g, psi_g, D_SWITCH, tau_b, tau_g, pE_g_ratio,
-           CE_DUR_G, Trebate, pE_B_pretax_P):
+def fiscal(B, rante, btw_n, psiB, tauY, epsT, insE, pE_P, cE, CE_B, tauE, bb,
+           s_g, psi_g, D_SWITCH, tau_b, tau_g, pE_G_P,
+           CE_G, Trebate, pE_B_pretax_P, pE_G_pretax_P):
     """Government budget: energy-crisis instruments plus the ETS carbon account."""
     Tuntargeted = epsT
-    Ttargeted = insE * (pE_P - pE_P.ss) * CE_DUR_B.ss
-    base_S = CE_DUR_B if subsidy_brown_only else cE
+    Ttargeted = insE * (pE_P - pE_P.ss) * CE_B.ss
+    base_S = cE   # all energy is imported at the market price pE_P (see CA); the cap subsidy bridges household payment vs that market cost, so the base is total energy
     Subsidy = tauE * (pE_P - pE_P.ss) * base_S
     Subsidy_green = (s_g - s_g.ss) * psi_g * D_SWITCH
-    R_carbon = tau_b * pE_B_pretax_P * CE_DUR_B + tau_g * (pE_g_ratio * pE_P.ss) * CE_DUR_G
+    R_carbon = tau_b * pE_B_pretax_P * CE_B + tau_g * pE_G_pretax_P * CE_G
     green_subsidy_p = s_g.ss * psi_g * D_SWITCH
     Trebate_res = Trebate - (R_carbon - green_subsidy_p)
     spending = Tuntargeted + Ttargeted + Subsidy + Subsidy_green + Trebate + green_subsidy_p
@@ -302,33 +276,16 @@ def annualize(pi, piw, inom, r, rante, piH):
 
 
 @sj.simple
-def eqm_cond(y, cH, cHstar, A_cpi, gdp, nfa, j, B, cE, prodE, PEstar,
+def eqm_cond(y, cH, cHstar, cH_switch, A_cpi, gdp, nfa, j, B, cE, prodE, PEstar,
              PEstar_shock, E_supply_elasticity, E_supply, zetaEsupply, j_Esupply,
              D_GREEN, D_GREEN_ss_target):
     """Market clearing: nfa = A - j - B - zetaEsupply*j_Esupply."""
-    goods_clearing = cH + cHstar - y
+    goods_clearing = cH + cHstar + cH_switch - y
     assets_clearing = A_cpi - nfa - j - B - zetaEsupply * j_Esupply
     if E_supply_elasticity == np.inf:
         E_clearing = PEstar - PEstar_shock
     else:
         E_clearing = (cE + prodE) - E_supply
-    PEstar_diff = PEstar - PEstar_shock
-    gdp_t = gdp - 1
-    D_GREEN_res = D_GREEN - D_GREEN_ss_target
-    return goods_clearing, assets_clearing, E_clearing, PEstar_diff, gdp_t, D_GREEN_res
-
-
-@sj.simple
-def eqm_cond_dom(y, cH, cHstar, A_cpi, gdp, nfa, j, B, CE_DUR_B, prodE, PEstar,
-                 PEstar_shock, E_supply_elasticity, E_supply, zetaEsupply, j_Esupply,
-                 D_GREEN, D_GREEN_ss_target):
-    """Domestic booking: only brown (imported) energy clears against world supply."""
-    goods_clearing = cH + cHstar - y
-    assets_clearing = A_cpi - nfa - j - B - zetaEsupply * j_Esupply
-    if E_supply_elasticity == np.inf:
-        E_clearing = PEstar - PEstar_shock
-    else:
-        E_clearing = (CE_DUR_B + prodE) - E_supply
     PEstar_diff = PEstar - PEstar_shock
     gdp_t = gdp - 1
     D_GREEN_res = D_GREEN - D_GREEN_ss_target

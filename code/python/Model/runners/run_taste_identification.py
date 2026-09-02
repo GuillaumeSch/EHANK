@@ -14,20 +14,20 @@ OUT = 'paper/output'
 SIGMAS = [0.02, 0.035, 0.05, 0.07, 0.10, 0.15, 0.20]
 # Subsidy moment in dollars: one model unit = quarterly household consumption.
 QUARTERLY_C_USD = 20_000
-BASE_RATIO = 0.80          # pE_g_ratio at calibration
+BASE_RATIO = 0.54          # PEGstar at calibration (matches baseline)
 DRATIO = 0.01              # perturbation for the SS elasticity
 SAVING0 = 1.0 - BASE_RATIO  # baseline green operating-cost advantage
 
 def _flow_fixed(model, sigma, psi):
     cal = make_calibration(NUMERAIRE, BOOKING, taste_shock=sigma, psi_g=psi,
-                           pE_g_ratio=BASE_RATIO)
+                           PEGstar=BASE_RATIO)
     ss = solve_ss(model, cal, unknowns=SS_UNKNOWNS_FIXED_PSI,
                   targets=SS_TARGETS_FIXED_PSI)
     return float(ss['D_SWITCH']) / (1 - float(ss['D_GREEN']))
 
 def _DG_fixed(model, sigma, ratio, psi):
     cal = make_calibration(NUMERAIRE, BOOKING, taste_shock=sigma, psi_g=psi,
-                           pE_g_ratio=ratio)
+                           PEGstar=ratio)
     ss = solve_ss(model, cal, unknowns=SS_UNKNOWNS_FIXED_PSI,
                   targets=SS_TARGETS_FIXED_PSI)
     return float(ss['D_GREEN'])

@@ -36,17 +36,19 @@ BASE = dict(
 
 DURABLE = dict(
     delta_g=0.05,      # green durable breakdown rate (quarterly)
-    psi_g=0.253,       # switching cost initial guess; solved to D_GREEN_ss=0.05
+    psi_g_bar=0.253,   # switching-cost bundle quantity; solved to D_GREEN_ss=0.05
     taste_shock=0.05,  # logit scale on the adoption choice
     # Green/brown operating-cost ratio rho = (P_elec*e_BEV)/(P_petrol*e_ICE)
     #   = (0.290 EUR/kWh * 0.21 kWh/km) / (1.62 EUR/L * 0.070 L/km) = 0.54
     # Prices: Eurostat nrg_pc_204 (electricity), EC Weekly Oil Bulletin (petrol).
     # Efficiencies: IEA Global EV Outlook 2026 (BEV 21 kWh/100km); on-road ICE
     # ~7 L/100km (FR SDES 7.1).
-    pE_g_ratio=0.54,   # steady-state green/brown operating-cost ratio
-    pass_g=0.0,        # pass-through of brown energy price to green price
+    PEGstar=0.54,      # exogenous world price of green energy (green/brown SS ratio)
     green_block=0.0,   # 0 = adoption open; large = adoption shut (counterfactual)
     D_GREEN_ss_target=0.05,
+    alpha_F_switch=1.0,  # import share of the adoption-expenditure bundle;
+                         # 1 = pure-import booking (baseline), <1 routes part of
+                         # adoption spending onto domestic output
 )
 
 
@@ -101,10 +103,7 @@ def make_calibration(numeraire='cpi', booking='import', ets=False, **overrides):
     c.update(POLICY)
     c.update(overrides)
     c = _derived(c)
-    c['subsidy_brown_only'] = 1.0 if booking == 'domestic' else 0.0
     c['p_num'] = 1.0
-    if booking == 'domestic':
-        c.pop('Tgreen', None)
     if ets:
         c.pop('Trebate', None)
     return c
@@ -113,7 +112,7 @@ def make_calibration(numeraire='cpi', booking='import', ets=False, **overrides):
 def set_energy_grids_flat(calib, ss):
     """Flat (untargeted) counterpart of set_energy_grids."""
     out = dict(calib)
-    k = float(ss['CE_DUR_B'])
+    k = float(ss['CE_B'])
     for i in range(3):
         out[f'cE_ss_grid_{i}'] = np.full((calib['n_e'], calib['n_a']), k)
     return out
@@ -123,7 +122,7 @@ def set_energy_grids(calib, ss):
     """Fill cE_ss_grid_i with each household's SS brown energy demand."""
     out = dict(calib)
     for i in range(3):
-        cE_b = np.asarray(ss.internals[f'hh_{i}']['consav']['cE_dur_b'])  # (4,e,a)
+        cE_b = np.asarray(ss.internals[f'hh_{i}']['consav']['cE_b'])  # (4,e,a)
         D = np.asarray(ss.internals[f'hh_{i}']['consav']['D'])
         w = D.sum(axis=0, keepdims=True)
         w = np.where(w > 0, w, 1.0)

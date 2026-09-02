@@ -50,16 +50,12 @@ def hh_ha_durable_frozen(n_beta=3):
 def build_model_frozen(numeraire='cpi', booking='import', ets=False):
     """Same DAG as model.build_model, with the frozen-choice household."""
     num = B.numeraire_cpi
-    if booking == 'domestic':
-        margin = [B.green_sector]
-        ca, imp, eqm = B.CA_dom, B.importProfits_dom, B.eqm_cond_dom
-    else:
-        margin = [B.switching_imports, B.energy_gap]
-        ca, imp, eqm = B.CA, B.importProfits, B.eqm_cond
+    margin = [B.energy_gap]
+    ca, imp, eqm = B.CA, B.importProfits, B.eqm_cond
     return sj.combine([
         hh_ha_durable_frozen(),
         num, B.assets_convert,
-        B.hh_outputs_dur, B.green_energy_price, *margin,
+        B.hh_outputs, *margin,
         B.income, B.profitcenters, B.importPrices, imp,
         B.revaluation, B.revaluation_dom, B.foreign_c, B.UIP, B.IEA, ca,
         B.unions, B.piW_to_W, B.CESprices, B.price_levels, B.pitop,

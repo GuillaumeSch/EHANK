@@ -41,7 +41,7 @@ def check_stock_flow(ss):
 PHASE2_KEYS = ['y', 'C', 'A', 'cE', 'cH', 'cF', 'n', 'w', 'pH_P', 'nfa', 'vphi',
                'beta_max', 'MPC']
 
-def check_phase2(solve, make, probes=({'pE_g_ratio': 0.8}, {'pE_g_ratio': 0.5},
+def check_phase2(solve, make, probes=({'PEGstar': 0.8}, {'PEGstar': 0.5},
                                       {'psi_g': 0.253}, {'psi_g': 1.0}),
                   unknowns_shut=None, targets_shut=None):
     """With green_block large, D_GREEN is pinned at 0 for every psi_g."""

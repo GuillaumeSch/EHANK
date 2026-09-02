@@ -24,7 +24,7 @@ CACHE = {}
 MODEL = build_model(NUMERAIRE, booking=BOOKING)
 from tools import latex_tables as LT
 
-KEEP = ['y', 'C', 'cE', 'CE_DUR_B', 'pi', 'pi_ann', 'D_GREEN', 'D_SWITCH', 'pE_P', 'n',
+KEEP = ['y', 'C', 'cE', 'CE_B', 'pi', 'pi_ann', 'D_GREEN', 'D_SWITCH', 'pE_P', 'n',
         'spending', 'nx_gdp', 'PEstar', 'E_supply', 'r_ann', 'w', 'piH_ann',
         'B', 'tauY', 'pE_B_P', 'pE_G_P', 'assets_clearing', 'goods_clearing', 'E_clearing', 'nfares']
 SSKEEP = ['alpha_E', 'eta_E', 'pE_B_P', 'pE_G_P', 'D_GREEN', 'eis', 'psi_g'] + \
@@ -71,7 +71,7 @@ def figure(fname, series, keys, suptitle, ncol=3):
     fig.savefig(f'{OUT}/{fname}', dpi=140)
     plt.close(fig)
 
-MACRO = [('y', r'Output $y$'), ('C', r'Consumption $C$'), ('CE_DUR_B', r'Brown Energy $c^E_B$'),
+MACRO = [('y', r'Output $y$'), ('C', r'Consumption $C$'), ('CE_B', r'Brown Energy $c^E_B$'),
          ('pE_B_P', r'Brown energy price $P^E_B/P$'),
          ('D_GREEN', r'Green share $D^{G}$'), 
          ('spending', r'Fiscal spending $G$'), ('nx_gdp', r'Net exports / GDP'),
