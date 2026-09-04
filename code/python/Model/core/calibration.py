@@ -46,7 +46,7 @@ DURABLE = dict(
     PEGstar=0.54,      # exogenous world price of green energy (green/brown SS ratio)
     green_block=0.0,   # 0 = adoption open; large = adoption shut (counterfactual)
     D_GREEN_ss_target=0.05,
-    alpha_F_switch=1.0,  # import share of the adoption-expenditure bundle;
+    alpha_F_switch=0.271,  # import share of the adoption-expenditure bundle;
                          # 1 = pure-import booking (baseline), <1 routes part of
                          # adoption spending onto domestic output
 )

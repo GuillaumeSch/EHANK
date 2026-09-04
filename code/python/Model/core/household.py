@@ -120,10 +120,17 @@ def compute_weighted_mpc(c, a_grid, r_num, e_grid, p_num):
     return mpc
 
 
-def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E, psi_g_bar):
+def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E, psi_g_bar,
+                   atw_n_num, e_grid):
     """Population shares, switching flow, and CES demand by durable type."""
     d_green = np.zeros_like(c) + IS_GREEN[:, np.newaxis, np.newaxis]
     d_switch = np.zeros_like(c) + PAYS_SWITCH[:, np.newaxis, np.newaxis]
+
+
+    lab_inc = np.zeros_like(c) + atw_n_num * e_grid[np.newaxis, :, np.newaxis]
+    # lab_inc = np.zeros_like(c) + e_grid[np.newaxis, :, np.newaxis]
+    lab_inc_green = lab_inc * IS_GREEN[:, np.newaxis, np.newaxis]
+    lab_inc_brown = lab_inc * (1.0-IS_GREEN[:, np.newaxis, np.newaxis])
 
     cHF_switch = psi_g_bar * d_switch
 
@@ -139,7 +146,12 @@ def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E, psi_g_bar):
     c_brown = c * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
     c_switch = c * PAYS_SWITCH[:, np.newaxis, np.newaxis]   # new adopters (state GB)
     p_times_c = p_rel_bc * c
-    return d_green, d_switch, cE_b, cE_g, cHF, c_green, c_brown, c_switch, p_times_c, cHF_switch
+
+    # group specific cHF values 
+    cHF_green =  cHF * IS_GREEN[:, np.newaxis, np.newaxis]
+    cHF_brown = cHF * (1.0 - IS_GREEN[:, np.newaxis, np.newaxis])
+
+    return d_green, d_switch, cE_b, cE_g, cHF, c_green, c_brown, c_switch, p_times_c, cHF_switch, cHF_green, cHF_brown, lab_inc, lab_inc_brown, lab_inc_green
 
 
 def flow_utility(c, ghh, eis):
@@ -160,7 +172,7 @@ hh_one = StageBlock([dep_stage, prod_stage, durables_stage, consav_stage], name=
                     backward_init=hh_init,
                     hetinputs=[make_grids, energy_price_bundle, hh_income])
 
-GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_B', 'CE_G', 'CHF', 'UTIL', 'C_GREEN', 'C_BROWN', 'C_SWITCH', 'P_TIMES_C', 'CHF_SWITCH']
+GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_B', 'CE_G', 'CHF', 'UTIL', 'C_GREEN', 'C_BROWN', 'C_SWITCH', 'P_TIMES_C', 'CHF_SWITCH', 'CHF_GREEN', 'CHF_BROWN', 'LAB_INC', 'LAB_INC_GREEN', 'LAB_INC_BROWN']
 
 
 @sj.simple
@@ -177,9 +189,14 @@ def aggregate_groups(C_0, C_1, C_2, A_0, A_1, A_2, MPC_0, MPC_1, MPC_2,
                      CE_B_0, CE_B_1, CE_B_2, CE_G_0, CE_G_1, CE_G_2,
                      CHF_0, CHF_1, CHF_2,
                      C_GREEN_0, C_GREEN_1, C_GREEN_2, C_BROWN_0, C_BROWN_1, C_BROWN_2,
+                     CHF_GREEN_0, CHF_GREEN_1, CHF_GREEN_2,
+                     CHF_BROWN_0, CHF_BROWN_1, CHF_BROWN_2,
                      C_SWITCH_0, C_SWITCH_1, C_SWITCH_2,
                      P_TIMES_C_0, P_TIMES_C_1, P_TIMES_C_2,
                      CHF_SWITCH_0, CHF_SWITCH_1, CHF_SWITCH_2,
+                     LAB_INC_0, LAB_INC_1, LAB_INC_2, 
+                     LAB_INC_GREEN_0, LAB_INC_GREEN_1, LAB_INC_GREEN_2, 
+                     LAB_INC_BROWN_0, LAB_INC_BROWN_1, LAB_INC_BROWN_2, 
                      beta_0, beta_1, beta_2):
     C = (C_0 + C_1 + C_2) / 3
     A = (A_0 + A_1 + A_2) / 3
@@ -191,11 +208,20 @@ def aggregate_groups(C_0, C_1, C_2, A_0, A_1, A_2, MPC_0, MPC_1, MPC_2,
     CHF = (CHF_0 + CHF_1 + CHF_2) / 3
     C_GREEN = (C_GREEN_0 + C_GREEN_1 + C_GREEN_2) / 3
     C_BROWN = (C_BROWN_0 + C_BROWN_1 + C_BROWN_2) / 3
+    CHF_GREEN = (CHF_GREEN_0 + CHF_GREEN_1 + CHF_GREEN_2) / 3
+    CHF_BROWN = (CHF_BROWN_0 + CHF_BROWN_1 + CHF_BROWN_2) / 3
     C_SWITCH = (C_SWITCH_0 + C_SWITCH_1 + C_SWITCH_2) / 3
     beta = (beta_0 + beta_1 + beta_2) / 3
     P_times_C = (P_TIMES_C_0 + P_TIMES_C_1 + P_TIMES_C_2) / 3
     CHF_SWITCH = (CHF_SWITCH_0 + CHF_SWITCH_1 + CHF_SWITCH_2) / 3
-    return C, A, MPC, D_GREEN, D_SWITCH, CE_B, CE_G, CHF, C_GREEN, C_BROWN, C_SWITCH, P_times_C, CHF_SWITCH, beta
+    C_GREEN_PC = C_GREEN/D_GREEN # per capita cons of brown users
+    C_BROWN_PC = C_BROWN/(1-D_GREEN) # per capita cons of brown users
+    C_CHECK = C_GREEN + C_BROWN
+    LAB_INC = (LAB_INC_0 + LAB_INC_1 + LAB_INC_2)/3
+    LAB_INC_GREEN = (LAB_INC_GREEN_0 + LAB_INC_GREEN_1 + LAB_INC_GREEN_2)/3
+    LAB_INC_BROWN = (LAB_INC_BROWN_0 + LAB_INC_BROWN_1 + LAB_INC_BROWN_2)/3
+    
+    return C, A, MPC, D_GREEN, D_SWITCH, CE_B, CE_G, CHF, C_GREEN, C_BROWN, C_GREEN_PC, C_BROWN_PC, CHF_GREEN, CHF_BROWN, C_SWITCH, P_times_C, CHF_SWITCH, C_CHECK, LAB_INC, LAB_INC_GREEN, LAB_INC_BROWN, beta
 
 
 def hh_ha_durable(n_beta=3):

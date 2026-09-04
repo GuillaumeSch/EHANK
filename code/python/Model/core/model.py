@@ -86,9 +86,13 @@ def solve_ss(model, calib, verbose=False, unknowns=None, targets=None,
     return ss
 
 
+# def _energy_demand(ss, booking):
+#     """SS energy demand clearing against fixed world supply."""
+#     return float(ss['cE'] + ss['prodE'])
+
 def _energy_demand(ss, booking):
     """SS energy demand clearing against fixed world supply."""
-    return float(ss['cE'] + ss['prodE'])
+    return float(ss['CE_B'] + ss['prodE'])
 
 
 def _calibrate_supply(model, calib, unknowns, targets, booking, iters=6, tol=1e-10):

@@ -31,3 +31,6 @@ __pycache__/
 
 # macOS system files
 .DS_Store
+
+# IRFs 
+code/python/Model/irf_*

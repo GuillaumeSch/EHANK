@@ -6,7 +6,7 @@ import sequence_jacobian as sj
 @sj.simple
 def hh_outputs(CE_B, CE_G, CHF, CHF_SWITCH, pH_PHF, pF_PHF,
                    pH_PHF_SWITCH, pF_PHF_SWITCH, eta, alpha_F, alpha_F_switch,
-                   cbarE, scale_w, atw_n, markup_ss):
+                   cbarE, scale_w, atw_n, markup_ss, pHF_SWITCH_P):
     """Household energy/non-energy aggregates and the adoption-bundle CES split.
     alpha_F_switch = 1 gives the pure-import booking (cH_switch = 0); lower
     values route adoption spending onto the home good (into goods clearing)."""
@@ -15,7 +15,8 @@ def hh_outputs(CE_B, CE_G, CHF, CHF_SWITCH, pH_PHF, pF_PHF,
     cF = alpha_F * pF_PHF ** (-eta) * CHF
     cH_switch = (1 - alpha_F_switch) * pH_PHF_SWITCH ** (-eta) * CHF_SWITCH
     cF_switch = alpha_F_switch * pF_PHF_SWITCH ** (-eta) * CHF_SWITCH
-    return cH, cF, cE, cH_switch, cF_switch
+    CHF_SWITCH_exp = CHF_SWITCH * pHF_SWITCH_P
+    return cH, cF, cE, cH_switch, cF_switch, CHF_SWITCH_exp
 
 
 @sj.simple
@@ -278,14 +279,15 @@ def annualize(pi, piw, inom, r, rante, piH):
 @sj.simple
 def eqm_cond(y, cH, cHstar, cH_switch, A_cpi, gdp, nfa, j, B, cE, prodE, PEstar,
              PEstar_shock, E_supply_elasticity, E_supply, zetaEsupply, j_Esupply,
-             D_GREEN, D_GREEN_ss_target):
+             D_GREEN, D_GREEN_ss_target, CE_B):
     """Market clearing: nfa = A - j - B - zetaEsupply*j_Esupply."""
     goods_clearing = cH + cHstar + cH_switch - y
     assets_clearing = A_cpi - nfa - j - B - zetaEsupply * j_Esupply
     if E_supply_elasticity == np.inf:
         E_clearing = PEstar - PEstar_shock
     else:
-        E_clearing = (cE + prodE) - E_supply
+        # E_clearing = (cE + prodE) - E_supply
+        E_clearing = CE_B  - E_supply 
     PEstar_diff = PEstar - PEstar_shock
     gdp_t = gdp - 1
     D_GREEN_res = D_GREEN - D_GREEN_ss_target
