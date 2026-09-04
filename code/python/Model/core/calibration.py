@@ -21,7 +21,7 @@ BASE = dict(
     # inf -> price-taking SOE (PEstar exog); finite -> fixed quantity (PEstar endog)
     E_supply_elasticity=np.inf,
     zetaEsupply=0.0,  # home ownership share of energy rents
-    Gamma_arb=100,    # intertemporal arbitrage in energy stocks
+    Gamma_arb=100,    # 100 intertemporal arbitrage in energy stocks
 
     # portfolio / open economy
     eps_dcp=1, pcX_home=1, ghh_prefs=0, scale_w=0, cbarE=0,

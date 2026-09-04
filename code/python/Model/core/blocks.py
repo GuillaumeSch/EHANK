@@ -155,10 +155,11 @@ def IEA(J_Esupply, PEstar, P, rstar, Gamma_arb, E_supply_shock, rante, Q, zetaEs
 
 @sj.solved(unknowns={'nfa': (-2, 2)}, targets=['nfares'], solver="brentq")
 def CA(nfa, Q, pHstar, cHstar, pF_P, cF, cF_switch, pE_P, cE, prodE, rante, r, A_cpi,
-       rdom, Adom, zetaEsupply, PEstar, E_supply, y, energy_gap_agg):
+       rdom, Adom, zetaEsupply, PEstar, E_supply, y, energy_gap_agg, PEGstar, CE_B, CE_G):
     """Balance of payments (import booking)."""
     exports = Q * (pHstar * cHstar + PEstar * zetaEsupply * E_supply)
-    imports = pF_P * cF + pF_P * cF_switch + pE_P * (cE + prodE) - energy_gap_agg
+    # imports = pF_P * cF + pF_P * cF_switch + pE_P * (cE + prodE) - energy_gap_agg
+    imports = pF_P * cF + pF_P * cF_switch + pE_P*(CE_B + prodE) +Q* PEGstar*CE_G
     imports_pc = imports / imports.ss
     exports_pc = exports / exports.ss
     netexports = exports - imports
