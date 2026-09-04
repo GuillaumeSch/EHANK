@@ -13,9 +13,8 @@ NUMERAIRE = 'cpi'
 OUT = 'paper/output'
 CDIR = 'cache_signmap'
 os.makedirs(OUT, exist_ok=True)
-# Wipe the cache on every run.
+# Reuse the cache across runs; delete cache_signmap/ by hand to force a rebuild.
 import shutil
-shutil.rmtree(CDIR, ignore_errors=True)
 os.makedirs(CDIR, exist_ok=True)
 
 H = 24

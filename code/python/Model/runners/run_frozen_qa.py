@@ -73,8 +73,6 @@ def main():
         ax.set_title(ti, fontsize=10); ax.set_xlabel('quarters', fontsize=8)
         ax.tick_params(labelsize=8)
     axes[0].legend(fontsize=8)
-    fig.suptitle('Common-steady-state adoption counterfactual: full vs frozen '
-                 '(price shock, size=1.0)')
     fig.tight_layout()
     fig.savefig(f'{OUT}/fig_frozen_qa.png', dpi=140, bbox_inches='tight')
     plt.close(fig)
@@ -90,7 +88,6 @@ def main():
         ax.plot(frz, 'C2--', lw=2, label='frozen (common SS)')
         ax.axhline(0, color='k', lw=0.5); ax.axvline(H, color='grey', lw=1, ls=':')
         ax.set_xlabel('quarters'); ax.set_title(ti); ax.legend(fontsize=8)
-    fig.suptitle('Persistence of the adoption channel: full vs frozen, 30-year horizon')
     fig.tight_layout()
     fig.savefig(f'{OUT}/fig_frozen_qa_longrun.png', dpi=140, bbox_inches='tight')
     plt.close(fig)

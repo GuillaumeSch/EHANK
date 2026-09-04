@@ -47,7 +47,9 @@ def hh_income(e_grid, atw_n_num, r_num, p_num, pE_B_P, cbarE, scale_w, markup_ss
     Tf = - pE_B_P * cbarE * (atw_n * markup_ss) * scale_w - pE_B_P * cbarE * (1 - scale_w)
     # Slutsky transfer, indexed to pre-crisis brown energy; epsT is the untargeted sum.
     Tfiscal = epsT + insE * (pE_P - pE_P_ss) * cE_ss_grid
-
+    # Switching cost psi_g = psi_g_bar * pHF_SWITCH_P (priced adoption bundle,
+    # from the income block); rises with the import price in a crisis. Government
+    # pays fraction s_g of it (green subsidy).
     Tswitch = - (1 - s_g) * psi_g * PAYS_SWITCH
 
     coh = ((1 + r_num) * a_grid + atw_n_num * e_grid[:, np.newaxis]
@@ -124,7 +126,9 @@ def durable_shares(c, p_rel, pE_B_P, pE_G_P, pHF_P, alpha_E, eta_E, psi_g_bar):
     """Population shares, switching flow, and CES demand by durable type."""
     d_green = np.zeros_like(c) + IS_GREEN[:, np.newaxis, np.newaxis]
     d_switch = np.zeros_like(c) + PAYS_SWITCH[:, np.newaxis, np.newaxis]
-
+    # Real adoption-bundle quantity: paid once, by the FLOW of new adopters
+    # (state GB = PAYS_SWITCH), not the whole green stock. Aggregates to
+    # CHF_SWITCH = psi_g * D_SWITCH.
     cHF_switch = psi_g_bar * d_switch
 
     pE_d = pE_B_P + IS_GREEN * (pE_G_P - pE_B_P)

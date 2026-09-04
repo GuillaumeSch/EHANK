@@ -4,63 +4,101 @@
 The sign and magnitude of the adoption channel's contribution to output depend
 on how the green-margin resource flows, the switching cost $\psi_g D^{sw}$ and
 the green energy bill, are booked in the balance of payments. The main text
-reports the import booking throughout. This appendix collects the two results
-that hinge on that choice: the domestic-booking sign comparison, and the
-carbon-revenue recycling experiment, which is naturally a booking-conditional
-statement about where the switching subsidy lands.
+reports the pure-import baseline throughout. This appendix collects the two
+results that depend on that choice: the import-content sweep of the adoption
+spending, and the carbon-revenue recycling experiment, which is a
+booking-conditional statement about where the switching subsidy goes.
 
-\subsection{Import versus domestic booking of the adoption flows}\label{app:booking_flows}
-Both statics of Section~\ref{sec:signmap} are conditional on the import booking of the
-adoption flows. We solve the model under the alternative domestic booking of
-Section~\ref{sec:bop}, green energy and green installation as competitive,
-zero-profit domestic value added rebated to households, with only brown energy
-imported, which resolves the phantom-dividend problem and clears to machine
-precision. Under this booking neither the switching cost nor the green energy
-bill is a leakage, and the adoption channel's contribution to cumulative output
-($\Delta_{24}$) flips sign, as Table~\ref{tab:signmap} reports:
-\IfFileExists{output/tab_signmap_booking.tex}{\input{output/tab_signmap_booking.tex}}
+\subsection{Import content of the adoption spending}\label{app:booking_flows}
+The adoption cost enters the household budget as a CES bundle of home and
+foreign goods with import share $\alpha_F^{switch}$. At $\alpha_F^{switch}=1$ the
+switching cost is spent entirely on imports, the pure-import baseline of the main
+text; lowering it routes adoption spending onto the home good. The share is the
+continuous form of the import-versus-domestic booking of
+Section~\ref{sec:bop}: the domestic booking of earlier drafts is the
+$\alpha_F^{switch}=0$ endpoint, where neither the switching cost nor the green
+energy bill is a leakage.
 
+The import content governs the sign of the adoption channel's cumulative output
+contribution, $\Delta_{24}$ (full economy minus the frozen-choice counterfactual
+at the common steady state). Under the price shock it rises monotonically from
+$-9.9$ at $\alpha_F^{switch}=1$, through $+6.3$ at $\alpha_F^{switch}=0.5$, to
+$+23.0$ at $\alpha_F^{switch}=0$: the leakage shrinks as spending shifts to the
+home good, and the channel turns expansionary once enough of it falls on the home
+good. Table~\ref{tab:afs_sweep} reports the grid for both shocks and
+Figure~\ref{fig:afs_sweep} the output paths.
+
+Two invariances make clear that this is a booking statement rather than a statement
+about the crisis. Peak output stays negative across the whole grid, from
+$-2.87\%$ at $\alpha_F^{switch}=1$ to $-1.54\%$ at $\alpha_F^{switch}=0$: the
+import content dampens the recession; it never turns it into a boom. The peak
+green-share response is flat at roughly $8.0$--$8.2$ pp throughout, so the
+adoption margin itself is untouched by where its financing is booked. The policy
+ordering of Sections~\ref{sec:shield}--\ref{sec:carbontax} is likewise
+unaffected. These invariances are why the paper states its main result in terms of the
+margin's response to policy rather than the output sign of the channel.
+
+\begin{table}[H]\centering
+\figtitle{Adoption-spending import content}
+\IfFileExists{output/tab_afs_sweep.tex}{\input{output/tab_afs_sweep.tex}}{%
+\emph{Run \texttt{run\_afs\_sweep.py} to generate \texttt{tab\_afs\_sweep.tex}.}}
+\label{tab:afs_sweep}
+\fignotes{Both shocks, across the import share $\alpha_F^{switch}$ of the
+switching-cost bundle. Columns: peak output, peak green-share response, peak
+net-exports-to-GDP, and the adoption channel's cumulative output contribution
+$\Delta_{24}$ (adoption$\to y$).}
+\end{table}
+
+\begin{figure}[H]\centering
+\figtitle{Output response across the adoption-spending import share}
+\includegraphics[width=\textwidth]{output/fig_afs_sweep.png}
+\fignotes{Import share $\alpha_F^{switch}$ of the switching-cost bundle, price
+shock (left) and supply shock (right).}
+\label{fig:afs_sweep}
+\end{figure}
 
 \subsection{Recycling the carbon revenue: rebate versus green subsidy}
 \label{sec:recycle}
 
-The welfare-optimal carbon tax of Section~\ref{sec:carbontax} returns its
-revenue lump sum. An alternative earmarks it to the transition itself, paying a
+The permanent carbon tax of Section~\ref{sec:carbontax} returns its
+revenue lump sum. An alternative spends it on the transition itself, paying a
 share $s_g$ of the green switching cost. We compare the two recyclings across
 carbon-tax rates $\tau_b\in\{0.10,0.20,0.30\}$, holding $\psi_g$ at its no-tax
 value so the steady-state green share floats (Figures~\ref{fig:taub_rebate}
 and~\ref{fig:taub_green}). Under the lump-sum rebate the steady-state green
-share rises from $8.9\%$ to $20.1\%$ across the grid, and the whole brown-price
+share rises from $8.2\%$ to $16.8\%$ across the grid, and the whole brown-price
 path in the crisis shifts up by the factor $(1+\tau_b)$: the pre-tax price
 passes the world shock through identically, while households pay the
 tax-inclusive price. Under \emph{budget-neutral} green-subsidy recycling, $s_g$
 solved so that the switching subsidy exactly exhausts the carbon revenue
-($T^{\mathrm{reb}}=0$),the revenue funds a subsidy covering $35$--$40\%$ of
-the switching cost and lifts the steady-state green share to $27$--$46\%$.
+($T^{\mathrm{reb}}=0$), the revenue funds a subsidy covering $11$--$18\%$ of
+the switching cost and lifts the steady-state green share to $68$--$78\%$.
 
-Two features are worth flagging. First, the carbon base is self-eroding: at
+Two features stand out. First, the carbon base is self-eroding: at
 $\tau_b=0.10$ the revenue is a third smaller under green-subsidy recycling than
 under the rebate, because the greener economy holds less brown-durable stock to
-tax. Second, the crisis-time greening response is \emph{smaller}, not larger,
-from the greener starting point under the subsidy: recycling that greens the
+tax. Second, the crisis-time greening response is \emph{smaller} from the greener
+starting point under the subsidy, not larger: recycling that greens the
 economy through a lower switching \emph{cost} preferentially converts the
 households nearest the logit margin, leaving a residual brown pool that is less
-responsive to the shock: the mirror image of the rebate, which greens through a
-higher permanent brown \emph{price} and leaves the residual pool closer to the
-margin. This is the adoption-absorber exhaustion of Section~\ref{sec:routeA}
-seen across policy instruments rather than across shock persistence.
+responsive to the shock. The rebate does the reverse: it greens
+through a higher permanent brown \emph{price} and leaves the residual pool closer
+to the margin. It is the adoption-absorber exhaustion of
+Section~\ref{sec:routeA} seen across policy instruments rather than across shock
+persistence.
 
 \begin{figure}[H]\centering
+\figtitle{Carbon-tax sweep: lump-sum rebate}
 \includegraphics[width=\textwidth]{output/fig_exante_taub_rebate.png}
-\caption{Carbon-tax sweep, lump-sum rebate: laissez-faire and ex-post cap
-against the ex-ante ETS economy at $\tau_b\in\{0.10,0.20,0.30\}$.}
 \label{fig:taub_rebate}
+\fignotes{Laissez-faire and ex-post cap against the ex-ante ETS economy at
+$\tau_b\in\{0.10,0.20,0.30\}$, carbon revenue rebated lump sum.}
 \end{figure}
 
 \begin{figure}[H]\centering
+\figtitle{Carbon-tax sweep: budget-neutral green-subsidy recycling}
 \includegraphics[width=\textwidth]{output/fig_exante_taub_greensub_bn.png}
-\caption{Carbon-tax sweep, budget-neutral green-subsidy recycling
-($T^{\mathrm{reb}}=0$, $s_g$ endogenous). Same axes as
-Figure~\ref{fig:taub_rebate}.}
 \label{fig:taub_green}
+\fignotes{Budget-neutral recycling ($T^{\mathrm{reb}}=0$, $s_g$ endogenous). Same
+axes as Figure~\ref{fig:taub_rebate}.}
 \end{figure}

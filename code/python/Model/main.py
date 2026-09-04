@@ -17,9 +17,20 @@ GROUPS = {
     'qa':          [('run_frozen_qa.py', [])],
     # Section 4: baseline IRFs, policy figures, and the summary table.
     'baseline':    [('run_experiments.py', [])],
+    # Section 4 steady-state descriptive figures: switch heatmap, adoption
+    # payoff, and SS objects (green-holding rate, MPC by durable state).
+    'calib_figs':  [('run_switch_heatmap.py', []),
+                    ('run_adoption_payoff.py', []),
+                    ('run_ss_objects.py', [])],
+    # Section 5 adoption-channel descriptive figures.
+    'channel':     [('run_shocks.py', []),
+                    ('run_direct_indirect.py', []),
+                    ('run_output_channels.py', []),
+                    ('run_induced_adopters.py', []),
+                    ('run_adoption_decomposition.py', [])],
     # adoption-channel sign-map across persistence (diagnostic)
     'signmap':     [('run_signmap.py', [])],
-    # Dose-response of the cap and the distributional CEV table.
+    # Cap-intensity sweep and the distributional CEV table.
     'welfare':     [('run_dose_response.py', [])],
     # taste-scale identification (tab_taste_identification, fig_taste_identification)
     'taste_id':    [('run_taste_identification.py', [])],
@@ -37,8 +48,8 @@ GROUPS = {
     'persistence': [('run_persistence.py', [])],
     # carbon-tau_b sweep: rebate vs green-subsidy recycling (Appendix A.2)
     'taub':        [('run_exante_taub_sweep.py', [])],
-    # Appendix A.1: cross-booking adoption-channel sign map
-    'booking':     [('run_booking_compare.py', [])],
+    # Appendix A.1: continuous import-share robustness (replaces booking compare)
+    'booking':     [('run_afs_sweep.py', [])],
     # Nonlinearity diagnosis (E9): size sweep, taste_shock sweep, figure.
     'nonlin':      [('nl_investigate.py', ['size']),
                     ('nl_investigate.py', ['taste']),
@@ -47,8 +58,9 @@ GROUPS = {
                     ('run_nl_cev.py', [])],
 }
 
-ORDER = ['qa', 'baseline', 'signmap', 'welfare', 'taste_id', 'exante',
-         'monetary', 'persistence', 'taub', 'booking', 'nonlin']
+ORDER = ['qa', 'baseline', 'calib_figs', 'channel', 'signmap', 'welfare',
+         'taste_id', 'exante', 'monetary', 'persistence', 'taub', 'booking',
+         'nonlin']
 
 
 def run_script(script, argv):

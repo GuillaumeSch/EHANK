@@ -1,0 +1,239 @@
+\section{The crisis adoption wave}
+\label{sec:crisis}
+
+\subsection{Who adopts at the steady state}
+\label{sec:ss_adoption}
+
+At the calibrated steady state green durables are $5\%$ of the stock and the
+quarterly switching flow is $0.26\%$, the flow that replaces green depreciation
+(Table~\ref{tab:switch_prob_dist}, Appendix~\ref{app:taste}). Adoption is far from
+uniform across households. Figure~\ref{fig:switch_heatmap} plots the switching
+probability of the median discount-factor type over the wealth--productivity
+grid: the choice \emph{policy function} rather than the mass-weighted pool, which mixes
+three types whose switching rates differ by orders of magnitude and is best read as
+the distribution in Table~\ref{tab:switch_prob_dist}. The probability that a brown incumbent
+switches to green rises monotonically in both wealth and idiosyncratic
+productivity. Wealthier households can finance the switching cost $\psi_g$ and more
+productive households expect the higher future income that makes the durable worth
+replacing, so adoption concentrates among wealthy, high-productivity households. The
+surface also makes the rare-margin regime visible: away from that group the
+probability sits far below one. The brown mass occupies the exponential tail of the
+logit, where the semi-elasticity of switching is $1/\sigma_\varepsilon$ household by
+household (Appendix~\ref{app:taste}, Table~\ref{tab:switch_prob_dist}).
+
+\begin{figure}[H]
+\centering
+\figtitle{Switching probability over the wealth--productivity grid}
+\includegraphics[width=0.72\textwidth]{output/fig_switch_heatmap.png}
+\label{fig:switch_heatmap}
+\fignotes{Probability of switching from a brown to a green durable, per quarter, for
+the median discount-factor type, as a function of household wealth relative to the
+mean $a/\bar a$ (horizontal, symmetric-log scale) and idiosyncratic productivity $e$
+(vertical), at the baseline steady state. Colour on a log scale. A single type's
+policy function is plotted rather than the mass-weighted pool: pooling the three
+discount-factor types, whose switching rates differ by orders of magnitude, makes
+the wealth gradient non-monotone even though each type's rule is monotone.}
+\end{figure}
+
+The wealth gradient is the marginal-switcher condition \eqref{eq:margin} seen
+household by household. Figure~\ref{fig:payoff} evaluates one switch the way the
+condition does: the upfront cost $\psi_g$ against the energy saving
+$(\bar P^E_B-\bar P^E_G)\,\bar c^{\,G}_E$ accumulated over the durable's life,
+discounted by interest and survival; the limit of the plotted sum is the
+discounted-saving side of \eqref{eq:margin}. Because energy use rises with wealth in
+levels, so does the saving. At mean wealth the saving never reaches $\psi_g$: the
+typical household stays brown not because it discounts the future heavily but
+because its energy bill is too small for the operating saving ever to repay the
+cost. At about $25\,\bar a$ the breakeven arrives at ten quarters, half the durable's
+expected life; at $40\,\bar a$ it arrives within seven quarters, well inside the durable's life,
+and the switch clearly pays. The figure is an accounting cut: it holds the green
+incumbent's demand fixed and abstracts from consumption smoothing and the taste
+shocks that make the actual choice probabilistic. But it explains why the holding rate climbs from about $1.3\%$ to $84\%$ across
+the wealth distribution (Figure~\ref{fig:ss_objects}), and it is the object the
+crisis perturbs: a brown price shock scales up the saving flow and moves each
+household's crossing left.
+
+\begin{figure}[H]\centering
+\figtitle{The private economics of one switch}
+\IfFileExists{output/fig_adoption_payoff_import.pdf}{\includegraphics[width=.8\textwidth]{output/fig_adoption_payoff_import.pdf}}{\textit{[figure output/fig\_adoption\_payoff\_import.pdf: run run\_adoption\_payoff.py]}}
+\label{fig:payoff}
+\fignotes{Steady state, no shock. For the median discount-factor type at median
+productivity and three wealth levels: cumulative energy saving from operating green,
+discounted by interest and survival,
+$S(T)=\sum_{t\le T}\bigl[(1-\delta_g)/(1+r)\bigr]^{t}
+(\bar P^E_B-\bar P^E_G)\,\bar c^{\,G}_E(e,a)$, against the switching cost $\psi_g$
+(dashed) and the expected durable life $1/\delta_g$ (dotted). Dots mark the
+breakeven quarter.}
+\end{figure}
+
+Two further steady-state objects anticipate the policy results
+(Figure~\ref{fig:ss_objects}). The switching \emph{flow} has a stock counterpart:
+the green-holding rate rises from about $1.3\%$ at the constraint to $84\%$ at the top
+of the wealth grid, so the durable is held disproportionately by the wealthy. The
+marginal propensity to consume runs the other way, falling from about $0.5$ at the
+constraint to near zero by $a\approx3.5\,\bar a$, with brown incumbents and green holders
+close at each wealth level. These two gradients drive the incidence results of
+Section~\ref{sec:flat}. A transfer to brown households reaches the high-MPC
+constrained tail and stabilises consumption effectively; an energy-indexed transfer
+does not, because the energy bill is flat as a share of spending
+($3.8\%$ at the bottom of the wealth distribution against $3.5\%$ at the top) and so
+rises with wealth in levels, sending the largest payments to the low-MPC wealthy.
+Homothetic energy demand makes energy-indexed targeting regressive; the flat share
+is the assumption behind that result, and the non-homothetic robustness check in
+Section~\ref{sec:flat} relaxes it.
+
+\begin{figure}[H]\centering
+\figtitle{Green-durable holding and MPC across wealth}
+\IfFileExists{output/fig_ss_objects_import.pdf}{\includegraphics[width=\textwidth]{output/fig_ss_objects_import.pdf}}{\textit{[figure output/fig\_ss\_objects\_import.pdf: run run\_ss\_objects.py]}}
+\label{fig:ss_objects}
+\fignotes{Aggregated over discount-factor types. Left: green-durable holding rate
+against wealth (the stock behind the switching flow). Right: quarterly MPC against
+wealth, by durable state. Wealth on a symmetric-log scale.}
+\end{figure}
+
+\subsection{The baseline wave under the two shocks}
+\label{sec:baseline}
+
+Figures~\ref{fig:baseline} and~\ref{fig:baseline_supply} report the baseline
+responses to the two shocks, each with the adoption margin open (solid) against the
+frozen counterfactual (dashed).
+
+\begin{figure}[H]\centering
+\figtitle{Price shock: baseline response}
+\includegraphics[width=0.92\textwidth]{output/fig1_price_shock.png}
+\label{fig:baseline}
+\fignotes{Brown energy price shock, elastic supply, no policy. Adoption open (solid)
+against the frozen-choice counterfactual at the common steady state (dashed).}
+\end{figure}
+
+\begin{figure}[H]\centering
+\figtitle{Supply shock: baseline response}
+\includegraphics[width=0.92\textwidth]{output/fig1_supply_shock.png}
+\label{fig:baseline_supply}
+\fignotes{Brown energy supply shock ($-10\%$ for 6 quarters, fixed quantity), no
+policy. Adoption open (solid) against the frozen-choice counterfactual (dashed).}
+\end{figure}
+
+\subsection{The adoption channel}
+\label{sec:signmap}
+
+Under the price shock, the adoption channel's contribution
+to cumulative output is $\Delta_{24}=-9.9$ (Table~\ref{tab:summary};
+Figure~\ref{fig:decomposition} plots the margin's contribution across variables): the margin
+is \emph{contractionary}. It follows a race between two resource flows in the
+balance of payments (Section~\ref{sec:bop}). Adoption imports a switching cost $\psi_g D^{sw}_t$, a resource outflow. It is
+paid once by each switcher, so it is front-loaded and scales with the number of
+adopters. The energy saving $(\PEBpre-\PEGpre)\,C^{G}_{E,t}$ works the other way:
+an inflow, booked as reduced imports, that accrues gradually over the life of the
+green durable. Under the frozen counterfactual the front-loaded
+cost dominates the windowed saving at every persistence. The force is the resource
+cost of the crisis-time switching wave at the calibrated $\psi_g=0.77$
+($\approx0.77\times C_{ss}$) rather than a general-equilibrium artefact: the
+switching-cost outflow $\psi_g\times$ extra switchers cumulates to $+11.74$ on the
+import side, and net of the energy-mix inflow it leaves a net import draw of
+$+4.98$ (Figure~\ref{fig:adoption_flows}) that pulls resources out of domestic
+absorption. Under the fixed-quantity (supply) closure a third, expansionary term
+appears: adoption lowers fossil demand against a fixed supply, so the clearing
+price falls and relaxes scarcity for \emph{all} households, which shifts
+$\Delta_{24}$ up to $-0.82$. The marginal switcher's steady-state indifference,
+$\psi_g\approx(\bar P^{E}_{B}-\bar P^{E}_{G})\,\bar C^{G}_{E}/(r+\delta_g)$, ties
+the threshold to the cost ratio $\varrho$.
+
+\paragraph{Booking caveat.} What the booking convention moves is the sign of the
+adoption channels \emph{contribution} to output, $\Delta_{24}$, not the output
+response itself: aggregate output falls under both shocks and every booking. At the
+baseline $\alpha_F^{switch}=1$ the switching cost and green bill are pure imports, so
+the contribution is negative and deepens the output fall; routing that spending onto
+the home good raises $\Delta_{24}$, and under full domestic booking
+($\alpha_F^{switch}=0$) the contribution turns positive, $+23.0$ under the price shock
+and $+0.58$ under the supply shock. The policy ordering below is unaffected. We report $\alpha_F^{switch}=1$ throughout and
+trace the full grid in Appendix~\ref{app:booking}. This dependence is a booking
+convention rather than a result about the transition, and it is
+why we phrase the paper's main result in terms of the \emph{margin's response} to
+policy rather than its output sign.
+
+\begin{figure}[H]\centering
+\figtitle{Contribution of the adoption margin, by shock}
+\includegraphics[width=\textwidth]{output/fig5_decomposition.png}
+\label{fig:decomposition}
+\fignotes{Full economy minus the frozen-choice counterfactual, by shock. Panels:
+output, consumption, net exports. Price shock in black, supply shock in blue.}
+\end{figure}
+
+The race between the two resource flows is exact on the import side.
+Figure~\ref{fig:adoption_flows} splits the adoption channel's contribution to
+imports, full minus frozen, into the
+front-loaded switching-cost outflow $\psi_g D^{sw}_t$ and everything else, the
+latter dominated by the gradual energy saving from the brown-to-green mix shift.
+The split is exact by construction. The switching cost dominates the saving at
+every horizon under both shocks: under the price shock it cumulates to $+11.74$
+against a $-6.76$ energy-mix inflow, a net import response of $+4.98$ that accounts
+for the channel's contractionary output contribution ($\Delta_{24}=-9.9$). The
+outflow peaks on impact, when household income is falling hardest, and this timing
+is why booking it as an import makes the channel contractionary.
+
+\begin{figure}[H]\centering
+\figtitle{Adoption channel on the import side, by shock}
+\includegraphics[width=\textwidth]{output/fig5b_adoption_flows.png}
+\label{fig:adoption_flows}
+\fignotes{Contribution of the adoption margin to imports, full economy minus the
+frozen-choice counterfactual. The figure plots
+the front-loaded switching-cost outflow $\psi_g D^{sw}$, the gradual energy-saving
+inflow, and their sum. Level deviations $\times100$.}
+\end{figure}
+
+The adoption channel's output effect is a domestic-demand phenomenon. Decomposing
+output one level below the domestic/export split (Figure~\ref{fig:output_channels}),
+the frozen-choice counterfactual separates output into three exact pieces: exports,
+domestic demand with the margin frozen (the AMRS real-income and substitution
+channels), and the adoption channel's increment to domestic demand. Under the price
+shock these cumulate to $y=-64.9 = (+7.4)_{\text{exports}} + (-62.9)_{\text{AMRS}} +
+(-9.4)_{\text{adoption}}$. The adoption drag ($-9.4$) falls entirely on domestic
+home-good demand: the switching-cost import outflow draws resources out of domestic
+absorption. It is close in magnitude and opposite in sign to the export gain
+($+7.4$), which is the AMRS competitiveness channel, so the two roughly cancel and
+aggregate output tracks the AMRS domestic channel ($-62.9$).
+
+\begin{figure}[H]\centering
+\figtitle{Output response by channel}
+\IfFileExists{output/fig_output_channels_import.pdf}{\includegraphics[width=0.8\textwidth]{output/fig_output_channels_import.pdf}}{\textit{[figure output/fig\_output\_channels\_import.pdf: run run\_output\_channels.py]}}
+\label{fig:output_channels}
+\fignotes{Price shock, no policy. Three exact channels: exports $c_H^{*}$, domestic
+demand with the adoption margin frozen (AMRS), and the adoption channel's increment
+to domestic demand. The three sum to $y$. Level deviations $\times100$.}
+\end{figure}
+
+The same response, read from the household budget rather than from output, is almost
+entirely a general-equilibrium phenomenon. Decomposing consumption through the
+household consumption Jacobians, $dC=\sum_x J^{C,x}\,dx$ over the household's inputs
+and exact to first order, the direct energy-price effect is negligible ($\approx0$
+cumulative, energy being a small budget share) and the collapse is the indirect
+real-income channel ($-97.9$ of a $-109.3$ total, the real rate adding $-3.5$). The
+energy shock reaches consumption by lowering factor income in general equilibrium,
+not by raising the household's energy bill, the mechanism \citet{auclert2023energy} and the
+broader HANK literature identify, here in an open economy with an adoption margin.
+
+\subsection{The induced adopters}
+\label{sec:induced}
+
+The crisis draws in households who would not have
+switched at the pre-crisis steady state. Figure~\ref{fig:induced_adopters}
+characterises them with a comparative static: the switching probability of the median
+type at a steady state with a permanently $10\%$ higher brown price, minus the
+baseline field. The induced switching is positive throughout and rises with
+productivity; at high productivity the induced margin reaches down to more moderate
+wealth, pulling in households who sat just below the switching threshold. Weighted by
+the steady-state distribution, the induced flow concentrates at moderate productivity
+and low-to-moderate wealth, where the brown mass sits. The
+construction is a comparative-static proxy: it uses a permanent price change rather
+than the transitory crisis path, so it locates and signs the induced margin rather
+than timing it.
+
+\begin{figure}[H]\centering
+\figtitle{Induced adopters}
+\IfFileExists{output/fig_induced_adopters_import.pdf}{\includegraphics[width=0.8\textwidth]{output/fig_induced_adopters_import.pdf}}{\textit{[figure output/fig\_induced\_adopters\_import.pdf: run run\_induced\_adopters.py]}}
+\label{fig:induced_adopters}
+\fignotes{Comparative static: the extra quarterly switching probability induced by a
+permanently $10\%$ higher brown price, median discount-factor type, over the
+wealth--productivity grid. Contours mark the steady-state brown mass.}
+\end{figure}

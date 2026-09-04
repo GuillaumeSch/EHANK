@@ -32,14 +32,10 @@ if __name__ == '__main__':
         ax.plot(t, cHs, color='#2a2', lw=1.8, label='exports $c_H^{*}$')
         ax.plot(t, y, 'k-', lw=1.8, label='output $y$')
         ax.axhline(0, color='k', lw=0.6)
-        cy, cD, cX = float(np.sum(y)), float(np.sum(cH)), float(np.sum(cHs))
-        ax.set_title(f'{title}\n' r'$\sum y=$' f'{cy:.0f}  (dom {cD:.0f}, exp {cX:+.0f})',
-                     fontsize=9)
+        ax.set_title(title, fontsize=10)
         ax.set_xlabel('quarters', fontsize=8)
     axes[0].set_ylabel(r'level deviation $\times100$', fontsize=9)
     axes[0].legend(fontsize=8, loc='lower right')
-    fig.suptitle('Output response, domestic demand vs exports: the cap suppresses the '
-                 'expenditure-switching offset, the transfer preserves it')
     fig.tight_layout()
     out = os.path.join(OUT, f'fig_output_domestic_external_{BOOKING}.pdf')
     fig.savefig(out)

@@ -21,6 +21,12 @@
 \usepackage{float}
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage{subcaption}
+\usepackage{ragged2e}
+% Figure/table caption: title above (\figtitle), left-justified small Notes below (\fignotes)
+\newcommand{\figtitle}[1]{\caption{#1}}
+\newcommand{\fignotes}[1]{%
+  \par\vspace{3pt}%
+  \begin{minipage}{\textwidth}\scriptsize\raggedright\textit{Notes:} #1\end{minipage}\par}
 
 % lists
 \usepackage{enumitem}
@@ -45,8 +51,10 @@
 \newcommand{\stst}{\mathrm{ss}}
 \newcommand{\dsw}{D^{\mathrm{sw}}}
 \newcommand{\DG}{D^{G}}
-\newcommand{\PEB}{P^{E}_{B}}
-\newcommand{\PEG}{P^{E}_{G}}
+\newcommand{\PEB}[1][]{P^{E}_{B#1}}
+\newcommand{\PEG}[1][]{P^{E}_{G#1}}
+\newcommand{\PEBpre}[1][]{P^{E,\mathrm{pre}}_{B#1}}
+\newcommand{\PEGpre}[1][]{P^{E,\mathrm{pre}}_{G#1}}
 \newcommand{\pE}{p^{E}}
 \newcommand{\coh}{\mathrm{coh}}
 
@@ -57,14 +65,15 @@
 \input{sections/02_related_literature}
 \input{sections/03_model}
 \input{sections/04_calibration}
-\input{sections/05_energy_shocks_adoption_channel}
-\input{sections/06_shielding_cap_vs_transfer}
-\input{sections/07_ex_ante_ex_post}
+\input{sections/05_adoption_wave}
+\input{sections/06_expost_shielding}
+\input{sections/07_exante}
 \input{sections/08_policy_implications}
 \input{sections/09_conclusion}
 
 \clearpage
-\input{bibliography}
+\bibliographystyle{plainnat}
+\bibliography{references}
 
 \clearpage
 \appendix

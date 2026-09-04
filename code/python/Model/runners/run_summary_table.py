@@ -84,8 +84,6 @@ def main():
         ax.axhline(0, color='k', lw=0.5); ax.set_title(ti, fontsize=10)
         ax.set_xlabel('quarters', fontsize=8); ax.tick_params(labelsize=8)
     axes[0].legend(fontsize=8)
-    fig.suptitle('Monetary-policy shock: 100bp annualised tightening, '
-                 'Taylor rule vs constant-real-rate baseline')
     fig.tight_layout()
     fpath = os.path.join(OUT, f'fig_monetary_{BOOKING}.pdf')
     fig.savefig(fpath, dpi=140, bbox_inches='tight'); plt.close(fig)
@@ -101,10 +99,12 @@ def main():
         header=['Scenario', r'$y(0)$\%', r'$\sum y$\%', r'peak $D_G$',
                 r'gross fisc.', r'CEV\%'],
         rows=rowsA,
-        caption=(f'Price-shock policy responses (import booking). '
-                 f'$y(0)$ impact output, $\\sum y$ cumulative output over '
-                 f'$H={H}$, peak green share, gross fiscal disbursement, and '
-                 f'total CEV vs the no-ETS baseline SS.'),
+        caption='Price-shock policy responses',
+        notes=(f'$y(0)$ is impact output, $\\sum y$ cumulative '
+               f'output over $H={H}$, peak $D_G$ the peak green share, gross '
+               f'fiscal the total disbursement, and CEV the total '
+               f'consumption-equivalent variation relative to the no-ETS baseline '
+               f'steady state.'),
         label=f'tab:summary_price_{BOOKING}')
 
 if __name__ == '__main__':

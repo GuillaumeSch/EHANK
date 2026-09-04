@@ -11,14 +11,16 @@ switching is a separate object, $\psi_g$.
 We calibrate $\varrho$ on the electric-vehicle margin, the durable for which both
 the operating-cost gap and the adoption elasticity (Section~\ref{sec:taste_id}) are
 measured. With $P^G,P^B$ the retail electricity and gasoline prices and $e_G,e_B$
-real-world energy use,
+real-world energy use (Table~\ref{tab:rho_inputs}),
 \[
   \varrho=\frac{P^G\,e_G}{P^B\,e_B}
         =\frac{0.290\times0.21}{1.62\times0.070}
         =\frac{0.0609}{0.1134}=0.54 .
 \]
 
-\begin{table}[H]\centering\small
+\begin{table}[H]\centering
+\figtitle{Inputs to $\varrho$}
+\small
 \begin{tabular}{llll}
 \toprule
  & & Value & Source \\
@@ -29,19 +31,19 @@ Electric-car energy use       & $e_G$ & 0.21 kWh/km   & IEA \textit{Global EV Ou
 Gasoline-car fuel use         & $e_B$ & 7.0 L/100km   & National on-road data (e.g.\ FR SDES) \\
 \bottomrule
 \end{tabular}
-\caption{Inputs to $\varrho$. European, tax-inclusive, same semester.}
 \label{tab:rho_inputs}
+\fignotes{European, tax-inclusive, same semester.}
 \end{table}
 
-Three choices are worth stating. \emph{(i) Tax-inclusive prices.} The baseline has
+Three choices need stating. \emph{(i) Tax-inclusive prices.} The baseline has
 no carbon tax, so the household compares retail prices; the gap between the two
 ratios ($0.54$ inclusive against $0.88$ excluding taxes) is the asymmetric
-taxation of the two fuels, which the ETS acts on rather than assumes away.
+taxation of the two fuels, which the ETS acts on.
 \emph{(ii) Real-world energy use.} Both figures are on-road or metered rather than
 type-approval, so charging losses are already in the electricity figure and the two
-sides rest on the same basis. \emph{(iii) Fleet averages.} A matched compact pair
+sides are on the same basis. \emph{(iii) Fleet averages.} A matched compact pair
 (electric $17$~kWh/100km, gasoline $6.2$~L/100km) gives $0.49$, so the ratio does
-not turn on vehicle-size composition. As an internal check, $0.21$~kWh/km is
+not depend on vehicle-size composition. As an internal check, $0.21$~kWh/km is
 $2.3$~litres of gasoline equivalent per 100~km, $68\%$ below the gasoline car's
 $7.0$, matching the roughly $70\%$ energy saving the same source reports for a
 comparable electric car. The heating margin (an air-source heat pump against a
@@ -50,22 +52,24 @@ nearby $\varrho\approx0.62$, so reading the durable as a heat-pump/EV composite
 would move the ratio only inside the range below.
 
 \paragraph{Sensitivity.} Holding the steady-state green share at $\bar D^G=5\%$,
-$\psi_g$ re-solves as $\varrho$ varies. Across the whole plausible range the policy
-CEV ranking is unchanged (flat transfer $\succ$ Slutsky $\succ$ ex-post cap
+$\psi_g$ re-solves as $\varrho$ varies (Table~\ref{tab:rho_sensitivity}). Across
+the whole plausible range the policy CEV ranking is unchanged (flat transfer $\succ$ Slutsky $\succ$ ex-post cap
 $\succ$ ex-ante ETS $\succ$ laissez-faire $\succ$ green subsidy); only the crisis
 adoption magnitude responds, by about one percentage point of peak green share.
 
-\begin{table}[H]\centering\small
+\begin{table}[H]\centering
+\figtitle{Sensitivity of the baseline to $\varrho$}
+\small
 \begin{tabular}{lccccc}
 \toprule
 $\varrho$                       & 0.48 & 0.54 & 0.62 & 0.70 & 0.80 \\
 \midrule
 $\psi_g$ (solved)               & 0.827 & 0.770 & 0.696 & 0.625 & 0.538 \\
-peak $\Delta D^G$ (pp)          & 7.44  & 7.72  & 8.10  & 8.46  & 8.87 \\
-peak output loss $-y$ (\%)      & 2.85  & 2.86  & 2.87  & 2.88  & 2.90 \\
+peak $\Delta D^G$ (pp)          & 7.74  & 8.03  & 8.39  & 8.74  & 9.14 \\
+peak output loss $-y$ (\%)      & 2.86  & 2.87  & 2.88  & 2.89  & 2.90 \\
 \bottomrule
 \end{tabular}
-\caption{Sensitivity of the baseline to $\varrho$. Price shock, import booking.
-$\bar D^G=5\%$ imposed throughout; the policy ordering (not shown) is invariant.}
 \label{tab:rho_sensitivity}
+\fignotes{Price shock, import booking. $\bar D^G=5\%$ imposed throughout, $\psi_g$
+re-solved as $\varrho$ varies.}
 \end{table}

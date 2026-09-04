@@ -47,8 +47,6 @@ if __name__ == '__main__':
         ax.set_title(title, fontsize=10)
         ax.set_xlabel('quarters', fontsize=8)
     axes[0, 0].legend(fontsize=8, loc='lower right')
-    fig.suptitle(f'Accommodative offset sized to halve the output loss '
-                 f'({bp:.0f}bp annualised innovation)')
     fig.tight_layout()
     fig.savefig(os.path.join(OUT, f'fig_monetary_offset_{BOOKING}.pdf'))
     plt.close(fig)

@@ -20,7 +20,7 @@ def solve_ets_ss(model, psi_fixed, tau_b, tau_g=0.0, s_g_ets=0.0,
     if recycle == 'green_subsidy':
         ov['s_g'] = s_g_ets
     calib = make_calibration(NUMERAIRE, booking=BOOKING, ets=True, **ov)
-    calib['psi_g'] = psi_fixed
+    calib['psi_g_bar'] = psi_fixed
     u, t = ss_unknowns_targets_fixed_psi(BOOKING, ets=True)
     ss = solve_ss(model, calib, unknowns=u, targets=t, booking=BOOKING)
     return ss
@@ -45,7 +45,7 @@ def main():
     # baseline (common reference) and the psi_g it pins
     ss_base, irf_lf = run(model, shock_kind='price', policy='none',
                           numeraire=NUMERAIRE, booking=BOOKING)
-    psi_fixed = float(ss_base['psi_g'])
+    psi_fixed = float(ss_base['psi_g_bar'])
 
     # ex-post responses on the baseline economy
     _, irf_cap = run(model, shock_kind='price', policy='subsidy',
@@ -101,29 +101,29 @@ def main():
     for tb, dg, rc, chi in sweep:
         print(f'{tb:7.2f}{dg:10.4f}{rc:10.5f}{chi:11.4f}')
 
-    # figure: welfare-optimal permanent carbon tax + induced greening
+    # figure: induced greening as a stacked green/brown durable share
     tb_arr = np.array([r[0] for r in sweep])
-    dg_arr = np.array([r[1] for r in sweep])
-    chi_arr = np.array([r[3] for r in sweep])
-    tb_star = tb_arr[int(np.argmax(chi_arr))]
-    figc, (a1, a2) = plt.subplots(1, 2, figsize=(11, 4))
-    a1.plot(100 * tb_arr, chi_arr, 'o-')
-    a1.axhline(0, color='k', lw=0.5)
-    a1.axvline(100 * tb_star, color='C3', ls='--',
-               label=rf'$\tau_b^*\approx{100*tb_star:.0f}\%$')
-    a1.set_xlabel(r'permanent carbon tax $\tau_b$ (\%)')
-    a1.set_ylabel(r'standing CEV vs baseline (\%)')
-    a1.set_title('Welfare-optimal carbon tax'); a1.legend(fontsize=9)
-    a2.plot(100 * tb_arr, 100 * dg_arr, 's-')
-    a2.set_xlabel(r'permanent carbon tax $\tau_b$ (\%)')
-    a2.set_ylabel(r'steady-state green share $D_{\mathrm{GREEN}}$ (\%)')
-    a2.set_title('Induced greening')
+    dg_arr = np.array([r[1] for r in sweep])        # steady-state green share
+    x = np.arange(len(tb_arr))
+    GREEN, BROWN = '#2a8a2a', '#8a5a2a'
+    figc, ax = plt.subplots(figsize=(6.2, 4.2))
+    ax.bar(x, dg_arr, color=GREEN, label=r'green share $D^{G}$')
+    ax.bar(x, 1 - dg_arr, bottom=dg_arr, color=BROWN, label=r'brown share $1-D^{G}$')
+    for xi, g in zip(x, dg_arr):
+        ax.text(xi, g / 2, f'{100 * g:.1f}%', ha='center', va='center',
+                color='white', fontsize=8)
+    ax.set_xticks(x)
+    ax.set_xticklabels([f'{100 * tb:.0f}' for tb in tb_arr])
+    ax.set_xlabel(r'permanent carbon tax $\tau_b$ (%)')
+    ax.set_ylabel('steady-state durable share')
+    ax.set_ylim(0, 1)
+    ax.legend(fontsize=9, loc='center right')
     figc.tight_layout()
     fcpath = os.path.join(OUT, f'fig_carbon_optimal_{BOOKING}.pdf')
     figc.savefig(fcpath, dpi=140, bbox_inches='tight')
 
     # figure: crisis dynamics, LF vs ex-post cap vs ex-ante ETS
-    from plotting import show_irfs
+    from tools.plotting import show_irfs
     fig = show_irfs(
         [irf_lf, irf_cap, irf_ea],
         outputs=['C', 'D_GREEN', 'pE_B_P', 'y'],
@@ -131,7 +131,6 @@ def main():
         titles=[r'Consumption $C$', r'Green share $D_{\mathrm{GREEN}}$',
                 r'Brown price $P^E_B$', r'Output $y$'],
         T_plot=H, ncol=4)
-    fig.suptitle(r'Version A: ex-ante greening vs ex-post capping', y=1.03)
     fpath = os.path.join(OUT, f'fig_exante_expost_{BOOKING}.pdf')
     fig.savefig(fpath, dpi=140, bbox_inches='tight')
 
@@ -142,12 +141,12 @@ def main():
         header=['Scenario', 'CEV\\%', 'impat.', 'middle', 'patient',
                 'peak $D_G$', 'gross fisc.'],
         rows=table_rows,
-        caption=(f'Ex-ante greening vs ex-post capping under a brown-energy '
-                 f'price shock (import booking, $\\tau_b={TAU_B}$). CEV is the '
-                 f'total consumption-equivalent variation relative to the '
-                 f'no-ETS steady state, by discount-factor type; gross fiscal '
-                 f'is the cap outlay (ex-post) or the standing carbon revenue '
-                 f'over $H={H}$ (ex-ante).'),
+        caption='Ex-ante greening against ex-post capping',
+        notes=(f'Brown-price shock, $\\tau_b={TAU_B}$. CEV is '
+               f'the total consumption-equivalent variation relative to the '
+               f'no-ETS steady state, by discount-factor type. Gross fiscal is '
+               f'the cap outlay (ex-post) or the standing carbon revenue over '
+               f'$H={H}$ (ex-ante).'),
         label=f'tab:exante_expost_{BOOKING}')
 
 if __name__ == '__main__':

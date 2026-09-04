@@ -5,50 +5,52 @@
 %
 % Requires \usepackage{booktabs}. Expected labels: sec:intro sec:policy sec:exante
 % app:taste ; figure label fig:taste (the identification figure).
-% Bibitem keys: ARS2024 GallagherMuehlegger2011 Chandra2010 MuehleggerRapson2022 BeresteanuLi2011
+% Bibitem keys: auclert2023energy GallagherMuehlegger2011 Chandra2010 MuehleggerRapson2022 BeresteanuLi2011
 
-\section{Calibration}\label{sec:cal}
+\section{Calibration and experimental design}\label{sec:cal}
 
-The aggregate block is inherited from \citet{ARS2024}; the durable/adoption block is
+The aggregate block is inherited from \citet{auclert2023energy}; the durable/adoption block is
 this paper's addition. We keep the aggregate calibration close to a generic energy
-importer, the AMRS parameters, an energy expenditure share of four percent, a low
-intensive substitution elasticity, and read the durable as any household energy
-durable, a heat pump or an electric vehicle. The economy we speak to is the European
-one of Sections~\ref{sec:intro} and~\ref{sec:policy}; the aggregate calibration is an
-illustrative mapping onto it rather than a euro-area estimation. The steady state is
+importer: the AMRS parameters, an energy expenditure share of four percent, and a
+low intensive substitution elasticity. The durable stands for any household energy
+durable, a heat pump or an electric vehicle. The relevant economy is the European one of Sections~\ref{sec:intro}
+and~\ref{sec:policy}; the aggregate calibration is an illustrative mapping onto it
+rather than a euro-area estimation. The steady state is
 identical across all baseline experiments. Table~\ref{tab:calibration} collects the
 parameters.
 
 \begin{table}[H]
-\centering\small\singlespacing
+\centering\singlespacing
+\figtitle{Calibration}
+\small
 \renewcommand{\arraystretch}{0.95}
-\begin{tabular}{lll}
+\begin{tabular}{@{}ll>{\RaggedRight\arraybackslash}p{0.40\textwidth}@{}}
 \toprule
 Parameter & Value & Source / target \\
 \midrule
 \multicolumn{3}{l}{\textit{Preferences and idiosyncratic risk}}\\
-$r$ real rate (quarterly) & $0.01$ & \citet{ARS2024} \\
-$\sigma$ inverse EIS & $1$ (log) & \citet{ARS2024} \\
+$r$ real rate (quarterly) & $0.01$ & \citet{auclert2023energy} \\
+$\sigma$ inverse EIS & $1$ (log) & \citet{auclert2023energy} \\
 $\varphi$ inverse Frisch & $2$ & Frisch $0.5$ (standard) \\
 $\sigma_e,\rho_e, n_e$ income process & $0.57,\,0.92,\,7$ & Rouwenhorst; AMRS baseline \\
 $\beta$ types / spread / $\beta_{\max}$ & $3$ / $0.06$ / solved & mean $\text{MPC}\approx 0.30$; $\beta_{\max}$ closes nfa \\
 asset grid $[\underline a,\bar a]$, $n_a$ & $[0,400]$, $50$ & \\
 \addlinespace
 \multicolumn{3}{l}{\textit{Consumption nest and openness}}\\
-$\alpha_E$ energy expenditure share & $0.04$ & \citet{ARS2024} \\
-$\eta_E$ energy substitution & $0.10$ & \citet{ARS2024} \\
-$\alpha$ total import share & $0.30$ & \citet{ARS2024} \\
+$\alpha_E$ energy expenditure share & $0.04$ & \citet{auclert2023energy} \\
+$\eta_E$ energy substitution & $0.10$ & \citet{auclert2023energy} \\
+$\alpha$ total import share & $0.30$ & \citet{auclert2023energy} \\
 $\alpha_F,\ \gamma=\eta$ & derived & import-demand target $\chi=0.3$ \\
 \addlinespace
 \multicolumn{3}{l}{\textit{Firms, prices, wages}}\\
-$\mu$ gross markup & $1.03$ & \citet{ARS2024} \\
+$\mu$ gross markup & $1.03$ & \citet{auclert2023energy} \\
 $\theta_w$ wage Calvo & $0.938$  & AMRS baseline \\
 $\theta_E$ energy-price Calvo & $0.65$  & AMRS baseline \\
 $\theta_F$ import-price Calvo & $0.90$  & AMRS baseline \\
 $\zeta_{BG}$ real-wage stabilisation & $5$  & AMRS baseline \\
 \addlinespace
 \multicolumn{3}{l}{\textit{Energy supply and open economy}}\\
-$\varepsilon^E$ energy-supply closure & $\infty$ / fixed $\bar E$ & price-taking SOE / fixed-quantity (\citet{Bayer2026}) \\
+$\varepsilon^E$ energy-supply closure & $\infty$ / fixed $\bar E$ & price-taking SOE / fixed-quantity (\citet{bayer2026hank}) \\
 $\Gamma$ stock arbitrage & $100$  & AMRS baseline \\
 $\bar E^{\mathrm{shock}}$ world supply & $\alpha_E$ & endowment normalisation \\
 \addlinespace
@@ -74,10 +76,10 @@ $\tau_g$ green carbon tax & $\approx 0$ & green near-clean \\
 revenue recycling & rebate / green subsidy & Appendix~\ref{app:booking} \\
 \bottomrule
 \end{tabular}
-\caption{Calibration. The aggregate block is inherited from \citet{ARS2024}; the
+\label{tab:calibration}
+\fignotes{The aggregate block is inherited from \citet{auclert2023energy}; the
 durable/adoption block is this paper's addition. $\psi_g$ is solved to
 $\bar D^G=5\%$; $\sigma_\varepsilon$ is identified in Section~\ref{sec:taste_id}.}
-\label{tab:calibration}
 \end{table}
 
 The adoption block adds four parameters. The green durable depreciates at
@@ -91,8 +93,8 @@ euro-area retail prices (electricity \mbox{0.29 EUR/kWh} and gasoline
 $0.21$~kWh/km for the electric car and $7.0$~L/100km for the gasoline car, this gives
 $\varrho=0.54$. Tax-inclusive prices are the relevant ones here: the baseline carries
 no carbon tax, so the household compares retail prices, and the asymmetric taxation of
-the two fuels is part of the environment the crisis and the ETS act on rather than
-something assumed away. Appendix~\ref{app:rho} lists every input and its source, and
+the two fuels is part of the environment the crisis and the ETS act on.
+Appendix~\ref{app:rho} lists every input and its source, and
 shows the policy ranking is invariant to $\varrho$ across $[0.48,0.80]$. The switching
 cost $\psi_g$ is solved to hit a steady-state green share $\bar D^G=5\%$. That leaves one free
 parameter, the logit taste scale $\sigma_\varepsilon$, which governs how responsive
@@ -107,146 +109,262 @@ $\sigma_\varepsilon$, $\psi_g$ re-solves to hit the same share, so the steady st
 invariant along the $(\sigma_\varepsilon,\psi_g)$ locus
 (Table~\ref{tab:taste_identification}): the green share and the switcher mass do not move as
 $\sigma_\varepsilon$ ranges over an order of magnitude and $\psi_g$ with it, from
-$0.32$ to $1.53$.
+$0.58$ to $1.74$.
 
-What the locus does not leave invariant is the responsiveness of the margin. The
+The responsiveness of the margin, however, varies along the locus. The
 steady-state adoption elasticity, the response of the green share to a permanent
 improvement in the green/brown operating-cost ratio, at fixed $\psi_g$, falls from
-$2.8$ at $\sigma_\varepsilon=0.02$ to $0.4$ at $0.20$, and the crisis adoption wave
-falls with it, from a peak $\Delta D^G$ of $19.9$ to $2.0$ percentage points
+$4.4$ at $\sigma_\varepsilon=0.02$ to $0.8$ at $0.20$, and the crisis adoption wave
+falls with it, from a peak $\Delta D^G$ of $13.8$ to $2.2$ percentage points
 (Figure~\ref{fig:taste_identification}, in Appendix~\ref{app:taste}). The adoption-channel magnitudes are therefore conditional
 on $\sigma_\varepsilon$: a level moment cannot discipline them, and a second
 moment, the adoption elasticity, is required.
 
 
-The quasi-experimental vehicle literature provides exactly that moment, on the
+The quasi-experimental vehicle literature provides that moment, on the
 upfront-cost margin. \citet{GallagherMuehlegger2011} and \citet{Chandra2010} estimate that a
 \$1{,}000 tax incentive raises hybrid adoption by 31--38\%, in a population of
 higher-income early adopters; \citet{MuehleggerRapson2022} estimate a demand elasticity of
 $-2.1$ for electric vehicles among low- and middle-income households, roughly 8\% per
 \$1{,}000 at their mean transaction price of \$26{,}000: the mass-market floor on
 responsiveness. In the model one unit is quarterly household consumption, taken as
-\$20{,}000, so the baseline $\psi_g=0.538$ is a green premium of about \$10{,}800; a
-\$1{,}000 cut in $\psi_g$ raises the switching flow by 40\% at
-$\sigma_\varepsilon=0.05$, 31\% at $0.07$, and 12\% at $0.20$
+\$20{,}000, so the baseline $\psi_g=0.770$ is a green premium of about \$15{,}400; a
+\$1{,}000 cut in $\psi_g$ raises the switching flow by 39\% at
+$\sigma_\varepsilon=0.05$, 30\% at $0.07$, and 12\% at $0.20$
 (Table~\ref{tab:taste_identification}).
 
-Which end of the empirical range is relevant is a statement about the marginal
-adopter, not a free choice. At a 5\% green share the model's marginal adopters
+Which end of the empirical range applies depends on who the marginal adopter is.
+At a 5\% green share the model's marginal adopters
 consume roughly twice the average brown household (Section~\ref{sec:exante}): they
 are the higher-income early adopters of the hybrid-era estimates, not the
 mass-market population of \citet{MuehleggerRapson2022}, whose estimate therefore bounds
 responsiveness from below. Matching the early-adopter range pins
 $\sigma_\varepsilon\in[0.05,0.07]$, with an implied green premium of
-\$11{,}000--\$14{,}000 squarely in the heat-pump and EV range, whereas
-$\sigma_\varepsilon\ge 0.10$ would imply premia of \$18{,}000 and above. The baseline
+\$15{,}000--\$18{,}000 within the heat-pump and EV range, whereas
+$\sigma_\varepsilon\ge 0.10$ would imply premia of \$22{,}000 and above. The baseline
 $\sigma_\varepsilon=0.05$ is the elastic end of that interval, and the mass-market
 estimate is spanned by the sensitivity analysis. The operating-cost margin, the
 channel \citet{BeresteanuLi2011} document for gasoline prices and hybrid demand, then
-implies an elasticity of the green share to the energy-cost gap of $1.3$ at the
-baseline. This responsiveness is a structural property of a rare margin, not an
+implies an elasticity of the green share to the energy-cost gap of $2.7$ at the
+baseline. This responsiveness is a structural property of a rare margin rather than an
 artefact of the smoothing method; Appendix~\ref{app:taste} develops the point.
 
-The dollar mapping is the one assumption stated rather than estimated, and its role
-is transparent: a higher consumption unit scales the model's per-\$1{,}000 response
-down and the implied premium up, so the two criteria co-move and the joint interval
-stays tight, at \$16{,}000 the pin is roughly $[0.07,0.10]$, at \$24{,}000
-$[0.04,0.06]$. Each of these intervals lies inside the sensitivity grid of
-Table~\ref{tab:taste_identification}, over which the steady state and the policy ordering are
-invariant.
+The dollar mapping is the one assumption stated rather than estimated. A higher
+consumption unit lowers the model's per-\$1{,}000 response and raises the implied
+premium, so the two criteria move together and the identified interval stays
+narrow. Halving the unit moves the interval toward higher $\sigma_\varepsilon$,
+doubling it toward lower; either way the interval lies inside the sensitivity grid
+of Table~\ref{tab:taste_identification}, over which the steady state and the policy
+ordering are invariant.
 
-The aggregate results do not turn on any of this. The cumulative output loss
+The aggregate results do not depend on any of this. The cumulative output loss
 $\sum y$ is flat across the locus (Table~\ref{tab:taste_identification}, last column),
 varying by under 4\% while the adoption response varies tenfold, and the policy
-ordering follows from the relative price alone. The taste scale governs how large the
-adoption channel is, not whether the cap switches it off or the transfer preserves
-it.
+ordering follows from the relative price alone. The taste scale governs the size of the adoption channel; the cap-versus-transfer
+contrast does not depend on it.
 
-\subsection{The steady state: who adopts}
-\label{sec:ss_adoption}
+\subsection{The experiments}
+\label{sec:experiments}
 
-At the calibrated steady state green durables are $5\%$ of the stock and the
-quarterly switching flow is $0.26\%$, the flow that replaces green depreciation
-(Table~\ref{tab:switch_prob_dist}, Appendix~\ref{app:taste}). Adoption is far from
-uniform across households. Figure~\ref{fig:switch_heatmap} plots the switching
-probability of the median discount-factor type over the wealth--productivity
-grid: the choice \emph{policy function}, not the mass-weighted pool, which mixes
-three types with very different switching rates and is best read as the distribution
-in Table~\ref{tab:switch_prob_dist}. The probability that a brown incumbent
-switches to green rises monotonically in both wealth and idiosyncratic
-productivity. Wealthier households can finance the switching cost $\psi_g$ and more
-productive households expect the higher future income that makes the durable worth
-replacing, so adoption concentrates among wealthy, high-productivity households. The
-surface also makes the rare-margin regime visible: away from that group the
-probability sits far below one: the brown mass occupies the exponential tail of the
-logit, where the semi-elasticity of switching is $1/\sigma_\varepsilon$ household by
-household (Appendix~\ref{app:taste}, Table~\ref{tab:switch_prob_dist}).
+This subsection fixes what the rest of the paper holds constant: the two crisis
+experiments, the counterfactual that isolates the adoption channel, the policy
+instruments, and the welfare measure by which scenarios are ranked.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.72\textwidth]{output/fig_switch_heatmap.png}
-\caption{Probability of switching from a brown to a green durable, per quarter, for
-the median discount-factor type, as a function of household wealth relative to the
-mean $a/\bar a$ (horizontal, symmetric-log scale) and idiosyncratic productivity $e$
-(vertical), at the baseline steady state. Colour on a log scale. Plotting a single
-type's policy function rather than the mass-weighted pool removes a composition
-artifact: pooling the three discount-factor types, whose switching rates differ by
-orders of magnitude, makes the wealth gradient non-monotone even though each type's
-rule is monotone. The policy function is monotone in both wealth and productivity.}
-\label{fig:switch_heatmap}
-\end{figure}
+\paragraph{The two energy shocks.}\label{sec:shocks}
 
-The wealth gradient is the marginal-switcher condition \eqref{eq:margin} seen
-household by household. Figure~\ref{fig:payoff} prices one switch the way the
-condition does: the upfront cost $\psi_g$ against the energy saving
-$(\bar P^E_B-\bar P^E_G)\,\bar c^{\,G}_E$ accumulated over the durable's life,
-discounted by interest and survival; the limit of the plotted sum is the
-discounted-saving side of \eqref{eq:margin}. Because energy use rises with wealth in
-levels, so does the saving. At mean wealth the saving never reaches $\psi_g$: the
-typical household stays brown not because it discounts the future heavily but
-because its energy bill is too small for the operating saving ever to repay the
-cost. At about $25\,\bar a$ the breakeven arrives at the durable's expected life,
-the accounting margin; at $40\,\bar a$ it arrives within four years, and adoption is
-comfortably worthwhile. The figure is an accounting cut: it holds the green
-incumbent's demand fixed and abstracts from consumption smoothing and the taste
-shocks that make the actual choice probabilistic. But it is the reason the holding
-rate climbs from under three percent to seventy-seven across the wealth distribution
-(Figure~\ref{fig:ss_objects}), and the object the crisis then perturbs: a brown
-price shock scales the saving flow up, moving each household's crossing left.
+Two experiments drive the crisis, one per energy closure. The \emph{price} shock
+doubles the world energy price on impact and lets it decay with a 16-quarter
+half-life under perfectly elastic supply,
+%
+\begin{equation}
+P^{E*}_t=\bar P^{E*}\bigl(1+\nu\,\rho^{\,t}\bigr),
+\qquad
+\rho=2^{-1/h},
+\label{eq:price-shock}
+\end{equation}
+%
+with impact size $\nu=1$, a doubling, and half-life $h=16$ quarters, the experiment
+of \citet{auclert2023energy}. The \emph{supply} shock removes 10\% of the
+available quantity for six quarters and lets the price clear it,
+%
+\begin{equation}
+E^{*}_t=\bar E^{*}\bigl(1-0.10\cdot\I[t<6]\bigr),
+\label{eq:supply-shock}
+\end{equation}
+%
+the fixed-quantity closure of \citet{bayer2026hank}. Figure~\ref{fig:shocks} shows the two side by side. Under the price shock we move
+the world price directly and the quantity clears; under the supply shock we move
+the quantity, a 10\% cut, and the clearing price adjusts. Because energy
+demand is highly inelastic ($\eta_E=0.10$), a 10\% quantity cut requires a price
+spike of about $170\%$ to clear, so the supply shock is in fact the larger
+\emph{price} disturbance of the two on impact. We report the price shock as the primary experiment. Under the fixed-quantity closure
+the clearing price must move to clear the market, and a policy that mutes the household
+demand response, such as the cap, forces it to move further still
+(Section~\ref{sec:dial}); under the price shock the world price is exogenous, so the
+policy comparison is free of this price-clearing feedback. The supply shock is
+reported alongside it as the fixed-quantity counterpart.
+Section~\ref{sec:crisis} puts the adoption margin to work under both.
 
 \begin{figure}[H]\centering
-\IfFileExists{output/fig_adoption_payoff_import.pdf}{\includegraphics[width=.8\textwidth]{output/fig_adoption_payoff_import.pdf}}{\textit{[figure output/fig\_adoption\_payoff\_import.pdf: run run\_adoption\_payoff.py]}}
-\caption{The private economics of one switch, at the steady state. For the median
-discount-factor type at median productivity and three wealth levels, cumulative
-energy saving from operating green, discounted by interest and survival,
-$S(T)=\sum_{t\le T}\bigl[(1-\delta_g)/(1+r)\bigr]^{t}
-(\bar P^E_B-\bar P^E_G)\,\bar c^{\,G}_E(e,a)$, against the switching cost $\psi_g$
-(dashed) and the expected durable life $1/\delta_g$ (dotted). Dots mark the
-breakeven quarter. No shock: the steady-state investment problem.}
-\label{fig:payoff}
+\figtitle{The two energy shocks}
+\IfFileExists{output/fig_shocks_import.pdf}{\includegraphics[width=\textwidth]{output/fig_shocks_import.pdf}}{\textit{[figure output/fig\_shocks\_import.pdf: run run\_shocks.py]}}
+\label{fig:shocks}
+\fignotes{Percent deviations from own steady state. \emph{Left}: the price shock
+moves the world energy price (exogenous) and the quantity clears. \emph{Right}: the
+supply shock moves availability ($-10\%$ for 6 quarters, exogenous) and the regional
+price clears the reduced quantity, spiking about $170\%$ because demand is inelastic.
+In the right panel the bold blue line is announced availability and the dashed blue
+line is realised availability; they differ because world stock arbitrage
+\eqref{eq:energy-supply} releases inventories against the cut and rebuilds them
+afterwards.}
 \end{figure}
 
-Two further steady-state objects anticipate the policy results
-(Figure~\ref{fig:ss_objects}). The switching \emph{flow} has a stock counterpart:
-the green-holding rate rises from under $3\%$ at the constraint to $77\%$ at the top
-of the wealth grid, so the durable is held disproportionately by the wealthy. The
-marginal propensity to consume runs the other way, falling from about $0.5$ at the
-constraint to near zero by $a\approx3.5\,\bar a$, with brown incumbents and green holders
-close at each wealth level. These two gradients drive the incidence results of
-Section~\ref{sec:shield}. A transfer to brown households reaches the high-MPC
-constrained tail and stabilises consumption effectively; an energy-indexed transfer
-does not, because the energy bill is flat as a share of spending
-($3.8\%$ at the bottom of the wealth distribution against $3.7\%$ at the top) and so
-rises with wealth in levels, sending the largest payments to the low-MPC wealthy.
-Homothetic energy demand makes energy-indexed targeting regressive; the flat share
-is the assumption behind that result, and the non-homothetic robustness check in
-Section~\ref{sec:shield} relaxes it.
+\paragraph{Isolating the adoption channel.}\label{sec:counterfactual}
 
-\begin{figure}[H]\centering
-\IfFileExists{output/fig_ss_objects_import.pdf}{\includegraphics[width=\textwidth]{output/fig_ss_objects_import.pdf}}{\textit{[figure output/fig\_ss\_objects\_import.pdf: run run\_ss\_objects.py]}}
-\caption{Steady-state objects, aggregated over discount-factor types. Left:
-green-durable holding rate against wealth (the stock behind the switching flow).
-Right: quarterly MPC against wealth, by durable state. Wealth on a symmetric-log
-scale.}
-\label{fig:ss_objects}
-\end{figure}
+Several results below isolate the adoption channel as the difference between the
+full model and a ``no-adoption'' counterfactual,
+$\Delta_H\equiv\sum_{t<H}(y^{\mathrm{adopt}}_t-y^{\mathrm{no\text{-}adopt}}_t)$.
+The counterfactual is constructed to share the full model's steady state
+\emph{exactly}: households still hold the discrete durable-choice margin, and the
+steady-state green share, switching flow, and switching cost
+($\bar D^{G}=5\%$, $D^{sw}_{ss}$, $\psi_g$) are identical to the adoption
+economy. What differs is the \emph{transition} only: the discrete-choice
+probabilities are held at their steady-state values throughout the impulse
+response, so the durable composition does not respond to the crisis while every
+other block responds normally. We call this the \emph{common-steady-state}, or frozen-choice, counterfactual. The alternative, shutting the choice by
+making green durables infeasible, so the counterfactual's own steady state has
+$D^{G}_{ss}=0$, would compare two economies that differ both in the crisis
+response \emph{and} in steady-state composition; the frozen construction isolates
+the crisis response alone.\footnote{Impulse responses are reported as $100\times$ the
+level deviation from steady state. Variables whose steady state is one (prices, $w$,
+$n$, and the shares $D^{G}$, $D^{sw}$) read directly as percent or percentage-point
+deviations; $C$ (steady state $\approx0.999$) is within rounding of a percent; $y$ and
+$\mathrm{gdp}$ (steady state $\approx0.998$) are level deviations $\times100$, within
+about $0.2\%$ of the exact percentage; energy quantities are a share of the energy
+steady state ($\approx0.040$).}
+
+\paragraph{The policy instruments.}\label{sec:instruments}
+
+The instruments are those of Section~\ref{sec:gov} and Table~\ref{tab:instruments}.
+Four are crisis instruments, zero in the baseline and deployed once the shock has
+landed: the price cap $\tau^E$ acts on the brown retail price $\PEB$; the Slutsky
+transfer $ins_E$ and the flat transfer $T^{\mathrm{unt}}$ act on income, the first
+indexed to pre-crisis brown-energy use and the second lump sum; the green subsidy
+$s_g$ pays a fraction of the switching cost. All four are deficit-financed and
+repaid through the labour tax \eqref{eq:gbc2}. The fifth, the permanent carbon tax
+$\tau_b$, is the ex-ante counterpart: it raises $\PEB$ before any crisis and defines
+the ``prepared'' economy of Section~\ref{sec:exante}, with its revenue rebated lump
+sum. Section~\ref{sec:shield} compares the crisis instruments and
+Section~\ref{sec:exante} the ex-ante one; the distinction that organises both is
+whether the instrument acts on the price or on income.
+
+\subsection{The welfare measure}
+\label{sec:welfare}
+
+We rank scenarios by the discounted utility of a
+household drawn at random before the shock. There are three permanent
+discount-factor types $i\in\{0,1,2\}$ of equal mass; type-$i$ welfare in a scenario
+is
+%
+\begin{equation}
+  \mathcal{W}_i=\sum_{t\ge0}\beta_i^{\,t}\,\bigl(\mathbb{E}_0[u(c_{it})]-v(n_t)\bigr),
+  \label{eq:welfare}
+\end{equation}
+%
+the expectation over the date-$0$ (pre-shock) cross-section of type $i$; the
+distribution then evolves endogenously along the transition, so \eqref{eq:welfare}
+is the expected discounted utility of a household placed behind a date-$0$ veil of
+ignorance, the object a welfarist planner evaluates.
+\citet{auclert2023energy}, the model we extend, gauge the distributional effects of energy
+policy through consumption inequality; we complement that with a
+consumption-equivalent welfare ranking. We report $\mathcal{W}_i$ type by type and,
+as a population summary, the aggregate consumption-equivalent variation defined below. Felicity $u$
+is \eqref{eq:felicity}, evaluated on the bundle the household consumes, so
+$\mathbb{E}_0[u(c_{it})]$ is the exact cross-sectional average, not felicity at the
+average bundle.
+
+\emph{Labour is not a household choice.} The union sets the wage \eqref{eq:wpc} and
+hours $n_t$ are common across households: a household of productivity $e$ earns
+$e\,(1-\tau^L)w\,n_t$ and works the same hours as everyone else. Preferences are
+separable and $n_t$ is taken as given, so the labour-disutility term
+$v(n)=v_\varphi\,n^{1+\varphi}/(1+\varphi)$ does not enter the household's
+consumption--saving problem \eqref{eq:coh}. It is nonetheless a real utility cost of
+the hours worked, common to every type, so the welfare criterion must include it: we
+subtract $v(n_t)$ in \eqref{eq:welfare}. Omitting it would score a policy that raises
+employment as a free lunch: higher consumption with no offsetting disutility of
+hours.
+
+\paragraph{From the transition to the CEV.} Along a scenario's transition the
+felicity deviations are $\widehat{u}_{it}=u_{it}-u^{\mathrm{ss}}_i$, where
+$u_{it}=\mathbb{E}_t[u(c_{it})]$ is average type-$i$ felicity at date $t$ and
+$u^{\mathrm{ss}}_i$ its reference-steady-state level; the labour term deviates by
+$\Delta v_t=v'(n^{\mathrm{ss}})\,\widehat{n}_t$, with
+$v'(n^{\mathrm{ss}})=v_\varphi\,(n^{\mathrm{ss}})^{\varphi}$. The scenario's welfare
+relative to its own steady state is
+%
+\begin{equation}
+  \Delta\mathcal{W}_i=\sum_{t\ge0}\beta_i^{\,t}\,\bigl(\widehat{u}_{it}-\Delta v_t\bigr).
+  \label{eq:dW}
+\end{equation}
+%
+We express this in consumption units through the consumption-equivalent variation
+$\chi_i$ \citep{Lucas1987}: the permanent proportional consumption supplement that,
+granted to every type-$i$ household in the reference steady state, reproduces
+$\Delta\mathcal{W}_i$. A permanent supplement scales felicity by
+$(1+\chi_i)^{1-\sigma}$ and so raises welfare by
+$[(1+\chi_i)^{1-\sigma}-1]\,u^{\mathrm{ss}}_i/(1-\beta_i)$; equating to
+$\Delta\mathcal{W}_i$ and inverting,
+%
+\begin{equation}
+  \chi_i=
+  \begin{cases}
+    \exp\!\bigl[(1-\beta_i)\,\Delta\mathcal{W}_i\bigr]-1, & \sigma=1,\\[4pt]
+    \Bigl[\,1+(1-\beta_i)\,\Delta\mathcal{W}_i/u^{\mathrm{ss}}_i\,\Bigr]^{1/(1-\sigma)}-1, & \sigma\neq1.
+  \end{cases}
+  \label{eq:cev}
+\end{equation}
+%
+We report the per-type $\chi_i$ as the distributional object and, as the population
+figure, the aggregate consumption-equivalent variation $\chi^{\ast}$: the common
+permanent supplement that, granted to every type in the reference steady state,
+reproduces the equal-weighted sum $\sum_i\Delta\mathcal{W}_i$,
+%
+\begin{equation}
+  \chi^{\ast}=
+  \begin{cases}
+    \exp\!\bigl[\,\textstyle\sum_i\Delta\mathcal{W}_i\big/\sum_i(1-\beta_i)^{-1}\,\bigr]-1, & \sigma=1,\\[4pt]
+    \bigl[\,1+\textstyle\sum_i\Delta\mathcal{W}_i\big/\sum_i u^{\mathrm{ss}}_i(1-\beta_i)^{-1}\,\bigr]^{1/(1-\sigma)}-1, & \sigma\neq1.
+  \end{cases}
+  \label{eq:cev_star}
+\end{equation}
+%
+The figure $\chi^{\ast}$ aggregates in common consumption units. A mean of the
+per-type $\chi_i$ would not: each $\chi_i$ is a share of a \emph{different} type's
+consumption, and averaging such shares is not a social-welfare aggregate
+\citep{DavilaSchaab2025}. Both are in percent of permanent consumption; a negative
+value is a loss, the share of consumption a household would forgo in perpetuity to
+avoid the scenario.\footnote{The deviations in \eqref{eq:dW} are first order in the shock, so $\chi_i$ is the leading term of the welfare expansion around the (distorted) steady state along a deterministic transition. The setting is not the stochastic one in which a first-order evaluation can reverse welfare rankings \citep{KimKim2003,BenignoWoodford2005}: the transition is deterministic and the first-order term is nonzero and dominant. Because the shock is large and the adoption margin is convex, we bound the neglected second-order terms by recomputing every $\chi_i$ on the nonlinear transition (Appendix~\ref{sec:nlcev}); the levels move by at most about $5\%$ and no ranking changes.}
+
+\paragraph{A common reference across steady states.} Scenarios that begin from
+different steady states cannot be compared through \eqref{eq:dW} alone: the
+\emph{ex-post} crisis instruments start at the pre-crisis baseline, whereas the
+\emph{ex-ante} carbon tax has already moved the economy to a greener, permanently
+distorted steady state before the crisis. We fix the baseline steady state as the
+common reference and split each scenario's welfare into a standing and a transition
+term,
+%
+\begin{equation}
+  \Delta\mathcal{W}_i=
+  \underbrace{\frac{u^{\mathrm{pre}}_i-u^{\mathrm{base}}_i-\Delta v^{\mathrm{lvl}}}{1-\beta_i}}_{\text{standing gap vs.\ baseline}}
+  +\underbrace{\sum_{t\ge0}\beta_i^{\,t}\bigl(\widehat{u}_{it}-\Delta v_t\bigr)}_{\text{crisis transition}},
+  \label{eq:cev_total}
+\end{equation}
+%
+where $u^{\mathrm{pre}}_i$ is felicity at the scenario's own pre-crisis steady state,
+$u^{\mathrm{base}}_i$ at the baseline, and
+$\Delta v^{\mathrm{lvl}}=v'(n^{\mathrm{base}})\,(n^{\mathrm{pre}}-n^{\mathrm{base}})$
+the standing labour-disutility difference. The standing gap is zero for scenarios
+that start at the baseline and negative for the ex-ante tax, which gives up
+steady-state consumption to raise adoption; carrying it into $\Delta\mathcal{W}_i$
+places ex-ante and ex-post policies on a single welfare axis. We feed
+\eqref{eq:cev_total} through \eqref{eq:cev} exactly as for any other scenario.

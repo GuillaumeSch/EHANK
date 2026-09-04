@@ -94,7 +94,6 @@ def fig_irf(runs, shk):
     axes.flat[0].set_ylabel('level dev. from own SS, x100', fontsize=8)
     axes.flat[4].set_ylabel('level dev. from own SS, x100', fontsize=8)
     lab = 'brown-price shock' if shk == 'price' else 'brown-supply shock'
-    fig.suptitle(f'Same {lab}, baseline vs ex-ante ETS steady state ({BOOKING} booking, no policy)', y=1.0)
     fig.tight_layout()
     f = os.path.join(OUT, f'fig_ets_irf_{shk}_{BOOKING}.pdf')
     fig.savefig(f, dpi=140, bbox_inches='tight')
@@ -108,18 +107,9 @@ def fig_cross_section(runs, shk):
     col = {'BB': 'saddlebrown', 'GB': 'orange', 'GG': 'seagreen'}
     lab = {'BB': 'brown incumbents (BB)', 'GB': 'switchers (GB)',
            'GG': 'green incumbents (GG)'}
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.4))
-    # per-capita c by group, % of own SS
-    ax = axes[0]
-    for d, ls, name in ((db, '-', 'baseline'), (de, '--', 'ETS')):
-        for j in ('BB', 'GG'):
-            ax.plot(100 * d['dcbar_f'][j][:H] / d['cbar'][j], lw=2, ls=ls, color=col[j],
-                    label=f'{lab[j]}, {name}')
-    ax.axhline(0, color='grey', lw=0.5)
-    ax.set_title('Per-capita $c$ by technology, fixed populations (% of own SS)', fontsize=10)
-    ax.legend(fontsize=7, frameon=False)
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.4))
     # contributions to dC, level x100
-    for ax, d, name in ((axes[1], db, 'baseline'), (axes[2], de, f'ETS $\\tau_b$={TAU_B}')):
+    for ax, d, name in ((axes[0], db, 'baseline'), (axes[1], de, f'ETS $\\tau_b$={TAU_B}')):
         ax.plot(100 * d['fixed']['BB'][:H], lw=2, color=col['BB'], label='brown, fixed pop.')
         ax.plot(100 * (d['fixed']['GB'] + d['fixed']['GG'])[:H], lw=2, color=col['GG'],
                 label='green, fixed pop.')
@@ -132,7 +122,6 @@ def fig_cross_section(runs, shk):
     for a in axes:
         a.tick_params(labelsize=8); a.set_xlabel('quarters', fontsize=8)
     sh = 'brown-price shock' if shk == 'price' else 'brown-supply shock'
-    fig.suptitle(f'Consumption by technology group, {sh} ({BOOKING} booking, no policy)', y=1.02)
     fig.tight_layout()
     f = os.path.join(OUT, f'fig_cross_section_{shk}_{BOOKING}.pdf')
     fig.savefig(f, dpi=140, bbox_inches='tight')
@@ -172,15 +161,17 @@ def main():
                 'brown (fixed)', 'green (fixed)', 'adoption term',
                 r'$\bar c_{B}$\%', r'$\bar c_{G}$\%', r'peak $D^G$'],
         rows=rows,
-        caption=(f'Consumption response by technology group over $H={H}$ '
-                 f'({BOOKING} booking, no policy). Cumulative level deviations '
-                 f'$\\times 100$: $dC$ = brown (fixed population) + green (fixed '
-                 f'population) + adoption term, where the fixed-population terms '
-                 f'come from the common-steady-state frozen-choice counterfactual '
-                 f'and the adoption term is full minus frozen. $\\bar c_j$\\%: '
-                 f'cumulative per-capita consumption response of brown / green '
-                 f'incumbents in \\% of their own steady state, fixed populations.'),
-        label=f'tab:cross_section_{BOOKING}', midrule_after={1})
+        caption='Consumption response by technology group',
+        notes=(f'No policy, over $H={H}$. '
+               f'Cumulative level deviations $\\times 100$: '
+               f'$dC$ = brown (fixed population) + green (fixed population) + '
+               f'adoption term. The fixed-population terms come from the '
+               f'common-steady-state frozen-choice counterfactual and the '
+               f'adoption term is full minus frozen. $\\bar c_j$\\% is the '
+               f'cumulative per-capita consumption response of brown and green '
+               f'incumbents, in \\% of their own steady state, at fixed '
+               f'populations.'),
+        label=f'tab:cross_section_{BOOKING}', midrule_after={1}, fit_width=True)
 
 if __name__ == '__main__':
     main()

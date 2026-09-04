@@ -182,10 +182,14 @@ def run(model, shock_kind='price', policy='none', model_variant='adoption',
     unknowns_td, targets_td = td_unknowns_targets(booking, ets=ets)
 
     if ets:
-        # psi_g fixed at the no-ETS baseline, D_GREEN floats
-        base_calib = make_calibration(numeraire, booking=booking, **{
-            k: v for k, v in ov.items()
-            if k not in ('tau_b', 'tau_g', 's_g_ets', 's_g')})
+        # psi_g fixed at the no-ETS baseline, D_GREEN floats. The pinning SS is a
+        # shock-closure-independent object, so solve it under the elastic closure
+        # (default unknowns/targets); the inelastic supply calibration is applied
+        # only to the main solve below.
+        base_ov = {k: v for k, v in ov.items()
+                   if k not in ('tau_b', 'tau_g', 's_g_ets', 's_g')}
+        base_ov['E_supply_elasticity'] = np.inf
+        base_calib = make_calibration(numeraire, booking=booking, **base_ov)
         ss_base = solve_ss(model, base_calib, booking=booking)
         calib['psi_g_bar'] = float(ss_base['psi_g_bar'])
         unknowns, targets = ss_unknowns_targets_fixed_psi(booking, ets=True)

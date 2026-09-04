@@ -1,30 +1,35 @@
 \section{The model}\label{sec:model}
 
-The economy is a small open economy that imports its fossil energy. It is populated
+The economy is a small open economy that imports its fossil energy, populated
 by heterogeneous households, competitive firms producing a domestic good from
 labour, a union that sets wages, a government, and a rest of the world that sets
 world prices. With one exception, the environment is the small open economy HANK of
-\citet{ARS2024}: households consume a CES bundle of energy and goods, import prices
-are sticky, monopoly profits are capitalised into a mutual fund, and monetary policy
-holds the real interest rate constant.
+\citet{auclert2023energy}.
 
-The exception is the household's energy technology. In \citet{ARS2024} every
-household buys energy at the same price with a fixed technology. Here each household
-operates a discrete durable, brown or green, a gas boiler or a heat pump, a
-combustion or an electric vehicle, and can pay a one-time cost $\psi_g$ to switch
-from brown to green, after which it buys energy at the green price and is insulated
-from the fossil price. This single change ramifies in three places, and only three:
-the household block acquires a discrete technology state and an adoption choice;
-the price system acquires a second household energy price and a technology-specific
-cost of living; and the balance of payments acquires two flows, the switching cost
-and the adopters' energy saving. Everything else is inherited.
+The base is the \citet{auclert2023energy} model. We change one thing, in the household
+block: the price of energy a household faces is no longer given but depends on a
+durable it chooses. Each household holds a brown or a green durable (a gas boiler
+or a heat pump, a combustion or an electric vehicle) and pays a one-time cost
+$\psi_g$ to switch from brown to green, after which it buys energy at the lower
+green price. The change is confined to the household's problem, but it reaches the
+rest of the model through the price it controls: the energy price sits inside the
+consumption bundle and the budget constraint. Adoption is an intertemporal choice:
+the household weighs the upfront cost $\psi_g$ against the stream of energy savings
+the green durable delivers over its life, and pays $\psi_g$ out of current resources
+against the borrowing constraint; only households with enough liquidity can afford
+it. A shock or a policy that moves the brown energy price moves this decision, and
+with it the whole household block. Everything outside that, the CES nest, sticky
+import prices, the wage Phillips curve, the mutual fund, and the
+constant-real-rate rule, follows AMRS.
 
-Section~\ref{sec:hh} presents the household block, where the new economics lives.
+Section~\ref{sec:hh} presents the household block.
 Sections~\ref{sec:firms}--\ref{sec:gov} lay out the production side, the price
 system, the open-economy accounts, and the government, which are standard.
 Section~\ref{sec:eqm} defines equilibrium, and Section~\ref{sec:ss} the steady
-state and the two crisis experiments. Time is discrete and quarterly. A bar denotes
-a steady-state value; $x_{-1}$ and $x_{+1}$ a lag and an expected lead. All retail
+state; the two crisis experiments are defined in Section~\ref{sec:shocks}. Time is discrete and quarterly. A bar denotes
+a steady-state value; a date subscript indexes the period, with $x_{t-1}$ a lag and
+$x_{t+1}$ an expected lead. For the durable, $d_{t-1}$ is the technology chosen last period, $d^-_t$ the
+technology held at the start of $t$ after breakdown, and $d_t$ the technology chosen. All retail
 prices are expressed relative to the CPI $P$ and carry the subscript ${}_{/P}$.
 
 \subsection{Households}\label{sec:hh}
@@ -33,59 +38,60 @@ There are three permanent discount-factor types $i\in\{0,1,2\}$ of equal mass, w
 discount factors $\beta_i$ chosen in Section~\ref{sec:cal} to match aggregate MPCs.
 A household is described by three state variables: its assets $a$, its idiosyncratic
 labour productivity $e$, and the durable technology $d\in\{B, G\}$ it operates.
-Productivity follows a discretised log-AR(1), $\log e'=\rho_e\log e+\epsilon$, with a
-mean-one grid and transition matrix $\Pi$, as in \citet{ARS2024}. The technology is
-the new object, and because the paper concerns a decision over it, we begin by fixing
-precisely when, within a period, the household holds it, loses it, and chooses it.
+Productivity follows a discretised log-AR(1), $\log e_{t+1}=\rho_e\log e_t+\epsilon_{t+1}$, with a
+mean-one grid and transition matrix $\Pi$, as in \citet{auclert2023energy}. The technology is
+the new object, and because the paper concerns a decision over it, we fix when,
+within a period, the household holds it, loses it, and chooses it.
 
 \subsubsection{The technology and the timing of the choice}\label{sec:tech}
 
 A household enters the period operating the technology it chose last period, which we
-denote $d_{-1}$. Three events then occur, in this order, before it consumes.
+denote $d_{t-1}$. Three events then occur, in this order, before it consumes.
 
 \begin{enumerate}
 \item \emph{Breakdown.} A green durable fails with probability $\delta_g$ and reverts
-to brown; a brown durable is unaffected. We write $d_-$ for the technology the
+to brown; a brown durable is unaffected. We write $d^-_t$ for the technology the
 household holds \emph{after} this draw: the technology it brings to the decision.
-Hence $d_-=B$ whenever $d_{-1}=B$, while $d_-=G$ with probability $1-\delta_g$ when
-$d_{-1}=G$.
-\item \emph{Productivity.} The household draws its labour productivity $e$.
+Hence $d^-_t=B$ whenever $d_{t-1}=B$, while $d^-_t=G$ with probability $1-\delta_g$ when
+$d_{t-1}=G$.
+\item \emph{Productivity.} The household draws its labour productivity $e_t$.
 \item \emph{The decision.} The household chooses, in a single problem, the
-technology $d$ it will operate together with its consumption and saving. A household
-holding brown ($d_-=B$) may keep brown or pay the switching cost $\psi_g$ to adopt
-green; a household holding green ($d_-=G$) operates it, since running an owned green
+technology $d_t$ it will operate together with its consumption and saving. A household
+holding brown ($d^-_t=B$) may keep brown or pay the switching cost $\psi_g$ to adopt
+green; a household holding green ($d^-_t=G$) operates it, since running an owned green
 durable costs nothing and reverting to brown is never chosen.
 \end{enumerate}
 
 No information arrives between the productivity draw and the decision, so the
 household settles technology, consumption, and saving \emph{jointly}
 (Section~\ref{sec:problem}). The technology it operates is what it carries
-forward, $d$ becomes next period's $d_{-1}$, so the within-period sequence is
+forward, so $d_t$ becomes the technology held on entry next period; the within-period
+sequence is
 %
 \[
-\underbrace{d_{-1}}_{\text{held on entry}}
+\underbrace{d_{t-1}}_{\text{held on entry}}
 \;\xrightarrow{\ \text{breakdown}\ }\;
-\underbrace{d_-}_{\text{held at the decision}}
+\underbrace{d^-_t}_{\text{held at the decision}}
 \;\xrightarrow{\ \text{choice}\ }\;
-\underbrace{d}_{\text{operated, carried forward}}.
+\underbrace{d_t}_{\text{operated, carried forward}}.
 \]
 %
-Two binary objects thus describe the technology: the holding at the decision, $d_-$,
-and the operated technology, $d$. The switching cost is paid exactly when a brown
-holder adopts, that is when $d_-=B$ and $d=G$; we write $\I[d_-=B, d=G]$ for a switcher
-and $\I[d=G]$ for a household operating green. The feasible choices are
+Two binary objects thus describe the technology: the holding at the decision, $d^-_t$,
+and the operated technology, $d_t$. The switching cost is paid exactly when a brown
+holder adopts, that is when $d^-_t=B$ and $d_t=G$; we write $\I[d^-_t=B, d_t=G]$ for a switcher
+and $\I[d_t=G]$ for a household operating green. The feasible choices are
 %
 \[
-\mathcal F(d_-)=
+\mathcal F(d^-_t)=
 \begin{cases}
-\{B,\,G\} & d_-=B \quad(\text{keep brown, or pay $\psi_g$ to adopt}),\\[2pt]
-\{G\} & d_-=G \quad(\text{operate the green durable}).
+\{B,\,G\} & d^-_t=B \quad(\text{keep brown, or pay $\psi_g$ to adopt}),\\[2pt]
+\{G\} & d^-_t=G \quad(\text{operate the green durable}).
 \end{cases}
 \]
 
-Two features follow directly, and both recur below. First, the technology is
+Two features follow directly. First, the technology is
 persistent but asymmetric: brown is absorbing, and green is lost only through
-breakdown. Second, the adoption decision is, in effect, an option held by the brown
+breakdown. Second, the adoption decision is an option held by the brown
 population alone: a green household has nothing to choose.
 
 A constant green share therefore requires a standing flow of switchers to replace the
@@ -99,7 +105,7 @@ durables that fail. In steady state this flow is
 with $\DG$ and $\dsw$ the population shares of green households and of switchers. At
 the calibrated $\bar\DG=5\%$ and a five-year durable life, this flow is about a
 quarter of one percent of households per quarter: adoption is a rare, lumpy event,
-which is what makes its elasticity, not its level, the object to identify
+so the object to identify is its elasticity rather than its level
 (Section~\ref{sec:taste_id}, Appendix~\ref{app:taste}).
 
 \subsubsection{Preferences and the cost of living}\label{sec:prefs}
@@ -114,8 +120,8 @@ u(c)=\log c \ \text{ for } \sigma=1,
 \label{eq:felicity}
 \end{equation}
 %
-with $\sigma$ the inverse elasticity of intertemporal substitution, as in \citet{ARS2024}. The bundle is the
-\citet{ARS2024} CES nest of energy against a home/foreign goods composite, with
+with $\sigma$ the inverse elasticity of intertemporal substitution, as in \citet{auclert2023energy}. The bundle is the
+\citet{auclert2023energy} CES nest of energy against a home/foreign goods composite, with
 energy weight $\alpha_E$ and a low substitution elasticity $\eta_E$.
 
 The departure from AMRS is that energy comes at a technology-specific price: a
@@ -124,53 +130,47 @@ The operated technology therefore fixes both the energy price and the exact
 cost-of-living index,
 %
 \begin{equation}
-p^E_d=\PEB+\I[d=G]\,\bigl(\PEG-\PEB\bigr),
+p^E_{d,t}=\PEB[,t]+\I[d=G]\,\bigl(\PEG[,t]-\PEB[,t]\bigr),
 \label{eq:pEd}
 \end{equation}
 \begin{equation}
-\frac{p_G}{p_B}=\left[\frac{(1-\alpha_E)\,p_{HF/P}^{\,1-\eta_E}+\alpha_E\,(\PEG)^{1-\eta_E}}
-{(1-\alpha_E)\,p_{HF/P}^{\,1-\eta_E}+\alpha_E\,(\PEB)^{1-\eta_E}}\right]^{\frac{1}{1-\eta_E}},
+\frac{p_{G,t}}{p_{B,t}}=\left[\frac{(1-\alpha_E)\,p_{HF/P,t}^{\,1-\eta_E}+\alpha_E\,(\PEG[,t])^{1-\eta_E}}
+{(1-\alpha_E)\,p_{HF/P,t}^{\,1-\eta_E}+\alpha_E\,(\PEB[,t])^{1-\eta_E}}\right]^{\frac{1}{1-\eta_E}},
 \qquad
-\frac{p_G}{p_B}=\bigl(\PEG/\PEB\bigr)^{\alpha_E}\ \text{ for }\eta_E=1.
+\frac{p_{G,t}}{p_{B,t}}=\bigl(\PEG[,t]/\PEB[,t]\bigr)^{\alpha_E}\ \text{ for }\eta_E=1.
 \label{eq:pd}
 \end{equation}
 %
-The adoption choice responds to the relative saving $p_G/p_B<1$: the cheaper
-energy an adopter enjoys, the object the switching cost buys. It is the ratio of
-the two technology bundles \eqref{eq:innernest}, invariant to how the CPI is
-normalised; at the calibrated steady state $p_G/p_B\approx0.992$.
+The adoption choice responds to the relative saving $p_G/p_B<1$, the cheaper cost
+of living the switching cost buys; at the calibrated steady state $p_G/p_B\approx0.981$.
 
 \subsubsection{The household's problem}\label{sec:problem}
 
-A household of type $i$ arrives at the consumption stage with assets $a$ and
-productivity $e$, operating the technology $d$ it has just chosen, having held $d_-$
-at the decision. Before writing the program it is worth stating, in words, what the
-household has and what it does with it. On the resource side there are three items.
-Assets earn the ex-post real return $r$, the return on the mutual fund of
-Section~\ref{sec:firms}; it coincides with the lagged ex-ante rate
-$r^{\mathrm{ante}}_{-1}$ at every date except the first, when the date-0 revaluation
-of the fund's equity drives the two apart (equation~\eqref{eq:fund}), and the
-household bears that surprise. Labour income is $e\,Z$, where $Z\equiv(1-\tau^L)wn$
+A household of type $i$ reaches period $t$ with entry assets $a_{t-1}$ and
+productivity $e_t$, holding the post-breakdown durable $d^-_t$, and chooses its
+technology $d_t$, consumption $c_t$, and saving $a_t$. Its resources are three.
+Assets earn the ex-post real return $r_t$,
+the return on the mutual fund of Section~\ref{sec:firms}. This return equals the
+lagged ex-ante rate $r^{\mathrm{ante}}_{t-1}$ at every date but the first; at
+date~0 the revaluation of the fund's equity drives the two apart
+(equation~\eqref{eq:fund}), and the household bears that surprise. Labour income is $e_t\,Z_t$, where $Z_t\equiv(1-\tau^L_t)w_t n_t$
 is aggregate after-tax labour income distributed in proportion to productivity, as in
-\citet{ARS2024}; the household does not choose hours, which the union sets
-(Section~\ref{sec:firms}). The government may pay a transfer $T$, specified below. On
+\citet{auclert2023energy}; the household does not choose hours, which the union sets
+(Section~\ref{sec:firms}). The government may pay a transfer $T_t$, specified below. On
 the spending side, the household buys the consumption bundle at its
-technology-specific cost of living $p_d$, saves $a'\ge0$ subject to the borrowing
+technology-specific cost of living $p_{d,t}$, saves $a_t\ge0$ subject to the borrowing
 constraint, and, if it is a brown holder adopting green this period, pays the
 switching cost $\psi_g$, once. The budget constraint collects these
-items,\footnote{The unit of account is the CPI basket
-(Section~\ref{sec:eqm}), so $p^{\num}=1$: asset returns, wages, transfers and
-$\psi_g$ in \eqref{eq:coh} are already in CPI units and enter without conversion.}
+items,
 %
 \begin{equation}
-p_d\,c+a'+\psi_g\,\I[d_-=B,\,d=G]=(1+r)\,a+e\,Z+T.
+p_{d,t}\,c_t+a_t+\psi_g\,\I[d^-_t=B,\,d_t=G]=(1+r_t)\,a_{t-1}+e_t\,Z_t+T_t.
 \label{eq:coh}
 \end{equation}
 
-The switching cost is the economics of the margin in one term. It is paid exactly
-once, in the period a brown holder adopts, and it buys the permanently cheaper
-bundle $p_G<1$ for as long as the durable survives: an upfront, lumpy outlay set
-against a gradual operating saving. Because the outlay is financed out of current
+The switching cost is paid exactly once, in the period a brown holder adopts, and
+it buys the permanently cheaper bundle $p_G<1$ for as long as the durable
+survives: an upfront, lumpy outlay against a gradual operating saving. Because the outlay is financed out of current
 resources against the borrowing constraint, wealth governs who can undertake it,
 which is why adoption concentrates among the unconstrained
 (Section~\ref{sec:ss_adoption}).
@@ -178,7 +178,7 @@ which is why adoption concentrates among the unconstrained
 The transfer carries ex-post fiscal policy,
 %
 \begin{equation}
-T=T^{\mathrm{unt}}+ins_E\,(\pE-\bar p^E)\,\bar c^{\,B}_{E,i}(e, a),
+T_t=T^{\mathrm{unt}}_t+ins_E\,(\pE_t-\bar p^E)\,\bar c^{\,B}_{E,i}(e, a),
 \label{eq:transfer-hh}
 \end{equation}
 %
@@ -188,25 +188,25 @@ household's
 \emph{pre-crisis} brown-energy demand $\bar c^{\,B}_{E,i}(e, a)$; both are zero in the
 baseline. One design feature matters throughout: the transfer conditions on
 steady-state energy use, never on the current technology. A household that switches
-forfeits nothing, so the transfer leaves the adoption margin undistorted, in sharp
+forfeits nothing, so the transfer leaves the adoption margin undistorted, in
 contrast to the price cap of Section~\ref{sec:prices}, which acts on $\PEB$ itself.
 
 The household chooses its technology, consumption, and saving \emph{together}, in a
 single problem:
 %
 \begin{equation}
-\max_{d\in\mathcal F(d_-)}\;\;\max_{c,\;a'\ge0}\;
-\Bigl\{\,u(c)+\beta_i\,\E\bigl[\bar V(d_-',e',a')\bigr]\Bigr\}
+\max_{d_t\in\mathcal F(d^-_t)}\;\;\max_{c_t,\;a_t\ge0}\;
+\Bigl\{\,u(c_t)+\beta_i\,\E_t\bigl[\bar V_{t+1}(d^-_{t+1},e_{t+1},a_t)\bigr]\Bigr\}
 \quad\text{subject to \eqref{eq:coh}},
 \label{eq:joint}
 \end{equation}
 %
-with $\bar V$ the continuation value (defined in \eqref{eq:logit}) and next period's
-holding $d_-'$ given by breakdown applied to the operated technology $d$. The nested
-maxima are not a temporal sequence, since nothing is realised between them, but the
-structure of a discrete--continuous choice: for each feasible technology the
+with $\bar V_{t+1}$ the continuation value (defined in \eqref{eq:logit}) and next
+period's holding $d^-_{t+1}$ given by breakdown applied to the operated technology $d_t$. The nested
+maxima do not describe a temporal sequence, since nothing is realised between
+them; they are the structure of a discrete--continuous choice: for each feasible technology the
 household solves the continuous consumption-saving problem, obtaining the
-technology-conditional value $V(d\mid d_-,e, a)$, in which the origin $d_-$ enters
+technology-conditional value $V_t(d_t\mid d^-_t,e_t, a_{t-1})$, in which the origin $d^-_t$ enters
 only through the switching cost; it then selects the technology
 (Section~\ref{sec:adoption}). Only three
 continuous problems are ever relevant: a brown household ($p_B$, no switching
@@ -215,52 +215,52 @@ resources reduced by $\psi_g$). Each satisfies the usual Euler and envelope
 conditions,
 %
 \begin{equation}
-u'(c)=\beta_i\,p_d\,\E\bigl[\bar V_a(d_-',e',a')\bigr],
+u'(c_t)=\beta_i\,p_{d,t}\,\E_t\bigl[\bar V_{a,t+1}(d^-_{t+1},e_{t+1},a_t)\bigr],
 \qquad
-V_a=(1+r)\,u'(c)/p_d,
+V_{a,t}=(1+r_t)\,u'(c_t)/p_{d,t},
 \label{eq:euler}
 \end{equation}
 %
-with $u'(c)=c^{-\sigma}$; a green household's cheaper bundle raises the
+with $u'(c_t)=c_t^{-\sigma}$; a green household's cheaper bundle raises the
 consumption value of every unit of wealth. CES demands split by the operated
 technology,
 %
 \begin{equation}
-c_E(d)=\alpha_E\bigl(p^E_d/p_d\bigr)^{-\eta_E}c,
+c_{E,t}(d)=\alpha_E\bigl(p^E_{d,t}/p_{d,t}\bigr)^{-\eta_E}c_t,
 \qquad
-c_{HF}(d)=(1-\alpha_E)\bigl(p_{HF/P}/p_d\bigr)^{-\eta_E}c,
+c_{HF,t}(d)=(1-\alpha_E)\bigl(p_{HF/P,t}/p_{d,t}\bigr)^{-\eta_E}c_t,
 \label{eq:hh-demands}
 \end{equation}
 %
 and brown versus green energy use follow the technology,
-$c^B_E=c_E\,(1-\I[d=G])$ and $c^G_E=c_E\,\I[d=G]$.
+$c^B_{E,t}=c_{E,t}(d_t)\,(1-\I[d_t=G])$ and $c^G_{E,t}=c_{E,t}(d_t)\,\I[d_t=G]$.
 
 \subsubsection{The technology choice}\label{sec:adoption}
 
 The outer maximum in \eqref{eq:joint} selects the technology, completing the joint
-problem. A household holding $d_-$ compares the technology-conditional values
-$V(d\mid d_-,\cdot)$; with an i.i.d.\ extreme-value taste shock of scale
+problem. A household holding $d^-_t$ compares the technology-conditional values
+$V_t(d_t\mid d^-_t,\cdot)$; with an i.i.d.\ extreme-value taste shock of scale
 $\sigma_\varepsilon$ on each option, the choice is logit and the household's
-continuation value $\bar V$ is the log-sum-exp,
+continuation value $\bar V_t$ is the log-sum-exp,
 %
 \begin{equation}
 \begin{aligned}
-\Pr(d\mid d_-,e, a)&=
-\frac{\exp\{V(d\mid d_-,e, a)/\sigma_\varepsilon\}}
-{\sum_{d'\in\mathcal F(d_-)}\exp\{V(d'\mid d_-,e, a)/\sigma_\varepsilon\}},\\[4pt]
-\bar V(d_-,e, a)&=\sigma_\varepsilon\log\!\!\sum_{d'\in\mathcal F(d_-)}\!\!
-\exp\bigl(V(d'\mid d_-,e, a)/\sigma_\varepsilon\bigr).
+\Pr\nolimits_t(d_t\mid d^-_t,e_t, a_{t-1})&=
+\frac{\exp\{V_t(d_t\mid d^-_t,e_t, a_{t-1})/\sigma_\varepsilon\}}
+{\sum_{d'\in\mathcal F(d^-_t)}\exp\{V_t(d'\mid d^-_t,e_t, a_{t-1})/\sigma_\varepsilon\}},\\[4pt]
+\bar V_t(d^-_t,e_t, a_{t-1})&=\sigma_\varepsilon\log\!\!\sum_{d'\in\mathcal F(d^-_t)}\!\!
+\exp\bigl(V_t(d'\mid d^-_t,e_t, a_{t-1})/\sigma_\varepsilon\bigr).
 \end{aligned}
 \label{eq:logit}
 \end{equation}
 %
-For a green holder the feasible set is a singleton, so $\bar V(G,\cdot)=V(G\mid G,\cdot)$
+For a green holder the feasible set is a singleton, so $\bar V_t(G,\cdot)=V_t(G\mid G,\cdot)$
 and there is nothing to decide. The only genuine choice is the brown holder's: a
 two-way comparison of staying brown against paying $\psi_g$ to adopt green. That cost
 already sits inside the adopter's budget constraint \eqref{eq:coh}, so the option values
 price it automatically.
 
-The economics of the margin is transparent in steady state. The marginal switcher
+The economics of the margin is simplest in steady state. The marginal switcher
 equates the premium to the discounted operating-cost saving over the durable's
 expected life,
 %
@@ -278,7 +278,7 @@ entirely; a transfer supports income while leaving $\PEB$, and hence
 state, greening the economy before any crisis arrives.
 
 Away from steady state, the responsiveness of the margin is governed by
-$\sigma_\varepsilon$. The taste shocks are, in the tradition of \citet{DCEGM2017},
+$\sigma_\varepsilon$. The taste shocks are, in the tradition of \citet{iskhakov2017endogenous},
 the smoothing that makes the discrete choice differentiable; at a rare margin they are
 also the structural semi-elasticity of switching, so $\sigma_\varepsilon$ cannot be
 treated as a nuisance parameter and set small. Section~\ref{sec:taste_id} identifies
@@ -291,16 +291,16 @@ For each type $i$, aggregates integrate the household policies over the stationa
 distribution $\Lambda_i$, and the economy averages the three types equally,
 %
 \begin{equation}
-X=\tfrac13\textstyle\sum_i X_i,
+X_t=\tfrac13\textstyle\sum_i X_{i,t},
 \qquad
 X\in\{C,\;A,\;\DG,\;\dsw,\;C^B_E,\;C^G_E,\;C_{HF},\dots\}.
 \label{eq:agg}
 \end{equation}
 %
-Aggregate energy demand is $c_E=C^B_E+C^G_E$, and home- and foreign-good demands apply
+Aggregate energy demand is $c_{E,t}=C^B_{E,t}+C^G_{E,t}$, and home- and foreign-good demands apply
 the common inner nest to the composite,
-$c_H=(1-\alpha_F)\,p_{H/HF}^{-\eta}\,C_{HF}$ and
-$c_F=\alpha_F\,p_{F/HF}^{-\eta}\,C_{HF}$. The two aggregates the policy experiments
+$c_{H,t}=(1-\alpha_F)\,p_{H/HF,t}^{-\eta}\,C_{HF,t}$ and
+$c_{F,t}=\alpha_F\,p_{F/HF,t}^{-\eta}\,C_{HF,t}$. The two aggregates the policy experiments
 track are the green share $\DG$, the population share operating green, and the
 switching flow $\dsw$, the share adopting green each period.
 
@@ -313,24 +313,23 @@ aggregate labour income is $Z=(1-\tau^L)wn$, with $n$ hours and $w$ the real wag
 hold,
 %
 \begin{equation}
-D=(\mu-1)\,wn,
+D_t=(\mu-1)\,w_t n_t,
 \qquad
-J=D+\frac{J_{+1}}{1+r^{\mathrm{ante}}},
+J_t=D_t+\frac{J_{t+1}}{1+r^{\mathrm{ante}}_t},
 \qquad
-j=\frac{J_{+1}}{1+r^{\mathrm{ante}}},
+j_t=\frac{J_{t+1}}{1+r^{\mathrm{ante}}_t},
 \qquad
-1+r=\frac{J}{j_{-1}},
+1+r_t=\frac{J_t}{j_{t-1}},
 \label{eq:fund}
 \end{equation}
 %
-following the notation of \citet{ARS2024}: $r^{\mathrm{ante}}_t$ is the ex-ante real
+following the notation of \citet{auclert2023energy}: $r^{\mathrm{ante}}_t$ is the ex-ante real
 rate at which the risk-neutral fund prices its claims (equation~\eqref{eq:mp}), $j$ is
 the ex-dividend share price, and $r$ is the fund's ex-post return: the return
 households earn in \eqref{eq:coh}. Because the fund equates ex-ante returns across
 assets, the ex-post return equals the lagged ex-ante rate at every date but the
-first, $r_t=r^{\mathrm{ante}}_{t-1}$ for $t\ge1$; only the impact return $r_0$ differs,
-reflecting the date-0 revaluation of the fund's equity, which is the source of the
-revaluation term in \eqref{eq:nfa}. Importers are foreign-owned and the energy
+first, $r_t=r^{\mathrm{ante}}_{t-1}$ for $t\ge1$; only the impact return $r_0$ differs, because the date-0 revaluation of the
+fund's equity feeds the revaluation term in \eqref{eq:nfa}. Importers are foreign-owned and the energy
 endowment is not held domestically, so domestic firms are the only domestically held
 risky claim.
 
@@ -338,40 +337,43 @@ risky claim.
 A union sets the nominal wage under Calvo frictions $\theta_w$, trading off
 households' marginal rate of substitution against the after-tax wage, with a
 real-wage-stabilisation term (weight $\zeta_{BG}$) as in
-\citet{ARS2024}. With slope $\kappa_w=(1-\theta_w)(1-\beta\theta_w)/\theta_w$,
+\citet{auclert2023energy}. With slope $\kappa_w=(1-\theta_w)(1-\beta\theta_w)/\theta_w$,
 inverse Frisch elasticity $\varphi$, and labour-disutility constant $v_\varphi$,
 wage inflation follows
 %
 \begin{equation}
-\pi^w(1+\pi^w)
-= \beta\,\pi^w_{+1}(1+\pi^w_{+1})
-+ \frac{\kappa_w}{v_\varphi\,n^{\varphi}}
-\biggl[v_\varphi\,n^{\varphi}
-- \frac{(1-\tau^L)w\,C^{-\sigma}}{\mu}
-- \zeta_{BG}\frac{(w-\bar w)\,w\,\bar C^{-\sigma}\bar n}{\mu\,n\,\bar w}\biggr],
+\pi^w_t(1+\pi^w_t)
+= \beta\,\pi^w_{t+1}(1+\pi^w_{t+1})
++ \frac{\kappa_w}{v_\varphi\,n_t^{\varphi}}
+\biggl[v_\varphi\,n_t^{\varphi}
+- \frac{(1-\tau^L_t)w_t\,C_t^{-\sigma}}{\mu}
+- \zeta_{BG}\frac{(w_t-\bar w)\,w_t\,\bar C^{-\sigma}\bar n}{\mu\,n_t\,\bar w}\biggr],
 \label{eq:wpc}
 \end{equation}
 %
-and the real wage evolves as $w=(1+\pi^w)\,w_{-1}/(1+\pi)$.
+and the real wage evolves as $w_t=(1+\pi^w_t)\,w_{t-1}/(1+\pi_t)$.
 
 \subsection{The price system}\label{sec:prices}
 
-The paper's mechanism runs entirely through relative prices, so it is worth laying
-the price system out in one place. Table~\ref{tab:prices} collects it: world
-prices at the top, a wholesale layer where nominal rigidities live, a retail layer
-where policy operates, and the CPI that aggregates them.
+The paper's mechanism runs entirely through relative prices, so we lay the price
+system out in one place. Table~\ref{tab:prices} collects it: world prices at the
+top, a wholesale layer carrying the nominal rigidities, a retail layer where
+policy acts, and the CPI that aggregates them.
 
 \begin{table}[H]
-\centering\small
+\centering
+\figtitle{The price system}
+\small
 \begin{tabular}{lll}
 \toprule
 Symbol & Object & Determined by \\
 \midrule
 $P^{E*},\,P^{*}_F,\,C^{*},\,r^{*}$ & world energy and goods prices, demand, rate &
 exogenous\textsuperscript{a} \\
-$\pE$ & wholesale retail price of brown energy & NKPC \eqref{eq:pE-nkpc} \\
-$\PEB$ & brown households' energy price & cap rule \eqref{eq:cap} \\
-$\PEG$ & green households' energy price & $\varrho\,\bar p^E$, eq.~\eqref{eq:pEG2} \\
+$\pE$ & wholesale brown energy price & NKPC \eqref{eq:pE-nkpc} \\
+$\PEB$ & brown households' energy price (tax-inclusive) & cap rule and $\tau_b$, eq.~\eqref{eq:cap} \\
+$\PEG$ & green households' energy price (tax-inclusive) & world price and $\tau_g$, eq.~\eqref{eq:pEG2} \\
+$\PEBpre,\,\PEGpre$ & pre-tax energy prices (BoP, carbon account) & eqs.~\eqref{eq:cap}--\eqref{eq:pEG2} \\
 $p_{H/P}$ & domestic good & markup pricing \eqref{eq:pH} \\
 $p_{F/P}$ & imported consumption good & NKPC \eqref{eq:pF} \\
 $p_{HF/P},\,p_{H/HF}$ & goods composites & outer nest \eqref{eq:outernest} \\
@@ -380,17 +382,17 @@ saving $p_G/p_B$ \eqref{eq:pd} \\
 $Q$ & real exchange rate & UIP \eqref{eq:uip} \\
 \bottomrule
 \end{tabular}
-\caption{The price system. All retail prices are relative to the CPI.
-\textsuperscript{a}Under the fixed-quantity closure the world energy price
-$P^{E*}$ clears the energy market (Section~\ref{sec:eqm}).}
 \label{tab:prices}
+\fignotes{All retail prices are relative to the CPI. \textsuperscript{a}Under the
+fixed-quantity closure $P^{E*}$ is the price that clears the fixed regional quantity
+(Section~\ref{sec:eqm}).}
 \end{table}
 
 \paragraph{The domestic good.}
 Marginal-cost pricing at the constant markup gives
 %
 \begin{equation}
-p_{H/P}=\frac{\mu}{A^N}\,w.
+p_{H/P,t}=\frac{\mu}{A^N}\,w_t.
 \label{eq:pH}
 \end{equation}
 
@@ -400,40 +402,58 @@ $\theta_F$ and $\theta_E$, so world price movements pass through to domestic
 retail prices only gradually. With the usual slopes $\kappa_F$ and $\kappa_E$,
 %
 \begin{equation}
-\kappa_F\Bigl(\frac{Q P^{*}_F}{p_{F/P}}-1\Bigr)
-+ \beta_F\,\pi^F_{+1}(1+\pi^F_{+1}) - \pi^F(1+\pi^F)=0,
+\kappa_F\Bigl(\frac{Q_t P^{*}_F}{p_{F/P,t}}-1\Bigr)
++ \beta_F\,\pi^F_{t+1}(1+\pi^F_{t+1}) - \pi^F_t(1+\pi^F_t)=0,
 \label{eq:pF}
 \end{equation}
 \begin{equation}
-\kappa_E\Bigl(\frac{Q P^{E*}}{\pE}-1\Bigr)
-+ \beta_E\,\pi^E_{+1}(1+\pi^E_{+1}) - \pi^E(1+\pi^E)=0.
+\kappa_E\Bigl(\frac{Q_t P^{E*}_t}{\pE_t}-1\Bigr)
++ \beta_E\,\pi^E_{t+1}(1+\pi^E_{t+1}) - \pi^E_t(1+\pi^E_t)=0.
 \label{eq:pE-nkpc}
 \end{equation}
 %
 The margins these retailers earn out of steady state accrue abroad (the importers
-are foreign-owned, as in \citealp{ARS2024}); they matter below only because the
+are foreign-owned, as in \citealp{auclert2023energy}); they matter below only because the
 import bill is valued at retail rather than world prices.
 
-\paragraph{The retail energy prices, where policy lives.}
-The price a brown household actually pays applies the cap to the wholesale price,
+\paragraph{Retail energy prices.}
+Each technology's energy price is built in two steps: a pre-tax price, which
+values the resource flows in the balance of payments and the carbon account, and
+the tax-inclusive price the household pays. For brown energy the pre-tax price
+applies the cap to the wholesale price, and the carbon tax scales it,
 %
 \begin{equation}
-\PEB=(1-\tau^E)\,\pE+\tau^E\,\bar p^E,
+\PEBpre[,t]=(1-\tau^E)\,\pE_t+\tau^E\,\bar p^E,
+\qquad
+\PEB[,t]=\PEBpre[,t]\,(1+\tau_b),
 \label{eq:cap}
 \end{equation}
 %
-so $\tau^E$ dials pass-through continuously: at $\tau^E=0$ households face the
-wholesale price, at $\tau^E=1$ the brown retail price is frozen at its pre-crisis
-level: the full shield. The green price is fixed relative to the pre-crisis brown
-price,
+so $\tau^E$ governs pass-through continuously: at $\tau^E=0$ households face the
+wholesale price, at $\tau^E=1$ the pre-tax brown price is frozen at its
+pre-crisis level: the full shield. Green energy is imported at the constant
+world price $P^{E*}_G=\varrho\,\bar p^E$, $\varrho<1$, and carries its own
+carbon tax $\tau_g$,
 %
 \begin{equation}
-\PEG=\varrho\,\bar p^E,
-\qquad \varrho<1,
+\PEGpre[,t]=Q_t\,P^{E*}_G,
+\qquad
+\PEG[,t]=\PEGpre[,t]\,(1+\tau_g),
 \label{eq:pEG2}
 \end{equation}
 %
-so adopters are fully insulated from the fossil shock.
+so adopters are fully insulated from the fossil shock: the real exchange rate
+does not move under either shock, and $\PEG$ stays at $\varrho\,\bar p^E$.
+
+The household side of the model reads only the tax-inclusive prices: the bundle
+nests \eqref{eq:innernest}, the budget \eqref{eq:coh} and hence the adoption
+margin \eqref{eq:margin} all price energy at $\PEB$ and $\PEG$. The pre-tax
+prices reappear where resources cross the border, in the balance of payments
+(Section~\ref{sec:bop}), and in the carbon account of Section~\ref{sec:gov}. In
+the baseline $\tau_b=\tau_g=0$ and the two coincide; under the carbon-tax
+experiments of Section~\ref{sec:exante} they diverge, and the distinction is what
+gives the tax real incidence: it raises the price the adoption margin compares
+without changing the resource cost of energy to the country.
 
 \paragraph{The consumer price index.}
 Each technology has its own consumption bundle. Writing $p_B,p_G$ for the brown
@@ -441,7 +461,7 @@ and green bundle prices relative to the CPI, the inner (energy versus goods) CES
 nests are
 %
 \begin{equation}
-p_d^{\,1-\eta_E}=(1-\alpha_E)\,p_{HF/P}^{\,1-\eta_E}+\alpha_E\,(P^E_d)^{1-\eta_E},
+p_{d,t}^{\,1-\eta_E}=(1-\alpha_E)\,p_{HF/P,t}^{\,1-\eta_E}+\alpha_E\,(P^E_{d,t})^{1-\eta_E},
 \qquad d\in\{B,G\},
 \label{eq:innernest}
 \end{equation}
@@ -449,17 +469,17 @@ p_d^{\,1-\eta_E}=(1-\alpha_E)\,p_{HF/P}^{\,1-\eta_E}+\alpha_E\,(P^E_d)^{1-\eta_E
 with the outer (home versus foreign) nest
 %
 \begin{equation}
-(1-\alpha_F)\,p_{H/HF}^{\,1-\eta}+\alpha_F\,p_{F/HF}^{\,1-\eta}=1.
+(1-\alpha_F)\,p_{H/HF,t}^{\,1-\eta}+\alpha_F\,p_{F/HF,t}^{\,1-\eta}=1.
 \label{eq:outernest}
 \end{equation}
 %
 The CPI is the expenditure-weighted index of the two bundles: $P$ is defined by the
 requirement that nominal consumption expenditure deflated by $P$ equal real
 consumption, $\int p_{d(i)}\,c(i)\,\mathrm{d}i=\int c(i)\,\mathrm{d}i$, so that
-$\sum_d \omega_d\,p_d=1$ with $\omega_d$ the consumption share of state $d$. As
+$\sum_d \omega_{d,t}\,p_{d,t}=1$ with $\omega_{d,t}$ the consumption share of state $d$. As
 green diffuses the energy leg is reweighted from brown toward green through
-$\omega_G=\DG$, so $P$ is the true cost-of-living index the monetary rule reads;
-no measurement gap opens between the model's price index and the cost of living.
+$\omega_{G,t}=\DG_t$, so $P$ is the true cost-of-living index the monetary rule reads, with no measurement
+gap between the price index and the basket households actually buy.
 
 \subsection{The open economy}\label{sec:open}\label{sec:bop}
 
@@ -469,7 +489,7 @@ with trade elasticity $\gamma$, and the real exchange rate is pinned by uncovere
 interest parity,
 %
 \begin{equation}
-\frac{Q}{Q_{+1}}\bigl(1+r^{\mathrm{ante}}\bigr)=1+r^{*}.
+\frac{Q_t}{Q_{t+1}}\bigl(1+r^{\mathrm{ante}}_t\bigr)=1+r^{*}.
 \label{eq:uip}
 \end{equation}
 
@@ -478,14 +498,14 @@ World supply is a fixed endowment $E^{*}$ plus intertemporal stock
 arbitrage with cost $\Gamma$,
 %
 \begin{equation}
-E^{\mathrm{stock}}=\frac{P^{E*}_{+1}/(1+r^{*})-P^{E*}}{\Gamma},
+E^{\mathrm{stock}}_t=\frac{P^{E*}_{t+1}/(1+r^{*})-P^{E*}_t}{\Gamma},
 \qquad
-E^{s}=E^{*}
-+\bigl(E^{\mathrm{stock}}_{-1}-E^{\mathrm{stock}}\bigr).
+E^{s}_t=E^{*}_t
++\bigl(E^{\mathrm{stock}}_{t-1}-E^{\mathrm{stock}}_t\bigr).
 \label{eq:energy-supply}
 \end{equation}
 %
-The home economy owns none of the endowment, it is a pure importer, so energy
+The home economy owns none of the endowment, being a pure importer, so energy
 rents never enter domestic wealth.
 
 \paragraph{The balance of payments and the adoption flows.}
@@ -497,43 +517,52 @@ as an import saving $S^{E}$: it accrues gradually, over the life of each green
 durable,
 %
 \begin{equation}
-M^{\mathrm{sw}}=\psi_g\,\dsw,
+M^{\mathrm{sw}}_t=\psi_g\,\dsw_t,
 \qquad
-S^{E}=(\PEB-\PEG)\,C^G_E.
+S^{E}_t=\bigl(\PEBpre-\PEGpre\bigr)\,C^{G}_{E,t}.
 \label{eq:adoption-flows}
 \end{equation}
 %
-Net exports collect trade in goods and energy together with these two flows,
+The energy saving is valued at pre-tax prices: the carbon taxes are transfers
+between domestic households and the government, not resource flows to the rest
+of the world. Their revenue,
+$R^{\mathrm{carbon}}=\tau_b\,\PEBpre\,C^B_E+\tau_g\,\PEGpre\,C^G_E$, accrues to
+the government budget (Section~\ref{sec:gov}) and never enters net exports.
+Net exports collect trade in goods and energy together with the two adoption
+flows,
 %
 \begin{equation}
-nx = Q\,p^{*}_H c^{*}_H - p_{F/P}\,c_F - \pE\,c_E
-- M^{\mathrm{sw}} + S^{E},
+nx_t = Q_t\,p^{*}_H c^{*}_{H,t} - p_{F/P,t}\,c_{F,t} - \pE_t\,c_{E,t}
+- M^{\mathrm{sw}}_t + S^{E}_t,
 \label{eq:nx}
 \end{equation}
 %
 and net foreign assets accumulate at the ex-ante rate, with one additional term,
 %
 \begin{equation}
-nfa = nx + (r-r^{\mathrm{ante}}_{-1})\bigl(A^{\mathrm{CPI}}_{-1}-j_{-1}\bigr)
-+ (1+r^{\mathrm{ante}}_{-1})\,nfa_{-1}.
+nfa_t = nx_t + (r_t-r^{\mathrm{ante}}_{t-1})\bigl(A_{t-1}-j_{t-1}\bigr)
++ (1+r^{\mathrm{ante}}_{t-1})\,nfa_{t-1}.
 \label{eq:nfa}
 \end{equation}
 %
-The middle term is a revaluation, and it is worth unpacking. Households earn the
+The middle term is a revaluation. Households earn the
 ex-post return $r$ on their wealth, while the country's accounts accrue at the
-promised ex-ante rate $r^{\mathrm{ante}}_{-1}$; the two differ only at date~0, when
+promised ex-ante rate $r^{\mathrm{ante}}_{t-1}$; the two differ only at date~0, when
 the shock revalues the equity of the mutual fund (equation~\eqref{eq:fund}).
-Applying the surprise $r-r^{\mathrm{ante}}_{-1}$ to households' wealth net of the
-domestically held fund, $A^{\mathrm{CPI}}_{-1}-j_{-1}$, records the one-off capital
+Applying the surprise $r_t-r^{\mathrm{ante}}_{t-1}$ to households' wealth net of the
+domestically held fund, $A_{t-1}-j_{t-1}$, records the one-off capital
 gain or loss on the country's external claims. At date~0, the only date the term is
-active, $A^{\mathrm{CPI}}_{-1}-j_{-1}$ equals the net foreign position itself, since
+active, $A_{t-1}-j_{t-1}$ equals the net foreign position itself, since
 government debt is zero at the pre-crisis steady state; from date~1 onward
 $r_t=r^{\mathrm{ante}}_{t-1}$ and the term vanishes.
 
-Booking the switching cost and the green energy as imports is a convention, not a
-result: it fixes the sign of the adoption channel's \emph{output} contribution but
-none of the policy rankings, which run through relative prices alone. The
-alternative domestic booking is collected in Appendix~\ref{app:booking}.
+Booking the adoption outlay as an import is a convention rather than a result. The
+baseline sets the import share of the switching bundle to one,
+$\alpha_F^{switch}=1$, so the full cost $\psi_g\,\dsw$ enters \eqref{eq:nx} as
+$M^{\mathrm{sw}}$; Appendix~\ref{app:booking} traces the continuous import share
+from one down to zero, where the outlay is spent entirely on the home good. The
+convention fixes the sign of the adoption channel's \emph{output} contribution
+but none of the policy rankings, which run through relative prices alone.
 
 \subsection{The government}\label{sec:gov}
 
@@ -542,29 +571,31 @@ The nominal rate follows a rule in current and expected inflation, with the
 real rate defined by the Fisher equation,
 %
 \begin{equation}
-1+i=(1+\bar r^{*})(1+\phi_\pi\pi)(1+\phi_{\pi e}\pi_{+1})+\varepsilon^m,
+1+i_t=(1+\bar r^{*})(1+\phi_\pi\pi_t)(1+\phi_{\pi e}\E_t\pi_{t+1})+\varepsilon^m_t,
 \qquad
-r^{\mathrm{ante}}=\frac{1+i}{1+\pi_{+1}}-1,
+r^{\mathrm{ante}}_t=\frac{1+i_t}{1+\E_t\pi_{t+1}}-1,
 \label{eq:mp}
 \end{equation}
 %
 where $\varepsilon^m$ is a monetary shock, zero outside the monetary
 experiment of Appendix~\ref{sec:monetary}. The baseline is the constant-real-rate
-rule of \citet{ARS2024}, $(\phi_\pi,\phi_{\pi e})=(0,1)$. Through \eqref{eq:uip} it
+rule of \citet{auclert2023energy}, $(\phi_\pi,\phi_{\pi e})=(0,1)$. Through \eqref{eq:uip} it
 pins the path of the real exchange rate, so a domestic transfer has no
-terms-of-trade effect: a property inherited from AMRS, not assumed anew. A standard
+terms-of-trade effect, a property inherited from AMRS rather than assumed anew. A standard
 Taylor rule, $(\phi_\pi,\phi_{\pi e})=(1.5,0)$, is reported as a robustness
 contrast in Appendix~\ref{sec:monetary}.
 
 \paragraph{Fiscal policy.}
-Fiscal policy is the object of Sections~\ref{sec:shield}--\ref{sec:exante}, so we lay
-out each instrument explicitly. Four are crisis instruments, deployed once the shock
-hits and zero in the baseline; a fifth, the carbon tax, is permanent and defines the
-``prepared'' economy of Section~\ref{sec:exante}. Table~\ref{tab:instruments} states,
+Fiscal policy is the object of Sections~\ref{sec:shield}--\ref{sec:exante}. Four
+instruments are deployed once the shock hits and are zero in the baseline; a
+fifth, the carbon tax, is permanent and defines the ``prepared'' economy of
+Section~\ref{sec:exante}. Table~\ref{tab:instruments} states,
 for each, what it acts on, the base its cost scales with, and its budgetary cost.
 
 \begin{table}[H]
-\centering\small
+\centering
+\figtitle{Fiscal instruments}
+\small
 \begin{tabular}{llll}
 \toprule
 Instrument & Acts on & Cost scales with & Fiscal cost \\
@@ -577,16 +608,16 @@ Green subsidy ($s_g$) & switching cost $\psi_g$ & number of switchers & $s_g\,\p
 Carbon tax ($\tau_b$) & brown price $\PEB$, permanent & brown energy use & rebated (App.~\ref{app:booking}) \\
 \bottomrule
 \end{tabular}
-\caption{Fiscal instruments. The first four are crisis instruments, zero in the
-baseline (Sections~\ref{sec:shield}--\ref{sec:flat}); the carbon tax is permanent and
-defines the prepared economy (Section~\ref{sec:exante}). Its revenue is rebated lump
-sum in the baseline, with green-subsidy recycling in Appendix~\ref{app:booking}.}
 \label{tab:instruments}
+\fignotes{The first four are crisis instruments, zero in the baseline
+(Section~\ref{sec:shield}); the carbon tax is permanent and defines
+the prepared economy (Section~\ref{sec:exante}). Its revenue is rebated lump sum in
+the baseline, with green-subsidy recycling in Appendix~\ref{app:booking}.}
 \end{table}
 
-The distinction the results turn on is between acting on the \emph{price} and acting
+The distinction that matters is between acting on the \emph{price} and acting
 on \emph{income}. The price cap holds $\PEB$ down through \eqref{eq:cap}; because
-$\PEB$ is precisely what the adoption margin responds to (equation~\eqref{eq:margin}),
+$\PEB$ is the price the adoption margin responds to (equation~\eqref{eq:margin}),
 capping the price switches the margin off, and the cap's cost is a marginal
 subsidy: it scales with actual crisis energy use. The two transfers instead leave
 $\PEB$ free and support income, so the margin survives. They differ in their base: the
@@ -604,19 +635,19 @@ All crisis outlays are deficit-financed. Collecting them term by term, with each
 cost line of Table~\ref{tab:instruments},
 %
 \begin{equation}
-X=\underbrace{T^{\mathrm{unt}}}_{\text{flat transfer}}
-+\underbrace{ins_E\,(\pE-\bar p^E)\,\bar C^{B}_E}_{\text{Slutsky transfer}}
-+\underbrace{\tau^E\,(\pE-\bar p^E)\,c_E}_{\text{price cap}}
-+\underbrace{s_g\,\psi_g\,\dsw}_{\text{green subsidy}},
+X_t=\underbrace{T^{\mathrm{unt}}_t}_{\text{flat transfer}}
++\underbrace{ins_E\,(\pE_t-\bar p^E)\,\bar C^{B}_E}_{\text{Slutsky transfer}}
++\underbrace{\tau^E\,(\pE_t-\bar p^E)\,c_{E,t}}_{\text{price cap}}
++\underbrace{s_g\,\psi_g\,\dsw_t}_{\text{green subsidy}},
 \label{eq:outlays}
 \end{equation}
 %
 debt is stabilised by the distortionary labour tax,
 %
 \begin{equation}
-B=(1+r^{\mathrm{ante}}_{-1})B_{-1}+X-\tau^L wn,
+B_t=(1+r^{\mathrm{ante}}_{t-1})B_{t-1}+X_t-\tau^L_t w_t n_t,
 \qquad
-\tau^L=\psi_B\,(B_{-1}-\bar B),
+\tau^L_t=\psi_B\,(B_{t-1}-\bar B),
 \label{eq:gbc2}
 \end{equation}
 %
@@ -625,27 +656,20 @@ labour tax in proportion to the debt it creates.
 
 \subsection{Equilibrium}\label{sec:eqm}
 
-\paragraph{Numeraire.}
-The unit of account is the CPI basket, the AMRS convention: $p^{\num}=1$ and the
-household's budget is stated directly in real terms. Because this CPI is the true
-expenditure deflator, real allocations, relative prices and the market-clearing
-conditions are all expressed in real terms and are independent of the unit of
-account: adoption reweights the basket, and hence the price level $P$, but leaves
-every real object unchanged. The CPI plays only its two economic roles, deflating
-the household budget and serving as the index the monetary rule targets, with no
-separate accounting wedge.
+\paragraph{Numeraire.} The unit of account is the CPI basket, so $p^{\num}=1$ and the
+household budget is stated in real terms; $P$ is also the index the monetary rule targets.
 
 \paragraph{Market clearing.}
 Goods, assets, and energy clear:
 %
 \begin{equation}
-c_H+c^{*}_H-y=0,
+c_{H,t}+c^{*}_{H,t}-y_t=0,
 \qquad
-A^{\mathrm{CPI}}-nfa-j-B=0,
+A_t-nfa_t-j_t-B_t=0,
 \qquad
 \begin{cases}
-P^{E*}\ \text{exogenous} & \text{(elastic supply)},\\
-c_E=E^{s} & \text{(fixed quantity)},
+P^{E*}_t\ \text{exogenous} & \text{(elastic supply)},\\
+c_{E,t}=E^{s}_t & \text{(fixed quantity)},
 \end{cases}
 \label{eq:clearing}
 \end{equation}
@@ -653,8 +677,10 @@ c_E=E^{s} & \text{(fixed quantity)},
 where the asset-market condition is redundant by Walras' law: it holds once goods,
 energy, and the government budget balance, so we do not impose it separately. The two
 energy closures correspond to the two experiments of Section~\ref{sec:experiments}: a
-price-taking economy hit by an exogenous world-price path, and a fixed world quantity
-whose price clears the market.
+price-taking economy facing an exogenous world-price path, and a fixed-quantity
+economy whose price clears an inelastic supply. Under the fixed-quantity closure the
+relevant market is the European one: availability is set region-wide and $P^{E*}$ is
+the price that clears it against regional demand.
 
 Let $\Psi_t$ denote the joint distribution over the household state
 $(d, e, a)$, durable technology, idiosyncratic productivity, and assets, at date
@@ -662,8 +688,8 @@ $t$. Taking as given the sequences of prices, taxes, and transfers, each househo
 solves the recursive program of Section~\ref{sec:problem}: it chooses nondurable
 consumption and savings by \eqref{eq:joint}--\eqref{eq:euler} and, at the durable
 stage, switches from brown to green with the logit probability \eqref{eq:logit}.
-This delivers value functions $V_t$ and policy functions
-$\{c_t, a'_t, P^{sw}_t\}(d, e, a)$. The distribution then evolves as
+This program delivers value functions $V_t$ and policy functions
+$\{c_t, a_t, P^{sw}_t\}(d, e, a)$. The distribution then evolves as
 $\Psi_{t+1}=\Lambda_t(\Psi_t)$, where the law of motion $\Lambda_t$ is induced by
 these policies together with the exogenous productivity chain, and aggregates are the
 corresponding moments of $\Psi_t$ \eqref{eq:agg}.
@@ -673,7 +699,7 @@ Given the world paths $\{P^{E*},r^{*},P^{F*}\}$, the initial distribution $\Psi_
 and net foreign assets, and the monetary and fiscal rules, a competitive equilibrium
 is a sequence of aggregate prices
 $\{w,\pi,\pi^{w},\pi^{F},\pi^{E},Q,\pE, r, r^{\mathrm{ante}},p_{H/P}\}_t$, value and
-policy functions $\{V_t, c_t, a'_t, P^{sw}_t\}$, distributions $\{\Psi_t\}$, aggregate
+policy functions $\{V_t, c_t, a_t, P^{sw}_t\}$, distributions $\{\Psi_t\}$, aggregate
 quantities $\{y, n, c_H, c_F, c_E, C, A\}_t$, technology shares $\{\DG,\dsw\}_t$, and fiscal
 variables $\{B,\tau^{L}\}_t$ such that:
 \begin{enumerate}[label=(\roman*),leftmargin=2.2em, itemsep=1pt]
@@ -696,14 +722,14 @@ balance-of-payments and net-foreign-asset accounting
 asset market clears by Walras' law.
 \end{enumerate}
 
-This is the object of interest: a sequence of prices and allocations, together with a
-distribution consistent with individual optimisation. The sequence-space Jacobian
-method of Section~\ref{sec:ss} computes the linearised transition of this
-equilibrium.
+The object of interest is thus a sequence of prices and allocations, together
+with a distribution consistent with individual optimisation. The sequence-space Jacobian
+method of \citet{Auclert2021a}, applied in Section~\ref{sec:ss}, computes the
+linearised transition of this equilibrium.
 
-\subsection{Steady state and the two experiments}\label{sec:ss}
+\subsection{Steady state}\label{sec:ss}
 
-As a pure importer, the openness normalisations of \citet{ARS2024} reduce to
+Because the economy is a pure importer, the openness normalisations of \citet{auclert2023energy} reduce to
 $\alpha_F=(\alpha-\alpha_E)/(1-\alpha_E)$ and a trade elasticity $\gamma=\eta$ set
 to hit an import-demand target $\chi=0.3$, with scale normalisations $y=1$,
 $A^N=\mu$, $\alpha^{*}=\alpha$, and $\bar E^{*}=\alpha_E$. The steady
@@ -714,26 +740,3 @@ $\bar\DG=5\%$. The switching cost is thus calibrated to the level of adoption, a
 Section~\ref{sec:cal} takes up the parameter the level cannot pin,
 $\sigma_\varepsilon$. The steady state is identical across all baseline
 experiments.
-
-Two experiments drive the crisis, one per energy closure. The \emph{price} shock
-doubles the world energy price on impact and lets it decay with a 16-quarter
-half-life under perfectly elastic supply,
-%
-\begin{equation}
-P^{E*}_t=\bar P^{E*}\bigl(1+\text{size}\cdot\rho^{\,t}\bigr),
-\qquad
-\rho=2^{-1/\text{half-life}},
-\label{eq:price-shock}
-\end{equation}
-%
-the experiment of \citet{ARS2024}. The \emph{supply} shock removes 10\% of the
-world quantity for six quarters and lets the world price clear the market,
-%
-\begin{equation}
-E^{*}_t=\bar E^{*}
-\bigl(1-\text{drop}\cdot\I[t<\text{quarters}]\bigr),
-\label{eq:supply-shock}
-\end{equation}
-%
-the closure of \citet{Bayer2026}. Section~\ref{sec:experiments} puts the adoption
-margin to work under both.

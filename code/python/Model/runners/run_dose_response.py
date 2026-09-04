@@ -122,23 +122,23 @@ tex_path = LT.dose_response_table(
     f'{OUT}/tab_dose_{NUMERAIRE}_{BOOKING}.tex', results, TAU_GRID,
     label=('tab:dose' if BOOKING == 'import' else f'tab:dose_{BOOKING}'))
 
-fig, axes = plt.subplots(2, 4, figsize=(16, 7))
+fig, axes = plt.subplots(2, 4, figsize=(15, 6.5))
+COLS = [('dG', 'Peak green share (pp)'), ('y', 'Cumulative output'),
+        ('cev', 'Welfare CEV (%)'), ('fisc', 'Fiscal cost')]
 for j, sh in enumerate(['price', 'supply']):
     R, tr = results[sh]['rows'], results[sh]['transfer']
     tau = [r['tau'] for r in R]
-    for i, (k, lab) in enumerate([('dG', 'peak green share (log pts)'),
-                                  ('y', 'cumulative output'),
-                                  ('cev', 'welfare CEV (%)'),
-                                  ('fisc', 'fiscal cost')]):
+    for i, (k, lab) in enumerate(COLS):
         ax = axes[j, i]
-        ax.plot(tau, [r[k] for r in R], 'o-', lw=2, color='C1', label='partial cap')
-        ax.axhline(tr[k], color='C2', ls=':', lw=2, label='Slutsky transfer')
+        ax.plot(tau, [r[k] for r in R], 'o-', lw=2, color='#c44', label='partial cap')
+        ax.axhline(tr[k], color='#48c', ls='--', lw=2, label='Slutsky transfer')
         ax.axhline(0, color='k', lw=0.5)
-        ax.set_xlabel(r'cap intensity $\tau^E$', fontsize=8)
-        ax.set_title(f'{sh.upper()}: {lab}', fontsize=9)
+        ax.set_title(lab, fontsize=9)
         ax.tick_params(labelsize=8)
+        if j == 1:
+            ax.set_xlabel(r'cap intensity $\tau^E$', fontsize=8)
+    axes[j, 0].set_ylabel(f'{sh.capitalize()} shock', fontsize=10)
 axes[0, 0].legend(fontsize=8)
-fig.suptitle(r'E6. Dose-response in the price cap $\tau^E$, against the transfer benchmark')
 fig.tight_layout(); fig.savefig(f'{OUT}/fig6_dose_response.png', dpi=140); plt.close(fig)
 
 lines = [f"{'shock':>7s} {'policy':>14s} {'peak DG':>9s} {'cum y':>8s} "

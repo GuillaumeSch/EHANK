@@ -116,12 +116,12 @@ def main():
         header=['size', 'Scenario', 'CEV\\% (linear)', 'CEV\\% (nonlinear)',
                 'NL/L', 'impat.', 'middle', 'patient'],
         rows=rows,
-        caption=('Welfare on the linear vs the nonlinear perfect-foresight '
-                 'transition, brown-price shock at reduced sizes (import booking). '
-                 'CEV is the total consumption-equivalent variation relative to the '
-                 'no-tax baseline steady state; NL/L is the ratio of nonlinear to '
-                 'linear CEV, overall and by discount-factor type. The headline '
-                 'shock (size 1.0) does not converge nonlinearly.'),
+        caption='Linear against nonlinear welfare',
+        notes=('Brown-price shock at reduced sizes. CEV is the '
+               'total consumption-equivalent variation relative to the no-tax '
+               'baseline steady state; NL/L is the ratio of nonlinear to linear '
+               'CEV, overall and by discount-factor type. The full shock '
+               '(size 1.0) does not converge nonlinearly.'),
         label=f'tab:nl_cev_{BOOKING}',
         midrule_after={len(SCENARIOS) * i - 1 for i in range(1, len(sizes))})
     with open(os.path.join(OUT, f'nl_cev_{BOOKING}.pkl'), 'wb') as fh:

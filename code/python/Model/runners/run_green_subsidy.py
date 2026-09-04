@@ -42,8 +42,6 @@ def main():
         ax.set_xlabel('quarters', fontsize=8)
         ax.tick_params(labelsize=8)
     axes.flat[0].legend(fontsize=8)
-    fig.suptitle('Green/adoption subsidy vs the other crisis instruments '
-                 '(brown-price shock, import booking)')
     fig.tight_layout()
     fpath = os.path.join(OUT, f'fig_green_subsidy_{BOOKING}.pdf')
     fig.savefig(fpath, dpi=140, bbox_inches='tight')

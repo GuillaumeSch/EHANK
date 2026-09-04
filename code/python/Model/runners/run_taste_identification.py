@@ -19,14 +19,14 @@ DRATIO = 0.01              # perturbation for the SS elasticity
 SAVING0 = 1.0 - BASE_RATIO  # baseline green operating-cost advantage
 
 def _flow_fixed(model, sigma, psi):
-    cal = make_calibration(NUMERAIRE, BOOKING, taste_shock=sigma, psi_g=psi,
+    cal = make_calibration(NUMERAIRE, BOOKING, taste_shock=sigma, psi_g_bar=psi,
                            PEGstar=BASE_RATIO)
     ss = solve_ss(model, cal, unknowns=SS_UNKNOWNS_FIXED_PSI,
                   targets=SS_TARGETS_FIXED_PSI)
     return float(ss['D_SWITCH']) / (1 - float(ss['D_GREEN']))
 
 def _DG_fixed(model, sigma, ratio, psi):
-    cal = make_calibration(NUMERAIRE, BOOKING, taste_shock=sigma, psi_g=psi,
+    cal = make_calibration(NUMERAIRE, BOOKING, taste_shock=sigma, psi_g_bar=psi,
                            PEGstar=ratio)
     ss = solve_ss(model, cal, unknowns=SS_UNKNOWNS_FIXED_PSI,
                   targets=SS_TARGETS_FIXED_PSI)
@@ -72,15 +72,13 @@ def make_figure(rows, out):
     ax[1].set_title('Crisis adoption magnitude')
     for a in ax:
         a.tick_params(labelsize=9)
-    fig.suptitle(r'The steady state is invariant along the $(\sigma_\varepsilon,\psi_g)$ '
-                 r'locus; the adoption response is not', y=1.02)
     fig.tight_layout()
     fig.savefig(out, dpi=140, bbox_inches='tight')
     plt.close(fig)
 
 def switch_prob_table(model, out_tex):
     """Distribution-weighted quantiles of the quarterly switch probability."""
-    import household as hh_mod
+    from core import household as hh_mod
     ss, _ = run(model, shock_kind='price', policy='none')
     greens = np.where(hh_mod.IS_GREEN > 0)[0]
     browns = np.where(hh_mod.IS_GREEN == 0)[0]
@@ -119,14 +117,13 @@ def switch_prob_table(model, out_tex):
         out_tex, colspec='llrrrrrr',
         header=['type', r'$\beta$', r'mass\%', 'mean', 'p50', 'p95', 'p99.9', 'max'],
         rows=rows,
-        caption=(r'Quarterly switch probabilities among brown incumbents '
-                 r'(distribution-weighted, baseline steady state). Mean, median '
-                 r'and upper quantiles of $P(\mathrm{switch})$ in \%, by '
-                 r'discount-factor type and pooled. The mean equals the '
-                 r'steady-state flow identity $\delta_g \bar D^G/(1-\bar D^G)'
-                 r'=0.26\%$; virtually no mass approaches interior probabilities, '
-                 r'so the brown population sits in the exponential tail of the '
-                 r'logit (Appendix~\ref{app:taste}).'),
+        caption='Switch probabilities among brown incumbents',
+        notes=(r'Distribution-weighted, baseline steady state. Mean, median and '
+               r'upper quantiles of $P(\mathrm{switch})$ in \%, by '
+               r'discount-factor type and pooled. The mean equals the '
+               r'steady-state flow identity '
+               r'$\delta_g \bar D^G/(1-\bar D^G)=0.26\%$ '
+               r'(Appendix~\ref{app:taste}).'),
         label='tab:switch_prob_dist', midrule_after={len(order) - 1})
 
 def main():
@@ -144,17 +141,16 @@ def main():
                 r'cost-gap elast.', r'\%/\$1{,}000', r'peak $\Delta D^G$',
                 r'$\sum y$'],
         rows=trows,
-        caption=(r'Identification of the logit taste scale. For each '
-                 r'$\sigma_\varepsilon$, $\psi_g$ is recalibrated to hold '
-                 r'$D^G_{ss}=5\%$ (steady state invariant). Columns: the implied '
-                 r'green premium in dollars (one model unit = quarterly household '
-                 r'consumption of \$20{,}000); the steady-state elasticity of the '
-                 r'green share to the operating-cost gap at fixed $\psi_g$; the '
-                 r'semi-elasticity of the switching flow to a \$1{,}000 cut in '
-                 r'$\psi_g$ (matched to \citealp{GallagherMuehlegger2011,Chandra2010,'
-                 r'MuehleggerRapson2022}); the peak crisis adoption response; and '
-                 r'the cumulative output loss, which is flat while the adoption '
-                 r'responsiveness varies by an order of magnitude.'),
+        caption='Identification of the logit taste scale',
+        notes=(r'For each $\sigma_\varepsilon$, $\psi_g$ is recalibrated to hold '
+               r'$D^G_{ss}=5\%$, leaving the steady state invariant. Columns: the '
+               r'implied green premium in dollars (one model unit = quarterly '
+               r'household consumption of \$20{,}000); the steady-state elasticity '
+               r'of the green share to the operating-cost gap at fixed $\psi_g$; '
+               r'the semi-elasticity of the switching flow to a \$1{,}000 cut in '
+               r'$\psi_g$ (matched to \citealp{GallagherMuehlegger2011,Chandra2010,'
+               r'MuehleggerRapson2022}); the peak crisis adoption response; and the '
+               r'cumulative output loss.'),
         label=f'tab:taste_identification')
     make_figure(rows, os.path.join(OUT, 'fig_taste_identification.png'))
 

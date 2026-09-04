@@ -92,19 +92,5 @@ def main():
     fpath = os.path.join(OUT, f'fig_persistence_{BOOKING}.pdf')
     fig.savefig(fpath, dpi=140, bbox_inches='tight')
 
-    tpath = os.path.join(OUT, f'tab_persistence_{BOOKING}.tex')
-    write_table(
-        tpath, colspec='rrrrrr',
-        header=[r'half-life', r'CEV$_{\mathrm{LF}}$', r'CEV$_{\mathrm{cap}}$',
-                r'CEV$_{\mathrm{ETS}}$', r'green div.', r'cap prot.'],
-        rows=rows_tab,
-        caption=(f'Route A: welfare by shock persistence (import booking, '
-                 f'$\\tau_b={TAU_B}$). Total CEV vs the no-ETS baseline SS. '
-                 f'The crisis-only greening dividend '
-                 f'(CEV$_{{\\mathrm{{ETS}}}}$ minus the standing '
-                 f'{100*chi_stand:+.3f}\\% minus CEV$_{{\\mathrm{{LF}}}}$) does '
-                 f'not grow with persistence, while the cap protection does.'),
-        label=f'tab:persistence_{BOOKING}')
-
 if __name__ == '__main__':
     main()

@@ -1,0 +1,153 @@
+\section{Ex-post shielding: prices versus incomes}
+\label{sec:shield}
+
+The crisis instruments of the recent literature are a retail price cap and an
+income transfer. Both stabilise the crisis, and
+Table~\ref{tab:summary} shows they do so comparably. They differ on the margin
+this paper adds.
+
+\input{output/tab_summary_cpi_import.tex}
+
+\paragraph{Cap versus transfer: the non-neutrality.}\label{sec:cap}\label{sec:transfer}
+
+Under the cap the peak green-share response falls from $8.0$ pp to essentially
+zero ($\approx-0.05$ pp) under \emph{both} shocks: the margin is not attenuated; it is
+switched off. The mechanism is direct: the cap holds $P^{E}_{B}$ at its
+pre-crisis level, and $P^{E}_{B}$ determines the return to adoption. The full fiscal responses under both shocks are in
+Figures~\ref{fig:policy_price} and~\ref{fig:policy_supply} (no policy, price cap,
+Slutsky transfer).
+
+\begin{figure}[H]\centering
+\figtitle{Price shock: fiscal responses}
+\includegraphics[width=0.92\textwidth]{output/fig2_policy_price.png}
+\label{fig:policy_price}
+\fignotes{Adoption open. No policy (solid), price cap (dashed), Slutsky transfer
+(dash-dotted).}
+\end{figure}
+
+\begin{figure}[H]\centering
+\figtitle{Supply shock: fiscal responses}
+\includegraphics[width=0.92\textwidth]{output/fig2_policy_supply.png}
+\label{fig:policy_supply}
+\fignotes{Adoption open. No policy (solid), price cap (dashed), Slutsky transfer
+(dash-dotted).}
+\end{figure}
+
+The Slutsky transfer leaves the green-share response essentially unchanged
+($8.5$ pp against $8.0$ with no policy) while delivering more output
+stabilisation than the cap at similar fiscal cost ($\sum y=-25.9$ vs.\ $-53.1$;
+gross fiscal $49.2$ vs.\ $54.1$). This preservation follows directly from the transfer's
+lump-sum indexing (Section~\ref{sec:bop}): because it does not condition on the
+household's current durable, switching forfeits nothing and the relative-price
+incentive to adopt is left intact.
+
+The sixth panel reports fiscal outlays $X$. Under the price shock the cap's outlay
+stays positive; under the supply shock it turns negative in the recovery
+(Figure~\ref{fig:policy_supply}). With the retail price frozen, household energy
+demand cannot adjust, so the fixed-quantity market clears through $P^{E*}$ alone: the
+clearing price overshoots during the shock and falls below its pre-crisis level
+afterwards. The cap pays the gap between $P^{E*}$ and the frozen retail price, so once
+$P^{E*}$ drops below the freeze the scheme collects rather than pays. This reversal is
+larger than an integrated market's demand elasticity would produce, so the
+supply-shock cap magnitudes should be read with caution.
+
+\paragraph{Two margins the frozen price governs.}\label{sec:exp_switching}
+
+Adoption is not the only margin the frozen relative price governs. The
+open-economy identity $y=c_H+c_H^{*}$ splits home-good output into domestic demand
+for the home good and exports (Figure~\ref{fig:output_decomp}). Under no policy the energy shock lifts exports: the
+relative price of the home good falls and foreign demand rises, a partial offset to
+the domestic-demand collapse (cumulatively $+7.4$ against a domestic $-72.3$). The
+cap switches that offset off almost entirely ($+0.7$): holding the retail energy
+price fixed suppresses the relative-price movement expenditure switching needs,
+exactly as it suppresses the one adoption needs. The transfer leaves the relative
+price free and preserves the export channel nearly intact ($+6.1$) while supporting
+domestic demand ($-32.0$). The cap and the transfer stabilise comparable amounts of
+output, but the cap does so by suppressing an adjustment margin and the transfer by
+supporting income: the same distinction the paper draws on the adoption share, read
+now through the trade balance.
+
+\begin{figure}[H]\centering
+\figtitle{Output response: domestic demand and exports}
+\IfFileExists{output/fig_output_domestic_external_import.pdf}{\includegraphics[width=\textwidth]{output/fig_output_domestic_external_import.pdf}}{\textit{[figure output/fig\_output\_domestic\_external\_import.pdf: run run\_output\_decomposition.py]}}
+\label{fig:output_decomp}
+\fignotes{Brown-price shock, by policy. Output decomposed as $y=c_H+c_H^{*}$,
+domestic demand for the home good (blue) plus exports (green). Level deviations
+$\times100$.}
+\end{figure}
+
+\paragraph{Partial caps.}\label{sec:dial}
+
+Table~\ref{tab:summary} uses $\tau^{E}=1$, a complete price freeze;
+Table~\ref{tab:dose} sweeps $\tau^{E}\in[0,1]$. Under the \emph{price} shock the
+adoption loss is almost exactly linear in $\tau^{E}$. Under the \emph{supply}
+shock it is convex: small caps barely touch adoption and the collapse is
+concentrated near the full freeze. A partial shield is therefore much less damaging to the transition when supply is
+inelastic.
+
+At the full freeze under the supply shock the fiscal cost is negative
+(Table~\ref{tab:dose}), for the reason given in Section~\ref{sec:cap}: in the recovery
+the clearing price falls below the frozen retail level, so the cap collects rather
+than pays.
+
+\input{output/tab_dose_cpi_import.tex}
+
+\begin{figure}[H]\centering
+\figtitle{Price cap: response across intensity}
+\includegraphics[width=\textwidth]{output/fig6_dose_response.png}
+\label{fig:dose}
+\fignotes{Cap intensity $\tau^E$ (red) against the Slutsky transfer benchmark
+(blue dashed), for both shocks. Rows: price shock (top), supply shock (bottom).}
+\end{figure}
+
+\paragraph{The green subsidy.}\label{sec:greensub}
+
+The green subsidy is a crisis instrument in its own
+right (Figure~\ref{fig:green_subsidy}): the government pays a fraction of the
+switching cost during the acute crisis. It roughly doubles the adoption response
+(peak $D^{G}$ of $18.9$ vs.\ $8.0$ pp; switchers $2.6$ vs.\ $1.0$ pp) at trivial
+fiscal cost ($2.9$ against the cap's $54.1$), yet its CEV is the worst in
+Table~\ref{tab:summary_price_import}, $-1.77\%$, below laissez-faire, and it
+deepens the output loss ($\sum y=-77.7$). Paying households to incur the real
+switching cost $\psi_g D^{sw}$, booked as an import (Section~\ref{sec:bop}), in
+the middle of a consumption crisis destroys welfare even as it greens the economy.
+
+\begin{figure}[H]\centering
+\figtitle{The green subsidy}
+\IfFileExists{output/fig_green_subsidy_import.pdf}{\includegraphics[width=\textwidth]{output/fig_green_subsidy_import.pdf}}{\textit{[figure: run run\_green\_subsidy.py]}}
+\label{fig:green_subsidy}
+\fignotes{Brown-price shock, against laissez-faire, the price cap and the Slutsky
+transfer. The subsidy pays a fraction of the switching cost $\psi_g$ during the
+acute crisis.}
+\end{figure}
+
+The subsidy here is a crisis instrument, paid from the deficit; its use as a recycling channel for permanent carbon revenue is a different exercise, taken up in Appendix~\ref{sec:recycle}.
+
+\paragraph{Who to shield: targeting and incidence.}\label{sec:flat}
+
+Without policy the impatient (high-MPC) households lose far more than the patient
+(Table~\ref{tab:cev}). This gap makes the incidence of the transfer a first-order
+design question. The Slutsky transfer indexes the lump sum to each household's
+pre-crisis brown-energy use. Replacing it with an \emph{untargeted} flat transfer
+of the same fiscal cost ($49.2$ in both, over $H=24$) cuts the welfare
+loss by about a third, from a CEV of $-0.88\%$ to $-0.58\%$ (Table~\ref{tab:summary_price_import}).
+It even improves output ($\sum y=-22.2$ vs.\ $-25.9$), while leaving adoption
+intact ($8.5$ pp). The gain is entirely distributional.
+
+The mechanism is that energy-indexed targeting is regressive \emph{in this model}.
+With homothetic CES energy demand the energy share is constant across the wealth
+distribution, so brown-energy use rises with total consumption, hence with
+permanent income and patience. Indexing the transfer to pre-crisis energy use
+therefore hands the largest cheques to the low-MPC, wealthy households, where the
+insurance value per euro is lowest, while a flat transfer reaches the high-MPC
+households the crisis hits hardest. The result speaks to the 2022--23 European energy
+``brakes,'' which were indexed to historical consumption: within the model the
+indexing is the source of the inefficiency rather than a refinement of it.
+
+The result depends on the homothetic energy nest: if
+energy were a necessity with a declining Engel curve, the empirically standard
+case, low-income households would spend a \emph{larger} share and the sign could
+reverse. The statement is conditional: \emph{under constant energy shares,
+energy-indexed targeting is dominated by an equal-value flat transfer}.
+
+\input{output/tab_cev_cpi_import.tex}

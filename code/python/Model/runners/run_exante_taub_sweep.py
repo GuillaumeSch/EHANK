@@ -95,8 +95,6 @@ def make_figure(model, recycle, irf_lf, irf_cap, psi_fixed, fname):
     axes[0].legend(fontsize=7, loc='best')
     tag = ('lump-sum rebate' if recycle == 'rebate'
            else r'budget-neutral green-subsidy recycling ($T^{\mathrm{reb}}=0$)')
-    fig.suptitle(rf'Version A: ex-ante ETS ($\tau_b$ sweep) vs ex-post cap '
-                 rf'under a brown-energy price shock -- {tag}', y=1.03)
     fig.tight_layout()
     fig.savefig(fname, dpi=140, bbox_inches='tight')
     plt.close(fig)

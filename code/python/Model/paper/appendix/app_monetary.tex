@@ -5,76 +5,75 @@ Two questions connect monetary policy to the adoption margin, and they point in
 opposite directions. Does the margin reshape how a monetary shock transmits? And
 does the monetary stance, during an energy shock, reshape the adoption wave? The
 first is a robustness check; the second is where the interest-rate sensitivity of
-green durables that \citet{Dietrich2025} identify in a representative agent shows up
+green durables that \citet{dietrich2025consumer} identify in a representative agent shows up
 in our setting.
 
-\subsection{The adoption margin does not reshape monetary transmission}
+\subsection{Monetary transmission}
 \label{sec:mp_transmission}
 
 The energy-shock experiments hold monetary policy at the AMRS constant-real-rate
 baseline. A $100$-basis-point (annualised) tightening isolates the role of the
 rule itself. Figure~\ref{fig:monetary} contrasts the constant-real-rate baseline
-with a standard Taylor rule $(\phi_\pi,\phi_{\pi e})=(1.5,0)$. The response is the
-textbook one: output and consumption fall, inflation falls. It is \emph{not}
+with a standard Taylor rule $(\phi_\pi,\phi_{\pi e})=(1.5,0)$. The response is
+standard: output and consumption fall, inflation falls. It is \emph{not}
 materially reshaped by the adoption margin. At a $5\%$ green steady state the
 durable-choice channel is too small to move aggregate monetary transmission (on
 impact, output $-0.86$ under the Taylor rule against $-1.13$ under the
-constant-real-rate rule; inflation $-0.42$ against $-0.48$ annualised). The
+constant-real-rate rule; inflation $-0.43$ against $-0.50$ annualised). The
 adoption margin matters for how the economy absorbs an \emph{energy} shock, not
 for how it transmits a \emph{monetary} one.
 
 \begin{figure}[H]\centering
+\figtitle{Monetary-policy shock}
 \IfFileExists{output/fig_monetary_import.pdf}{\includegraphics[width=\textwidth]{output/fig_monetary_import.pdf}}{\textit{[figure output/fig\_monetary\_import.pdf: run run\_summary\_table.py]}}
-\caption{Monetary-policy shock ($100$bp annualised tightening): Taylor rule
-(solid) versus the constant-real-rate baseline (dashed). Nominal rate, output,
-inflation, consumption.}
 \label{fig:monetary}
+\fignotes{$100$bp annualised tightening: Taylor rule (solid) against the
+constant-real-rate baseline (dashed). Panels: nominal rate, output, inflation,
+consumption.}
 \end{figure}
 
-\subsection{The monetary stance moves the wave, but weakly}
+\subsection{The monetary stance and the adoption wave}
 \label{sec:mp_stance}
 
 The reverse question is Dietrich's. In their representative-agent economy green
 durables are interest-rate sensitive, so a strict inflation target slows the
-transition. The mechanism survives here and acquires a distributional edge: the
+transition. The mechanism survives here and acquires a distributional dimension: the
 switch is a lumpy purchase financed against the borrowing constraint, so its user
-cost rises with the real rate precisely for the constrained households that account
-for most of the crisis adoption (Figure~\ref{fig:switch_heatmap}).
+cost rises with the real rate, and it does so most for the lower-wealth households
+that carry the crisis-induced adoption margin (Figure~\ref{fig:switch_heatmap}).
 
-The stance operates on the wave, but weakly. Table~\ref{tab:monetary_stance} holds
-the brown-price shock fixed and varies the rule. A Taylor rule that leans against
+The stance operates on the wave, but weakly. Holding
+the brown-price shock fixed and varying the rule, a Taylor rule that leans against
 the energy-driven inflation ($\phi_\pi=1.5$) raises the ex-ante real rate, by $+4.5$
-cumulated over $H=24$, and shrinks the peak green-share response from $7.72$ to
-$7.65$ pp. A deliberate $25$-basis-point accommodation does the opposite, lifting it
-to $7.8$ pp and cutting the output loss; the standalone rate cut raises adoption on
-its own ($D^G$ peak $+0.11$ pp, consumption $+5.8$ cumulated) as easier financing
+cumulated over $H=24$, and shrinks the peak green-share response from $8.03$ to
+$7.87$ pp. A deliberate $25$-basis-point accommodation does the opposite, lifting it
+to $8.08$ pp and cutting the output loss; the standalone rate cut raises adoption on
+its own ($D^G$ peak $+0.09$ pp, consumption $+5.8$ cumulated) as easier financing
 relaxes the constraint on the switch. The sign is Dietrich's; the magnitude is
 small.
 
-\input{output/tab_monetary_stance_import.tex}
 
 Figure~\ref{fig:monetary_stance} sweeps the inflation coefficient. Stricter
-targeting shrinks the wave monotonically, from $7.74$ pp at $\phi_\pi=1.25$ to
-$7.44$ at $\phi_\pi=3$, but the whole range spans a third of a percentage point,
-while the cumulative output loss grows from $-70$ to $-92$. Strict inflation
+targeting shrinks the wave monotonically, from $7.93$ pp at $\phi_\pi=1.25$ to
+$7.73$ at $\phi_\pi=3$, but the whole range spans a fifth of a percentage point,
+while the cumulative output loss grows from $-70$ to $-91$. Strict inflation
 targeting during an energy crisis buys a marginal slowdown of the transition at a
 first-order output cost.
 
 \begin{figure}[H]\centering
+\figtitle{The monetary stance and the adoption wave}
 \IfFileExists{output/fig_monetary_stance_import.pdf}{\includegraphics[width=\textwidth]{output/fig_monetary_stance_import.pdf}}{\textit{[figure output/fig\_monetary\_stance\_import.pdf: run run\_monetary\_stance.py]}}
-\caption{The monetary stance and the adoption wave under the brown-price shock, as
-the Taylor inflation coefficient $\phi_\pi$ rises (with $\phi_{\pi e}=0$). Left:
-peak $\Delta D^G$. Right: cumulative output. The dotted line is the
-constant-real-rate baseline. Stricter targeting shrinks the wave marginally and
-deepens the output loss substantially.}
 \label{fig:monetary_stance}
+\fignotes{Brown-price shock, as the Taylor inflation coefficient $\phi_\pi$ rises
+(with $\phi_{\pi e}=0$). Left: peak $\Delta D^G$. Right: cumulative output. Solid:
+Taylor rule swept over $\phi_\pi$; dashed: constant-real-rate baseline.}
 \end{figure}
 
 The comparison that matters is with the fiscal instruments. The peak wave's
-semi-elasticity to the real rate is about $-0.015$ pp per unit of cumulative rate,
+semi-elasticity to the real rate is about $-0.035$ pp per unit of cumulative rate,
 so moving the wave by one percentage point would take a cumulative rate change of
-order sixty, an implausible monetary action, whereas the retail price cap removes
-almost the entire $7.7$ pp wave at a stroke (Section~\ref{sec:cap}). Monetary policy
+order thirty, an implausible monetary action, whereas the retail price cap removes
+almost the entire $8.0$ pp wave directly (Section~\ref{sec:cap}). Monetary policy
 reaches the adoption margin only through the financing cost of the switch, a
 second-order channel; the cap and the transfer reach it through the relative price
 itself, which is first-order. This is why we keep monetary policy at the
@@ -86,20 +85,20 @@ the paper ranks.
 innovation \emph{alongside} the energy shock, leaning against it rather than waiting.
 Figure~\ref{fig:monetary_offset} sizes the accommodation to halve the cumulative
 output loss, which takes a large front-loaded cut (about $144$ basis points
-annualised). It cushions cumulative output ($-65$ to $-32$) and consumption ($-109$
-to $-76$) and lifts the adoption wave ($7.7$ to $8.1$ pp), the financing channel
-working in its favour, but pays for the relief with more inflation (impact annualised
-inflation $+5.6\%$ to $+8.3\%$) and an output path that overshoots on impact before
+annualised). It softens the fall in cumulative output ($-65$ to $-32$) and consumption
+($-109$ to $-76$) and lifts the adoption wave ($8.0$ to $8.4$ pp), the financing
+channel adding to the effect, but pays for the relief with more inflation (impact annualised
+inflation $+5.6\%$ to $+8.4\%$) and an output path that overshoots on impact before
 settling. The offset buys output stabilisation and a small transition dividend at the
 cost of the price level and a much larger rate move than the fiscal instruments
 require; it does not substitute for the relative-price instruments, which stabilise
 output without that inflation cost.
 
 \begin{figure}[H]\centering
+\figtitle{Accommodative monetary offset}
 \IfFileExists{output/fig_monetary_offset_import.pdf}{\includegraphics[width=\textwidth]{output/fig_monetary_offset_import.pdf}}{\textit{[figure output/fig\_monetary\_offset\_import.pdf: run run\_monetary\_offset.py]}}
-\caption{Accommodative monetary offset run alongside the brown-price shock, sized to
-halve the cumulative output loss: energy shock alone (dashed) versus energy shock
-plus accommodation (solid). The offset cushions output and consumption and amplifies
-adoption, at the cost of higher inflation. Level deviations $\times100$.}
 \label{fig:monetary_offset}
+\fignotes{Run alongside the brown-price shock, sized to halve the cumulative output
+loss: energy shock alone (dashed) against energy shock plus accommodation (solid).
+Level deviations $\times100$.}
 \end{figure}

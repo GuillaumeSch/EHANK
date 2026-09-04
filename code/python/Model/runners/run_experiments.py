@@ -10,8 +10,8 @@ from core.model import build_model, run
 NUMERAIRE = 'cpi'          # 'cpi' = ARS CPI numeraire (only supported numeraire)
 BOOKING = 'import'          # 'import' baseline, or 'domestic' (green sector)
 
-# Wipe the tag-keyed cache on every run; False only to resume a crashed run.
-CLEAR_CACHE = True
+# Reuse the tag-keyed cache across runs; set True to force a full rebuild.
+CLEAR_CACHE = False
 
 OUT = 'paper/output'
 CDIR = f'cache/cache_{NUMERAIRE}_{BOOKING}'
@@ -49,8 +49,10 @@ def pc(irf, k, h=H):
     return 100 * np.asarray(irf[k])[:h]
 
 def panel(ax, series, k, title, ylab=None):
-    for lab, irf, sty in series:
-        ax.plot(pc(irf, k), lw=2, ls=sty, label=lab)
+    for spec in series:
+        lab, irf, sty = spec[0], spec[1], spec[2]
+        color = spec[3] if len(spec) > 3 else None
+        ax.plot(pc(irf, k), lw=2, ls=sty, color=color, label=lab)
     ax.axhline(0, color='k', lw=0.5)
     ax.set_title(title, fontsize=10)
     ax.set_xlabel('quarters', fontsize=8)
@@ -66,25 +68,38 @@ def figure(fname, series, keys, suptitle, ncol=3):
     for ax in np.atleast_1d(axes).flat[len(keys):]:
         ax.axis('off')
     np.atleast_1d(axes).flat[0].legend(fontsize=8)
-    fig.suptitle(suptitle, fontsize=12)
+    if suptitle:
+        fig.suptitle(suptitle, fontsize=12)
     fig.tight_layout()
     fig.savefig(f'{OUT}/{fname}', dpi=140)
     plt.close(fig)
 
 MACRO = [('y', r'Output $y$'), ('C', r'Consumption $C$'), ('CE_B', r'Brown Energy $c^E_B$'),
          ('pE_B_P', r'Brown energy price $P^E_B/P$'),
-         ('D_GREEN', r'Green share $D^{G}$'), 
+         ('D_GREEN', r'Green share $D^{G}$'),
          ('spending', r'Fiscal spending $G$'), ('nx_gdp', r'Net exports / GDP'),
          ('PEstar', r'World energy price $P^{E*}$'), ('E_supply', r'World energy supply $E^*$'),
          ]
+
+# Six-variable panel for the baseline and policy figures (no world/fiscal panels).
+MACRO_BASE = [('y', r'Output $y$'), ('C', r'Consumption $C$'),
+              ('CE_B', r'Brown energy use $c^E_B$'),
+              ('pE_B_P', r'Brown energy price $P^E_B/P$'),
+              ('D_GREEN', r'Green share $D^{G}$'),
+              ('nx_gdp', r'Net exports / GDP')]
+MACRO_POL = [('y', r'Output $y$'), ('C', r'Consumption $C$'),
+             ('CE_B', r'Brown energy use $c^E_B$'),
+             ('pE_B_P', r'Brown energy price $P^E_B/P$'),
+             ('D_GREEN', r'Green share $D^{G}$'),
+             ('spending', r'Fiscal outlays $X$')]
 
 print("E0  baseline: price vs supply shock")
 p_ad = get('price_none_adoption', shock_kind='price', policy='none', model_variant='adoption')[1]
 s_ad = get('supply_none_adoption', shock_kind='supply', policy='none', model_variant='adoption')[1]
 
 figure('fig0_shock.png',
-       [('Price Shock', p_ad, '-'), ('Supply Shock', s_ad, '-')],
-       MACRO, 'E0a. Brown energy PRICE shock vs SUPPLY shock')
+       [('Price Shock', p_ad, '-', 'k'), ('Supply Shock', s_ad, '-', '#48c')],
+       MACRO_BASE, '')
 
 print("E1  baseline: price vs supply shock, adoption on/off")
 p_ad = get('price_none_adoption', shock_kind='price', policy='none', model_variant='adoption')[1]
@@ -93,12 +108,12 @@ s_ad = get('supply_none_adoption', shock_kind='supply', policy='none', model_var
 s_no = get('supply_none_no_adoption', shock_kind='supply', policy='none', model_variant='no_adoption')[1]
 
 figure('fig1_price_shock.png',
-       [('adoption open', p_ad, '-'), ('adoption frozen (common SS)', p_no, '--')],
-       MACRO, 'E1a. Brown energy PRICE shock (ARS-style, elastic supply)')
+       [('adoption open', p_ad, '-', 'k'), ('adoption frozen (common SS)', p_no, '--', '#c44')],
+       MACRO_BASE, '')
 
 figure('fig1_supply_shock.png',
-       [('adoption open', s_ad, '-'), ('adoption frozen (common SS)', s_no, '--')],
-       MACRO, 'E1b. Brown energy SUPPLY shock, -10% for 6q (Bayer-style, fixed quantity)')
+       [('adoption open', s_ad, '-', 'k'), ('adoption frozen (common SS)', s_no, '--', '#c44')],
+       MACRO_BASE, '')
 
 print("E2/E3  fiscal policy and its interaction with adoption")
 pol, pol_ss = {}, {}
@@ -112,10 +127,10 @@ for shock in ['price', 'supply']:
 
 for shock, nm in [('price', 'PRICE'), ('supply', 'SUPPLY')]:
     figure(f'fig2_policy_{shock}.png',
-           [('no policy', pol[(shock, 'none', 'adoption')], '-'),
-            ('price cap', pol[(shock, 'subsidy', 'adoption')], '--'),
-            ('Slutsky transfer', pol[(shock, 'transfer', 'adoption')], ':')],
-           MACRO, f'E2. Fiscal response to the {nm} shock (adoption margin open)')
+           [('no policy', pol[(shock, 'none', 'adoption')], '-', 'k'),
+            ('price cap', pol[(shock, 'subsidy', 'adoption')], '--', '#c44'),
+            ('Slutsky transfer', pol[(shock, 'transfer', 'adoption')], '-.', '#48c')],
+           MACRO_POL, '')
 
 PLABEL = {'none': 'no policy', 'subsidy': 'price cap', 'transfer': 'Slutsky transfer'}
 fig, axes = plt.subplots(2, 3, figsize=(13, 7))
@@ -128,7 +143,6 @@ for j, (shock, nm) in enumerate([('price', 'PRICE'), ('supply', 'SUPPLY')]):
         ax.set_title(f'{nm}: {k}', fontsize=10)
         ax.set_xlabel('quarters', fontsize=8)
 axes[0, 0].legend(fontsize=8)
-fig.suptitle('E3. Does shielding consumers shut down the green adoption margin?')
 fig.tight_layout(); fig.savefig(f'{OUT}/fig3_policy_adoption.png', dpi=140); plt.close(fig)
 
 print("E4  monetary policy")
@@ -136,20 +150,19 @@ mon = {m: get(f'supply_mon_{m}', shock_kind='supply', policy='none',
               model_variant='adoption', monetary=m)[1]
        for m in ['real_rate', 'taylor']}
 figure('fig4_monetary.png',
-       [('constant real rate', mon['real_rate'], '-'), ('Taylor rule', mon['taylor'], '--')],
-       MACRO, 'E4. Monetary policy and the supply shock')
+       [('constant real rate', mon['real_rate'], '-', 'k'), ('Taylor rule', mon['taylor'], '--', '#c44')],
+       MACRO_BASE, '')
 
 print("E5  adoption-channel decomposition")
-fig, axes = plt.subplots(1, 4, figsize=(16, 3.4))
+fig, axes = plt.subplots(1, 3, figsize=(12, 3.4))
 for ax, (k, t) in zip(axes, [('y', 'Output'), ('C', 'Consumption'),
-                             ('cE', 'Energy use'), ('nx_gdp', 'Net exports / GDP')]):
-    ax.plot(pc(p_ad, k) - pc(p_no, k), lw=2, label='price shock')
-    ax.plot(pc(s_ad, k) - pc(s_no, k), lw=2, ls='--', label='supply shock')
+                             ('nx_gdp', 'Net exports / GDP')]):
+    ax.plot(pc(p_ad, k) - pc(p_no, k), lw=2, color='k', label='price shock')
+    ax.plot(pc(s_ad, k) - pc(s_no, k), lw=2, color='#48c', label='supply shock')
     ax.axhline(0, color='k', lw=0.5)
     ax.set_title(f'{t}: adoption minus no-adoption', fontsize=10)
     ax.set_xlabel('quarters', fontsize=8)
 axes[0].legend(fontsize=8)
-fig.suptitle('E5. Contribution of the green adoption margin')
 fig.tight_layout(); fig.savefig(f'{OUT}/fig5_decomposition.png', dpi=140); plt.close(fig)
 
 def cum(irf, k, h=H):

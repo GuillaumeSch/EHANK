@@ -1,0 +1,195 @@
+\begin{thebibliography}{29}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Ascari et~al.(2025)Ascari, Colciago, Haber, and
+  W\"ohrm\"uller]{ascari2025inequality}
+G.~Ascari, A.~Colciago, T.~Haber, and S.~W\"ohrm\"uller.
+\newblock Inequality along the european green transition.
+\newblock \emph{The Economic Journal}, 2025.
+\newblock Article ueaf130.
+
+\bibitem[Auclert et~al.(2021)Auclert, Bard\'oczy, Rognlie, and
+  Straub]{Auclert2021a}
+A.~Auclert, B.~Bard\'oczy, M.~Rognlie, and L.~Straub.
+\newblock Using the sequence-space jacobian to solve and estimate
+  heterogeneous-agent models.
+\newblock \emph{Econometrica}, 89\penalty0 (5):\penalty0 2375--2408, 2021.
+
+\bibitem[Auclert et~al.(2024)Auclert, Monnery, Rognlie, and
+  Straub]{auclert2023energy}
+A.~Auclert, H.~Monnery, M.~Rognlie, and L.~Straub.
+\newblock Managing an energy shock: Fiscal and monetary policy.
+\newblock In \emph{Heterogeneity in Macroeconomics: Implications for Monetary
+  Policy}, volume~30 of \emph{Series on Central Banking, Analysis, and Economic
+  Policies}, pages 39--108. Central Bank of Chile, 2024.
+
+\bibitem[Audzei and Sut\'oris(2026)]{AudzeiSutoris2026}
+V.~Audzei and I.~Sut\'oris.
+\newblock A heterogeneous agent model of energy consumption and energy
+  conservation.
+\newblock \emph{Journal of Money, Credit and Banking}, 2026.
+\newblock \doi{10.1111/jmcb.70070}.
+
+\bibitem[Bayer et~al.(2026)Bayer, Kriwoluzky, M\"uller, and
+  Seyrich]{bayer2026hank}
+C.~Bayer, A.~Kriwoluzky, G.~J. M\"uller, and F.~Seyrich.
+\newblock Redistribution within and across borders: The fiscal response to an
+  energy shock.
+\newblock \emph{Journal of Political Economy Macroeconomics}, 2026.
+\newblock Forthcoming. Earlier version: ``Hicks in HANK,'' CEPR DP 18557.
+
+\bibitem[Benigno and Woodford(2005)]{BenignoWoodford2005}
+P.~Benigno and M.~Woodford.
+\newblock Inflation stabilization and welfare: The case of a distorted steady
+  state.
+\newblock \emph{Journal of the European Economic Association}, 3\penalty0
+  (6):\penalty0 1185--1236, 2005.
+
+\bibitem[Beresteanu and Li(2011)]{BeresteanuLi2011}
+A.~Beresteanu and S.~Li.
+\newblock Gasoline prices, government support, and the demand for hybrid
+  vehicles in the united states.
+\newblock \emph{International Economic Review}, 52\penalty0 (1):\penalty0
+  161--182, 2011.
+
+\bibitem[{Bruegel}(2023)]{Bruegel2023}
+{Bruegel}.
+\newblock National policies to shield consumers from rising energy prices,
+  2023.
+\newblock Bruegel dataset, version of 26 June 2023.
+
+\bibitem[Chandra et~al.(2010)Chandra, Gulati, and Kandlikar]{Chandra2010}
+A.~Chandra, S.~Gulati, and M.~Kandlikar.
+\newblock Green drivers or free riders? an analysis of tax rebates for hybrid
+  vehicles.
+\newblock \emph{Journal of Environmental Economics and Management}, 60\penalty0
+  (2):\penalty0 78--93, 2010.
+
+\bibitem[Crucitti et~al.(2024)Crucitti, Mersch, Michaelides, and
+  Ostrovnaya]{crucitti2024green}
+F.~Crucitti, M.~Mersch, A.~Michaelides, and A.~Ostrovnaya.
+\newblock Green technology adoption over the life cycle, 2024.
+\newblock SSRN 5019631.
+
+\bibitem[D\'avila and Schaab(2025)]{DavilaSchaab2025}
+E.~D\'avila and A.~Schaab.
+\newblock Welfare assessments with heterogeneous individuals.
+\newblock \emph{Journal of Political Economy}, 133\penalty0 (9), 2025.
+\newblock Earlier version: NBER Working Paper 30571.
+
+\bibitem[Dietrich et~al.(2025)Dietrich, Leitenbacher, and
+  M\"uller]{dietrich2025consumer}
+A.~M. Dietrich, L.~Leitenbacher, and G.~J. M\"uller.
+\newblock Consumer durables, monetary policy, and the green transition.
+\newblock \emph{European Economic Review}, page 105207, 2025.
+
+\bibitem[{European Commission}(2026)]{ECETS2}
+{European Commission}.
+\newblock Ets2: Buildings, road transport and additional sectors, 2026.
+\newblock Climate Action, \texttt{climate.ec.europa.eu}, accessed August 2026.
+
+\bibitem[{European Heat Pump Association}(2023)]{EHPA2023}
+{European Heat Pump Association}.
+\newblock Heat pumps in europe: Key facts and figures.
+\newblock Technical report, European Heat Pump Association, Brussels, May 2023.
+
+\bibitem[{European Heat Pump Association}(2024)]{EHPA2024}
+{European Heat Pump Association}.
+\newblock Pump it down: Why heat pump sales dropped in 2023.
+\newblock Technical report, European Heat Pump Association, Brussels, April
+  2024.
+
+\bibitem[{European Heat Pump Association}(2025)]{EHPA2025}
+{European Heat Pump Association}.
+\newblock Why did heat pump sales drop in 2024?
+\newblock Technical report, European Heat Pump Association, Brussels, March
+  2025.
+
+\bibitem[Fried et~al.(2018)Fried, Novan, and Peterman]{fried2018distributional}
+S.~Fried, K.~Novan, and W.~B. Peterman.
+\newblock The distributional effects of a carbon tax on current and future
+  generations.
+\newblock \emph{Review of Economic Dynamics}, 30:\penalty0 30--46, 2018.
+
+\bibitem[Fried et~al.(2024)Fried, Novan, and Peterman]{fried2024understanding}
+S.~Fried, K.~Novan, and W.~B. Peterman.
+\newblock Understanding the inequality and welfare impacts of carbon tax
+  policies.
+\newblock \emph{Journal of the Association of Environmental and Resource
+  Economists}, 11\penalty0 (S1):\penalty0 S231--S260, 2024.
+
+\bibitem[Fried et~al.(2025)Fried, Lagakos, and Rhodenhiser]{fried2025}
+S.~Fried, D.~Lagakos, and H.~Rhodenhiser.
+\newblock Homework in climate economics: Household production, environmental
+  preferences, and climate policy, 2025.
+\newblock Mimeo.
+
+\bibitem[Gallagher and Muehlegger(2011)]{GallagherMuehlegger2011}
+K.~S. Gallagher and E.~Muehlegger.
+\newblock Giving green to get green? incentives and consumer adoption of hybrid
+  vehicle technology.
+\newblock \emph{Journal of Environmental Economics and Management}, 61\penalty0
+  (1):\penalty0 1--15, 2011.
+
+\bibitem[Iskhakov et~al.(2017)Iskhakov, J{\o}rgensen, Rust, and
+  Schjerning]{iskhakov2017endogenous}
+F.~Iskhakov, T.~H. J{\o}rgensen, J.~Rust, and B.~Schjerning.
+\newblock The endogenous grid method for discrete-continuous dynamic choice
+  models with (or without) taste shocks.
+\newblock \emph{Quantitative Economics}, 8\penalty0 (2):\penalty0 317--365,
+  2017.
+
+\bibitem[Kim and Kim(2003)]{KimKim2003}
+J.~Kim and S.~H. Kim.
+\newblock Spurious welfare reversals in international business cycle models.
+\newblock \emph{Journal of International Economics}, 60\penalty0 (2):\penalty0
+  471--500, 2003.
+
+\bibitem[Klenert et~al.(2018)Klenert, Mattauch, Combet, Edenhofer, Hepburn,
+  Rafaty, and Stern]{klenert2018making}
+D.~Klenert, L.~Mattauch, E.~Combet, O.~Edenhofer, C.~Hepburn, R.~Rafaty, and
+  N.~Stern.
+\newblock Making carbon pricing work for citizens.
+\newblock \emph{Nature Climate Change}, 8\penalty0 (8):\penalty0 669--677,
+  2018.
+
+\bibitem[Kuhn and Schlattmann(2024)]{kuhn2024distributional}
+M.~Kuhn and L.~Schlattmann.
+\newblock Distributional consequences of climate policies.
+\newblock CEPR Discussion Paper 18893, CEPR, 2024.
+
+\bibitem[Langot et~al.(2026)Langot, Malmberg, Tripier, and
+  Hairault]{langot2026tariff}
+F.~Langot, S.~Malmberg, F.~Tripier, and J.-O. Hairault.
+\newblock The macroeconomic and redistributive effects of the french tariff
+  shield.
+\newblock \emph{Journal of Political Economy Macroeconomics}, 2026.
+\newblock Forthcoming. Earlier version: CEPREMAP Working Paper 2305.
+
+\bibitem[Lanteri and Rampini(2025)]{lanteri2025financing}
+A.~Lanteri and A.~A. Rampini.
+\newblock Financing the adoption of clean technology.
+\newblock Nber working paper, National Bureau of Economic Research, 2025.
+
+\bibitem[Lucas(1987)]{Lucas1987}
+R.~E. Lucas.
+\newblock \emph{Models of Business Cycles}.
+\newblock Basil Blackwell, Oxford, 1987.
+
+\bibitem[Muehlegger and Rapson(2022)]{MuehleggerRapson2022}
+E.~Muehlegger and D.~S. Rapson.
+\newblock Subsidizing low- and middle-income adoption of electric vehicles:
+  Quasi-experimental evidence from california.
+\newblock \emph{Journal of Public Economics}, 216, 2022.
+
+\bibitem[Rust(1987)]{Rust1987}
+J.~Rust.
+\newblock Optimal replacement of gmc bus engines: An empirical model of harold
+  zurcher.
+\newblock \emph{Econometrica}, 55\penalty0 (5):\penalty0 999--1033, 1987.
+
+\end{thebibliography}

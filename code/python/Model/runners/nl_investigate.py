@@ -104,7 +104,6 @@ def build_fig9(out='paper/output/fig9_nonlinearity.png'):
     a2.set_xlabel(r'logit taste scale $\sigma_\varepsilon$')
     a2.set_ylabel('nonlinear / linear (peak)')
     a2.set_title(r'Nonlinearity vs logit scale (size=0.5)'); a2.legend(fontsize=8)
-    fig.suptitle('E9. The nonlinearity lives in the discrete adoption margin', y=1.02)
     fig.tight_layout(); fig.savefig(out, dpi=140, bbox_inches='tight'); plt.close(fig)
 
 if __name__ == '__main__':

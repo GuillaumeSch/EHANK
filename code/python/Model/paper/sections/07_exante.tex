@@ -1,0 +1,155 @@
+\section{Ex-ante carbon pricing}
+\label{sec:exante}
+
+The instruments in Section~\ref{sec:shield} are all \emph{ex post}: deployed once
+the shock has landed. Because the adoption margin responds to the same relative
+price the crisis moves, a natural alternative is to act \emph{ex ante}, to lean
+on the margin in the steady state with a permanent carbon tax $\tau_b$ on brown
+energy, leaving the economy greener and possibly less exposed. This section evaluates
+that case. The answer is that ex-ante greening is a poor substitute
+for ex-post insurance, and the reason is intrinsic to the channel this paper adds:
+the adoption margin is an endogenous shock absorber, and pre-greening spends it.
+
+\subsection{A permanent carbon tax}
+\label{sec:carbontax}
+
+A permanent carbon tax raises steady-state welfare in the model, through a
+second-best correction of the adoption friction rather than any externality.
+Holding $\psi_g$ fixed at its no-tax value and letting $D^{G}_{ss}$ float, the tax
+raises the effective brown/green price ratio and lifts steady-state
+adoption: $D^{G}_{ss}$ moves from $5\%$ at $\tau_b=0$ to $8.2\%$ at $\tau_b=0.10$
+and $16.8\%$ at $\tau_b=0.30$ (Figure~\ref{fig:carbon_optimal}). Steady-state welfare rises monotonically in $\tau_b$ over the range the steady
+state solves: the standing CEV relative to
+the no-tax baseline is $+0.28\%$ at $\tau_b=0.10$ and $+0.56\%$ at $\tau_b=0.30$,
+with no interior optimum below $\tau_b=0.30$, beyond which the steady state ceases
+to solve. The mechanism is second-best: green energy is
+structurally cheaper ($\bar P^{E}_{G}=\varrho<\bar P^{E}_{B}=1$) but the logit taste
+scale $\sigma_\varepsilon$ and the switching cost $\psi_g$ leave green
+under-adopted, so taxing brown pushes the green share toward its efficient level. We treat this gain as a
+diagnostic of the channel rather than a policy recommendation: it would be
+dominated by any explicitly modelled externality or abatement cost. The carbon revenue is
+rebated lump-sum here; Appendix~\ref{sec:recycle} studies the budget-neutral
+alternative that spends it on a green switching subsidy, which greens the steady
+state \emph{more} yet leaves a residual brown pool \emph{less} responsive to the
+crisis: the same absorber logic as Section~\ref{sec:routeA}, across instruments.
+
+\begin{figure}[H]\centering
+\figtitle{Steady-state greening under a permanent carbon tax}
+\includegraphics[width=0.65\textwidth]{output/fig_carbon_optimal_import.pdf}
+\label{fig:carbon_optimal}
+\fignotes{$\psi_g$ held fixed, carbon revenue rebated lump sum, no crisis.
+Steady-state durable composition: green share $D^{G}_{ss}$ (green) and brown share
+$1-D^{G}_{ss}$ (brown), across permanent carbon-tax levels $\tau_b$.}
+\end{figure}
+
+\subsection{Ex-ante greening and crisis insurance}
+\label{sec:versionA}
+
+A steady state greened in advance by the carbon tax gives the economy almost no
+extra protection when the shock hits. We compare two economies under the
+\emph{same} price shock: the baseline ($D^{G}_{ss}=5\%$) and a ``prepared''
+economy carrying a modest $\tau_b=0.10$ ($D^{G}_{ss}=8.2\%$). The prepared economy is essentially no
+better insured: its total CEV is $-1.31\%$ against $-1.57\%$ for laissez-faire, and
+that $0.25$ gap is almost entirely the standing greening benefit ($+0.28\%$) rather
+than crisis insurance; the crisis-only greening dividend is $-0.03\%$, zero to first order
+(Section~\ref{sec:routeA}). Both are far worse than either ex-post instrument
+(cap $-1.15\%$, transfer $-0.88\%$; Table~\ref{tab:exante_expost_import}).
+The greening the tax buys is real, $D^{G}_{ss}$ is $64\%$ higher, but too small a
+share of the economy to move aggregate exposure, and the tax's crisis-time value
+is negligible next to a transfer that reaches high-MPC households when the
+constraint binds. Consistent with Section~\ref{sec:cap}, the combination ``ETS $+$
+cap'' tracks the cap alone: once the price is frozen the adoption margin is shut
+and the greener starting point is irrelevant.
+
+Figure~\ref{fig:ets_irf} overlays the two economies' responses to the same
+brown-price shock. The aggregates are nearly indistinguishable: output, consumption, inflation, net
+exports. The two differ visibly only in brown energy use, the green share $\DG$,
+the switching flow, and the brown price. The greener starting point changes the \emph{composition} of the
+response rather than its aggregate size.
+
+\begin{figure}[H]\centering
+\figtitle{Baseline against prepared ETS under the same shock}
+\IfFileExists{output/fig_ets_irf_price_import.pdf}{\includegraphics[width=\textwidth]{output/fig_ets_irf_price_import.pdf}}{\textit{[figure: run run\_ets\_cross\_section.py]}}
+\label{fig:ets_irf}
+\fignotes{The same brown-price shock hitting the baseline ($\DG_{ss}=5\%$) and the
+prepared ETS ($\tau_b=0.10$, $\DG_{ss}=8.2\%$) steady states, in level deviations
+from each economy's own steady state.}
+\end{figure}
+
+Figure~\ref{fig:cross_section} and Table~\ref{tab:cross_section_import} decompose
+the consumption response by the household's current technology. Switchers consume
+roughly twice the average brown household in the steady state, so a naive
+current-group split is contaminated by selection; we use the common-steady-state
+counterfactual to hold group populations fixed, measure the clean per-capita
+response of each group on the frozen path, and report the adoption/migration term
+(full minus frozen) separately. The aggregate loss is the same but the cross-section differs: under the
+ETS both brown and green incumbents lose \emph{less} (per-capita $-93.5\%$ against
+$-99.4\%$, and $-27.3\%$ against $-37.3\%$ of their own steady state over $H=24$), and
+that relief is offset by a heavier adoption term ($-23.8$ against $-13.7$,
+cumulative $\times 100$), more households paying $\psi_g$ to switch during the
+crisis. Green incumbents, fully insulated from the brown price, still
+lose about $1.5\%$ per quarter, through the general-equilibrium income channel
+rather than energy.
+
+\begin{figure}[H]\centering
+\figtitle{Consumption by technology group, baseline against ETS}
+\IfFileExists{output/fig_cross_section_price_import.pdf}{\includegraphics[width=\textwidth]{output/fig_cross_section_price_import.pdf}}{\textit{[figure: run run\_ets\_cross\_section.py]}}
+\label{fig:cross_section}
+\fignotes{Brown-price shock, baseline (left) against prepared ETS ($\tau_b=0.1$,
+right). Contributions to the aggregate consumption response $dC$: fixed-population
+brown, fixed-population green, and the adoption/migration term, with the total.}
+\end{figure}
+
+\input{output/tab_cross_section_import.tex}
+
+\input{output/tab_exante_expost_import.tex}
+
+\subsection{Persistence}
+\label{sec:routeA}
+
+A natural defence of the ex-ante case is persistence: a longer-lived shock
+should let the greener economy's lower exposure compound over more periods.
+Figure~\ref{fig:persistence} tests it by
+sweeping the shock half-life and re-solving only the impulse response (the steady
+state does not move with persistence), decomposing the ex-ante CEV into its
+constant standing part and a \emph{crisis-only greening dividend}, defined as the
+prepared economy's crisis CEV minus the standing benefit minus laissez-faire.
+
+The defence fails, and the failure is one of welfare rather than of switching
+volume. The crisis-only greening dividend does not grow with
+persistence; if anything it falls with the half-life of the shock. Its level is at
+most a few basis points at every horizon, inside the first-order approximation
+error of the CEV (Appendix~\ref{sec:nlcev}), so we do not sign it: it is zero to
+first order. The ex-post cap is different in kind: its crisis protection rises
+monotonically, from $+0.26\%$ to $+1.33\%$ as a longer freeze shields more of the
+transition, an order of magnitude larger than the approximation error and robust
+nonlinearly.
+
+The reason is the adoption margin itself. A persistent brown-price shock makes
+switching attractive for many quarters, so the \emph{browner} laissez-faire
+economy adopts heavily \emph{during} the crisis and benefits from it over the
+whole episode; the margin is an endogenous shock absorber. The prepared economy
+has already spent much of that absorber in the steady state. It does not adopt
+less in the crisis; with a standing tax it in fact adopts \emph{more}
+(peak $\DG$ of $12.3$ against $8.0$~pp; Section~\ref{sec:versionA}). What it
+loses is the value of the marginal crisis switch: the households the tax has
+already moved to green would have switched anyway, so the crisis adds nothing for
+them, and the extra crisis adoption pays the real cost $\psi_g$ at the trough
+(Section~\ref{sec:greensub}). The
+welfare-relevant absorber is the \emph{option} to green cheaply exactly when the
+crisis makes it optimal, and the browner economy enters with that option more
+fully intact. Pre-greening raises the steady-state green share and even the crisis switching
+volume, but not the crisis \emph{welfare} value of the margin. The instruments
+that freeze the adoption technology, the cap here, and by
+construction the frozen-technology models of \citet{bayer2026hank},
+\citet{langot2026tariff} and \citet{auclert2023energy}, miss an absorber that works best when the economy enters the crisis with room to
+green rather than already green.
+
+\begin{figure}[H]\centering
+\figtitle{Persistence and the two policies}
+\IfFileExists{output/fig_persistence_import.pdf}{\includegraphics[width=\textwidth]{output/fig_persistence_import.pdf}}{\textit{[figure output/fig\_persistence\_import.pdf: run run\_persistence.py]}}
+\label{fig:persistence}
+\fignotes{Against the shock half-life. Left: total CEV of laissez-faire, the ex-post
+cap and the ex-ante ETS. Right: the crisis-only gain over laissez-faire, for the
+cap and for the ex-ante greening dividend.}
+\end{figure}

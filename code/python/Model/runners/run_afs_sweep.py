@@ -15,7 +15,7 @@ from core.model import build_model, run
 
 # ---- 1. setup ----------------------------------------------------------------
 NUMERAIRE = 'cpi'
-AFS_GRID = [1.0, 0.75, 0.50, 0.25, 0.0]
+AFS_GRID = [1.0, 0.5, 0.0]   # 3 points: import / mixed / domestic endpoints
 SHOCKS = ['price', 'supply']
 H = 24
 OUT = 'paper/output'
@@ -36,6 +36,7 @@ for afs in AFS_GRID:
         _, no = run(model, shock_kind=shock, policy='none', model_variant='no_adoption',
                     numeraire=NUMERAIRE, booking='import', alpha_F_switch=afs)
         adopt_y = cum(ad, 'y') - cum(no, 'y')   # adoption channel: full - frozen (common SS)
+        print(f"  done afs={afs:.2f} {shock:>6s}: peak y={peak(ad,'y'):.3f}%, adopt->y={adopt_y:.2f}", flush=True)
         rows.append(dict(afs=afs, shock=shock, y0=y0(ad), ypeak=peak(ad, 'y'),
                          dG=peak(ad, 'D_GREEN'), nxgdp=peak(ad, 'nx_gdp'),
                          cEcum=cum(ad, 'cE'), adopt_y=adopt_y))

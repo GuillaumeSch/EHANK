@@ -46,7 +46,7 @@ def check_phase2(solve, make, probes=({'PEGstar': 0.8}, {'PEGstar': 0.5},
                   unknowns_shut=None, targets_shut=None):
     """With green_block large, D_GREEN is pinned at 0 for every psi_g."""
     if unknowns_shut is None or targets_shut is None:
-        import model as M
+        from core import model as M
         unknowns_shut = unknowns_shut or M.SS_UNKNOWNS_FIXED_PSI
         targets_shut = targets_shut or M.SS_TARGETS_FIXED_PSI
     ref, out = None, []
