@@ -5,7 +5,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-from core.model import (build_model, solve_ss, shock_price, shock_supply,
+from core.model import (build_model, solve_ss, shock_price, shock_supply_matched,
                          td_unknowns_targets, _calibrate_supply, ss_unknowns_targets,
                          MODELS, ENERGY_CLOSURE)
 from core.calibration import make_calibration, set_energy_grids
@@ -61,7 +61,7 @@ for closure, shock_name in [('elastic', 'price'), ('inelastic', 'supply')]:
     print(f"\n=== {shock_name.upper()} shock ===", flush=True)
     ss, calib = base_ss('adoption', closure)
     shk = (shock_price() if shock_name == 'price'
-           else shock_supply(ss))
+           else shock_supply_matched(MODEL))
 
     rows, irfs = [], {}
     for t in TAU_GRID:

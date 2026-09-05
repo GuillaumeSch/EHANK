@@ -95,8 +95,17 @@ def _energy_demand(ss, booking):
     return float(ss['CE_B'] + ss['prodE'])
 
 
+_ESUP_CACHE = {}
+
+
 def _calibrate_supply(model, calib, unknowns, targets, booking, iters=6, tol=1e-10):
-    """Fixed-quantity closure: solve E_supply_shock so demand meets supply."""
+    """Fixed-quantity closure: solve E_supply_shock so demand meets supply.
+    Memoised per session on the SS-relevant calibration (invariant across policies)."""
+    key = (booking, tuple(sorted((k, v) for k, v in calib.items()
+           if isinstance(v, (int, float, str, bool))
+           and k not in ('E_supply_shock', 'E_supply_elasticity'))))
+    if key in _ESUP_CACHE:
+        return _ESUP_CACHE[key]
     cal = dict(calib); cal['E_supply_elasticity'] = np.inf
     demand = _energy_demand(solve_ss(model, cal, unknowns=unknowns, targets=targets,
                                      booking=booking), booking)
@@ -107,6 +116,7 @@ def _calibrate_supply(model, calib, unknowns, targets, booking, iters=6, tol=1e-
         if abs(new - demand) < tol:
             demand = new; break
         demand = new
+    _ESUP_CACHE[key] = demand
     return demand
 
 
@@ -116,11 +126,36 @@ def shock_price(size=1.0, half_life=16, T=T):
     return {'PEstar_shock': size * rho ** np.arange(T)}
 
 
-def shock_supply(ss, drop=0.1, quarters=6, T=T):
-    """Brown energy supply shock (requires finite E_supply_elasticity)."""
-    path = np.zeros(T)
-    path[:quarters] = -drop * float(ss['E_supply_shock'])
-    return {'E_supply_shock': path}
+import os as _os
+_MATCH_CACHE = _os.path.join(_os.path.dirname(__file__), '..', 'data', 'matched')
+
+
+def matched_supply_path(model, size=1.0, half_life=16, T=T,
+                        numeraire='cpi', booking='import',
+                        cache=True, recompute=False):
+    """Matched E_supply_shock path: reproduces the price shock in the no-policy
+    baseline. Cached to disk (key: numeraire/booking/size/half_life/T)."""
+    key = f'supply_matched_{numeraire}_{booking}_s{size}_hl{half_life}_T{T}.npy'
+    fpath = _os.path.join(_MATCH_CACHE, key)
+    if cache and not recompute and _os.path.exists(fpath):
+        return np.load(fpath)
+    _, irf = run(model, shock_kind='price', policy='none', numeraire=numeraire,
+                 booking=booking,
+                 shock_kwargs=dict(size=size, half_life=half_life, T=T))
+    path = np.asarray(irf['CE_B'], float) - np.asarray(irf['E_supply'], float)
+    if cache:
+        _os.makedirs(_MATCH_CACHE, exist_ok=True)
+        np.save(fpath, path)
+    return path
+
+
+def shock_supply_matched(model, size=1.0, half_life=16, T=T,
+                         numeraire='cpi', booking='import',
+                         cache=True, recompute=False):
+    """{'E_supply_shock': matched path}. See matched_supply_path."""
+    return {'E_supply_shock': matched_supply_path(
+        model, size=size, half_life=half_life, T=T, numeraire=numeraire,
+        booking=booking, cache=cache, recompute=recompute)}
 
 
 def shock_green(size=1.0, half_life=16, T=T):
@@ -185,14 +220,16 @@ def run(model, shock_kind='price', policy='none', model_variant='adoption',
     calib = make_calibration(numeraire, booking=booking, ets=ets, **ov)
     unknowns_td, targets_td = td_unknowns_targets(booking, ets=ets)
 
-    if ets:
-        # psi_g fixed at the no-ETS baseline, D_GREEN floats
+    adoption_shut = float(ov.get('green_block', 0.0)) > 0.0
+    if ets or adoption_shut:
+        # psi_g fixed at baseline; D_GREEN floats
         base_calib = make_calibration(numeraire, booking=booking, **{
             k: v for k, v in ov.items()
-            if k not in ('tau_b', 'tau_g', 's_g_ets', 's_g')})
+            if k not in ('tau_b', 'tau_g', 's_g_ets', 's_g', 'green_block')})
+        base_calib['E_supply_elasticity'] = np.inf   # closure-invariant here; avoids a spurious SS energy residual
         ss_base = solve_ss(model, base_calib, booking=booking)
         calib['psi_g_bar'] = float(ss_base['psi_g_bar'])
-        unknowns, targets = ss_unknowns_targets_fixed_psi(booking, ets=True)
+        unknowns, targets = ss_unknowns_targets_fixed_psi(booking, ets=ets)
     else:
         unknowns, targets = ss_unknowns_targets(booking)
 
@@ -211,8 +248,9 @@ def run(model, shock_kind='price', policy='none', model_variant='adoption',
         shk = shock_price(**(shock_kwargs or {}))
     elif shock_kind == 'monetary':
         shk = shock_mon(**(shock_kwargs or {}))
-    else:
-        shk = shock_supply(ss, **(shock_kwargs or {}))
+    else:  # 'supply' = matched supply shock
+        shk = shock_supply_matched(model, numeraire=numeraire, booking=booking,
+                                   **(shock_kwargs or {}))
     if policy == 'green':
         hl = (shock_kwargs or {}).get('half_life', 16)
         shk = {**shk, **shock_green(size=GREEN_SIZE, half_life=hl)}
