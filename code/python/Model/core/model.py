@@ -172,7 +172,7 @@ def shock_mon(size=0.0025, half_life=4, T=T):
 
 POLICIES = {
     'none':          dict(tauE=0.0, insE=0.0),
-    'subsidy':       dict(tauE=1.0, insE=0.0),  # full price cap (Bayer P1, Langot)
+    'subsidy':       dict(tauE=.5, insE=0.0),  # full price cap (Bayer P1, Langot)
     'transfer':      dict(tauE=0.0, insE=1.0),  # Slutsky compensation (Bayer P2)
     'transfer_flat': dict(tauE=0.0, insE=1.0),  # untargeted lump sum, same envelope
     'green':         dict(tauE=0.0, insE=0.0),  # adoption subsidy (s_g path layered

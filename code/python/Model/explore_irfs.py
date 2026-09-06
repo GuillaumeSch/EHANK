@@ -13,21 +13,21 @@ SAVE = False
 ECONOMIES = {                     # colour
     'baseline': dict(),
     #'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
-    #'brown':    dict(green_block=20.0),
+    'brown':    dict(green_block=20.0),
 }
 SHOCKS = {                        
     'price':  dict(shock_kind='price'),
-    'supply': dict(shock_kind='supply'),   
+    # 'supply': dict(shock_kind='supply'),   
 }
 VARIANTS = [                     
     'adoption',
-    #'no_adoption'
+    # 'no_adoption'
     ]
 
 FISCAL = [                        
     'none',
-    #'subsidy',
-    'transfer',
+    'subsidy',
+    #'transfer',
     #'transfer_flat'
     ]
 
@@ -42,6 +42,8 @@ OUTPUTS = {
     'D_GREEN': r'Green share $D^G$',
     'CHF_SWITCH_exp': r'Adoption expenditures',
     'pi_ann':  r'Inflation (ann.)',
+    'piw_ann':  r'Wage inflation (ann.)',
+    'w': r'Real wage', 
     'PEstar': r'Market price of brown energy (in USD) $P^*_{Eb}$',
     # 'E_supply': r'Energy supply',
     'E_supply_shock': r'Supply shock, exog. ($E^{sup}_{shock}$)',
