@@ -295,6 +295,20 @@ def eqm_cond(y, cH, cHstar, cH_switch, A_cpi, gdp, nfa, j, B, cE, prodE, PEstar,
     return goods_clearing, assets_clearing, E_clearing, PEstar_diff, gdp_t, D_GREEN_res
 
 
+@sj.simple 
+def variables_to_plot(y, CE_B, CE_G, D_GREEN, D_SWITCH, PEstar, pi_ann):
+    y_pc = (y/y.ss - 1)*100 
+    CE_B_pc = (CE_B/CE_B.ss - 1)*100 
+    CE_G_pc = (CE_G/CE_G.ss - 1)*100 
+    PEstar_pc = (PEstar/PEstar.ss-1)*100 
+    D_GREEN_pc = (D_GREEN/D_GREEN.ss-1)*100 
+    D_SWITCH_pc = (D_SWITCH/D_SWITCH.ss-1)*100 
+    D_GREEN_share = D_GREEN*100
+    D_SWITCH_share = D_SWITCH*100 
+    pi_ann_pp = pi_ann*100
+
+    return y_pc, CE_B_pc, CE_G_pc, PEstar_pc, D_GREEN_pc, D_SWITCH_pc, pi_ann_pp, D_GREEN_share, D_SWITCH_share 
+
 TARGETS = ['uip', 'piwres', 'nfares', 'goods_clearing', 'assets_clearing',
            'Pres', 'w_res', 'E_clearing', 'outer_nest']
 

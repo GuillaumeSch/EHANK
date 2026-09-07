@@ -19,11 +19,11 @@ ECONOMIES = {                     # colour
 }
 SHOCKS = {
     'price':  dict(shock_kind='price'),
-    # 'supply': dict(shock_kind='supply'),
+    'supply': dict(shock_kind='supply'),
 }
 VARIANTS = [
     'adoption',
-    # 'no_adoption'
+    'no_adoption'
     ]
 
 FISCAL = [
@@ -188,6 +188,191 @@ if SAVE:
 # results = load_results()
 for pol in FISCAL:
     plot_grid(results, pol)
+plt.show()
+
+# %%
+ECONOMIES = {                     # colour
+    'baseline': dict(),
+    #'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
+    'brown':    dict(green_block=20.0),
+}
+SHOCKS = {
+    'price':  dict(shock_kind='price'),
+    # 'supply': dict(shock_kind='supply'),
+}
+VARIANTS = [
+    'adoption',
+    'no_adoption'
+    ]
+
+FISCAL = [
+    'none',
+    'subsidy',
+    #'transfer',
+    #'transfer_flat'
+    ]
+
+plot_grid(results, 'none')
+plt.show()
+
+
+# %%  Store results
+
+# No policy, price shock
+irf_base_nopol_price = results[('none', 'baseline', 'price', 'adoption')]
+irf_frozen_nopol_price = results[('none', 'baseline', 'price', 'no_adoption')] 
+irf_brown_nopol_price = results[('none', 'brown', 'price', 'no_adoption')] 
+
+# No policy, supply shock
+irf_base_nopol_supply = results[('none', 'baseline', 'supply', 'adoption')]
+irf_frozen_nopol_supply = results[('none', 'baseline', 'supply', 'no_adoption')] 
+irf_brown_nopol_supply = results[('none', 'brown', 'supply', 'adoption')] 
+
+
+# Price subsidy, price shock 
+irf_base_subsidy_price = results[('subsidy', 'baseline', 'price', 'adoption')]
+irf_frozen_subsidy_price = results[('subsidy', 'baseline', 'price', 'no_adoption')] 
+irf_brown_subsidy_price = results[('subsidy', 'brown', 'price', 'no_adoption')] 
+
+# Price subsidy, supply shock 
+irf_base_subsidy_supply = results[('subsidy', 'baseline', 'supply', 'adoption')]
+irf_frozen_subsidy_supply = results[('subsidy', 'baseline', 'supply', 'no_adoption')] 
+irf_brown_subsidy_supply = results[('subsidy', 'brown', 'supply', 'adoption')] 
+
+
+
+
+# pct series divide by zero in brown case, so use levels instead
+irf_brown_nopol_supply['CE_G_pc'] = irf_brown_nopol_supply['CE_G'] 
+irf_brown_nopol_price['CE_G_pc'] = irf_brown_nopol_supply['CE_G']
+irf_brown_subsidy_supply['CE_G_pc'] = irf_brown_subsidy_supply['CE_G'] 
+irf_brown_subsidy_price['CE_G_pc'] = irf_brown_subsidy_supply['CE_G']
+
+
+#%% Plot helper
+def plot_irfs(scenarios, variables=None, len_irf=21, ni=3, nj=2,
+              figsize=(7.5, 8.5), legend_loc='upper right', legend_ax_idx=0,
+              save_path=None):
+    """
+    Plot IRFs across scenarios in a grid of subplots.
+
+    Parameters
+    ----------
+    scenarios : list of (dict, str, dict)
+        Each tuple is (irf_dict, label, plot_style_kwargs), e.g.
+        (irf_base_nopol_price, 'Baseline', dict(linestyle='-', alpha=1.0, linewidth=1.6))
+    variables : list of (str, str, str)
+        Each tuple is (key, title, ylabel). Defaults to the standard 6-variable set.
+    len_irf : int
+        Number of periods to plot.
+    ni, nj : int
+        Grid dimensions.
+    figsize : tuple
+        Figure size in inches.
+    legend_loc : str
+        Legend location within the chosen subplot.
+    legend_ax_idx : int
+        Index (into flattened axes) of the subplot that holds the legend.
+    save_path : str or None
+        If given, saves the figure to this path (e.g. 'irf_comparison.pdf').
+
+    Returns
+    -------
+    fig, axes
+    """
+    if variables is None:
+        variables = [
+            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
+            ('y_pc',        'Output $Y$',                              '% dev. from SS'),
+            ('CE_G_pc',     'Green energy consumption $C_{Eg}$',       '% dev. from SS'),
+            ('D_GREEN_share', 'Green technology users',                'p.p dev, from SS'),
+            ('CE_B_pc',     'Brown energy consumption $C_{Eb}$',       '% dev. from SS'),
+            ('PEstar_pc',   r'Brown energy price $P^*_{Eb}$',          '% dev. from SS'),
+        ]
+
+    titlesize = 11
+    labelsize = 9
+    legendsize = 8
+    axislabelsize = 9
+
+    fig, axes = plt.subplots(ni, nj, figsize=figsize, sharex=True)
+    axes = axes.flatten()
+
+    for ax, (var, title, ylabel) in zip(axes, variables):
+        for data, label, style in scenarios:
+            ax.plot(data[var][:len_irf], label=label, **style)
+        ax.axhline(0, color='black', linewidth=1., alpha=0.6, zorder=0)
+        ax.set_title(title, fontsize=titlesize)
+        ax.tick_params(labelsize=labelsize)
+        ax.grid(alpha=0.2, linewidth=0.5)
+        ax.set_xlabel('quarter', fontsize=axislabelsize)
+        ax.set_ylabel(ylabel, fontsize=axislabelsize)
+
+    handles, labels = axes[0].get_legend_handles_labels()
+    axes[legend_ax_idx].legend(
+        handles, labels,
+        loc=legend_loc,
+        fontsize=legendsize,
+        frameon=True,
+        framealpha=0.8,
+    )
+
+    fig.tight_layout()
+
+    if save_path is not None:
+        fig.savefig(save_path, bbox_inches='tight')
+
+    return fig, axes
+
+
+
+#%% Figure 1a
+color = 'tab:blue'
+
+scenarios1_price = [
+    (irf_base_nopol_price,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_frozen_nopol_price, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_brown_nopol_price,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+]
+
+irf_no_policy_price, axes = plot_irfs(scenarios1_price)
+irf_no_policy_price.savefig( f'irf_no_policy_price.pdf')
+plt.show()
+
+#%% Figure 1b 
+
+scenarios1_supply = [
+    (irf_base_nopol_supply,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_frozen_nopol_supply, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_brown_nopol_supply,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+]
+
+irf_no_policy_supply, axes = plot_irfs(scenarios1_supply)
+irf_no_policy_supply.savefig( f'irf_no_policy_supply.pdf')
+plt.show()
+
+
+# %% Figure 2a
+scenarios2_price = [
+    (irf_base_subsidy_price,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_frozen_subsidy_price, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_brown_subsidy_price,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+]
+
+irf_subsidy_price, axes = plot_irfs(scenarios2_price)
+irf_subsidy_price.savefig( f'irf_subsidy_price.pdf')
+plt.show()
+
+
+# %% Figure 2b
+scenarios2_supply = [
+    (irf_base_subsidy_supply,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_frozen_subsidy_supply, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_brown_subsidy_supply,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+]
+
+irf_subsidy_supply, axes = plot_irfs(scenarios2_supply)
+irf_subsidy_supply.savefig( f'irf_subsidy_supply.pdf')
 plt.show()
 
 # %%

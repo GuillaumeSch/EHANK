@@ -59,5 +59,5 @@ def build_model_frozen(numeraire='cpi', booking='import', ets=False):
         B.income, B.profitcenters, B.importPrices, imp,
         B.revaluation, B.revaluation_dom, B.foreign_c, B.UIP, B.IEA, ca,
         B.unions, B.piW_to_W, B.CESprices, B.price_levels, B.pitop,
-        B.mon_policy, B.fiscal, B.annualize, eqm, B.reweight_cpi,
+        B.mon_policy, B.fiscal, B.annualize, eqm, B.reweight_cpi, B.variables_to_plot
     ])
