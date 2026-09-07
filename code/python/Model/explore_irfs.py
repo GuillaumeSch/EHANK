@@ -15,20 +15,20 @@ RESULTS_PATH = 'explore_results.pkl'
 ECONOMIES = {                     # colour
     'baseline': dict(),
     #'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
-    #'brown':    dict(green_block=20.0),
+    'brown':    dict(green_block=20.0),
 }
 SHOCKS = {
     'price':  dict(shock_kind='price'),
-    'supply': dict(shock_kind='supply'),
+    # 'supply': dict(shock_kind='supply'),
 }
 VARIANTS = [
     'adoption',
-    'no_adoption'
+    # 'no_adoption'
     ]
 
 FISCAL = [
     'none',
-    #'subsidy',
+    'subsidy',
     #'transfer',
     #'transfer_flat'
     ]
@@ -48,7 +48,7 @@ OUTPUTS = {
     'piw_ann':  r'Wage inflation (ann.)',
     'w': r'Real wage',
     'PEstar': r'Market price of brown energy (in USD) $P^*_{Eb}$',
-    'E_supply': r'Energy supply',
+    # 'E_supply': r'Energy supply',
     'E_supply_shock': r'Supply shock, exog. ($E^{sup}_{shock}$)',
     'pE_B_P':  r'Brown price $P^E_B/P$',
     'CE_B': r'Brown energy consumption ($C_{Eb}$)',
@@ -72,7 +72,7 @@ model = build_model(NUM, booking=BOOK)
 
 
 #%%  recompute the matched supply-shock path (run after changing the model)
-#matched_supply_path(model, numeraire=NUM, booking=BOOK, recompute=True)
+# matched_supply_path(model, numeraire=NUM, booking=BOOK, recompute=True)
 
 
 #%%
@@ -110,22 +110,29 @@ def load_results(path=RESULTS_PATH):
 
 
 #%%
-def legend_handles(econ_list, shocks, variants):
-    """Legend entries only for dimensions that vary."""
+def legend_handles(econ_list, shocks, variants, present):
+    """One entry per plotted line: exact colour/linestyle/width, label from the
+    dimensions that vary."""
     multi_e, multi_s, multi_v = len(econ_list) > 1, len(shocks) > 1, len(variants) > 1
+    multi_es = multi_e and multi_s
+    shk_list = list(shocks)
     h = []
-    if multi_e:
-        h += [Line2D([], [], color=COLORS[i % len(COLORS)], lw=2, label=e)
-              for i, e in enumerate(econ_list)]
-    elif multi_s:
-        h += [Line2D([], [], color=COLORS[i % len(COLORS)], lw=2, label=s)
-              for i, s in enumerate(shocks)]
-    if multi_e and multi_s:
-        h += [Line2D([], [], color='k', lw=SHOCK_LW[s], label=s) for s in shocks]
-    if multi_v:
-        h += [Line2D([], [], color='k', ls=VAR_LS[v], lw=2, label=v) for v in variants]
-    if not h:
-        h = [Line2D([], [], color=COLORS[0], ls=VAR_LS[variants[0]], lw=2, label=econ_list[0])]
+    for ci, econ in enumerate(econ_list):
+        for sname in shk_list:
+            for variant in variants:
+                if (econ, sname, variant) not in present:
+                    continue
+                if multi_e:
+                    color = COLORS[ci % len(COLORS)]
+                elif multi_s:
+                    color = COLORS[shk_list.index(sname) % len(COLORS)]
+                else:
+                    color = COLORS[0]
+                lw = SHOCK_LW[sname] if multi_es else DEFAULT_LW
+                label = ', '.join(x for x, flag in
+                                  [(econ, multi_e), (sname, multi_s), (variant, multi_v)]
+                                  if flag) or econ
+                h.append(Line2D([], [], color=color, ls=VAR_LS[variant], lw=lw, label=label))
     return h
 
 
@@ -137,6 +144,8 @@ def plot_grid(results, pol, outputs=OUTPUTS, H=H, economies=None, shocks=None,
     var_list  = list(variants)  if variants  is not None else list(VARIANTS)
     multi_e, multi_s = len(econ_list) > 1, len(shk_list) > 1
     shock_idx = {s: i for i, s in enumerate(shk_list)}
+    present = {(e, s, v) for e in econ_list for s in shk_list for v in var_list
+               if results.get((pol, e, s, v)) is not None}
 
     nrow = int(np.ceil(len(outputs) / ncol))
     fig, axes = plt.subplots(nrow, ncol, figsize=(4 * ncol, 3 * nrow), squeeze=False)
@@ -161,7 +170,7 @@ def plot_grid(results, pol, outputs=OUTPUTS, H=H, economies=None, shocks=None,
         ax.set_xlabel('quarters', fontsize=8)
     for ax in list(axes.flat)[len(outputs):]:
         ax.axis('off')
-    axes.flat[0].legend(handles=legend_handles(econ_list, shk_list, var_list), fontsize=8)
+    axes.flat[0].legend(handles=legend_handles(econ_list, shk_list, var_list, present), fontsize=8)
     fig.suptitle(pol, fontsize=12)
     fig.tight_layout()
     if save:
