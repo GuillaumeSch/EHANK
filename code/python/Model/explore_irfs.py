@@ -9,26 +9,27 @@ from core.model import build_model, run, matched_supply_path
 
 #%%
 NUM, BOOK, H = 'cpi', 'import', 24
-SAVE = False
+SAVE = True
 RESULTS_PATH = 'explore_results.pkl'
+RESULTS_SS_PATH = 'explore_results_ss.pkl'
 
 ECONOMIES = {                     # colour
     'baseline': dict(),
     #'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
-    'brown':    dict(green_block=20.0),
+    #'brown':    dict(green_block=20.0),
 }
 SHOCKS = {
     'price':  dict(shock_kind='price'),
-    'supply': dict(shock_kind='supply'),
+    #'supply': dict(shock_kind='supply'),
 }
 VARIANTS = [
     'adoption',
-    'no_adoption'
+    #'no_adoption'
     ]
 
 FISCAL = [
     'none',
-    'subsidy',
+    #'subsidy',
     #'transfer',
     #'transfer_flat'
     ]
@@ -81,22 +82,24 @@ def run_all(model, economies=ECONOMIES, shocks=SHOCKS, variants=VARIANTS,
     """Solve every (fiscal, economy, shock, variant) cell; return a results dict
     keyed by (pol, econ, sname, variant) -> irf."""
     results = {}
+    results_ss = {}
     for pol in fiscal:
         for econ, ekw in economies.items():
             for sname, shk in shocks.items():
                 for variant in variants:
                     try:
-                        _, irf = run(model, numeraire=numeraire, booking=booking,
+                        ss, irf = run(model, numeraire=numeraire, booking=booking,
                                      model_variant=variant, policy=pol,
                                      **ekw, **shk)
                         results[(pol, econ, sname, variant)] = irf
+                        results_ss[(pol, econ, sname, variant)] = ss
                         if verbose:
                             print(f'PASS {pol:14s} {econ:9s} {sname:7s} {variant}')
                     except Exception as e:
                         if verbose:
                             print(f'FAIL {pol:14s} {econ:9s} {sname:7s} {variant}: '
                                   f'{type(e).__name__}: {e}')
-    return results
+    return results, results_ss
 
 
 def save_results(results, path=RESULTS_PATH):
@@ -179,13 +182,15 @@ def plot_grid(results, pol, outputs=OUTPUTS, H=H, economies=None, shocks=None,
 
 
 #%%
-results = run_all(model)
+results, results_ss = run_all(model)
 if SAVE:
     save_results(results)
+    save_results(results_ss, path=RESULTS_SS_PATH)
 
 
 #%%
 # results = load_results()
+# results_ss = load_results(path=RESULTS_SS_PATH))
 for pol in FISCAL:
     plot_grid(results, pol)
 plt.show()
