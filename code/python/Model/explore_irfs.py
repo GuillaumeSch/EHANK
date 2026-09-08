@@ -452,6 +452,8 @@ irf_transfer_supply.savefig( f'irf_transfer_supply.pdf')
 plt.show()
 
 # %% Comparison of fiscal policies -- Price shock -- Adoption
+color = 'tab:blue'
+
 scenarios_fp_base_price = [
     (irf_base_nopol_price,   'No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
     (irf_base_subsidy_price, 'Energy subsidy',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
@@ -524,3 +526,4 @@ vars_ = [  ('y_pc',        'Output $Y$',                              '% dev.  f
 
 irf_fp_brown_supply, axes = plot_irfs(scenarios_fp_brown_supply, variables=vars_, legend_ax_idx=1)
 irf_fp_brown_supply.savefig( f'irf_fp_brown_supply.pdf')
+# %%
