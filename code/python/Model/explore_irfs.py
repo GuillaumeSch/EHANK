@@ -16,22 +16,22 @@ RESULTS_SS_PATH = 'explore_results_ss.pkl'
 ECONOMIES = {                     # colour
     'baseline': dict(),
     #'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
-    #'brown':    dict(green_block=20.0),
+    'brown':    dict(green_block=20.0),
 }
 SHOCKS = {
     'price':  dict(shock_kind='price'),
-    #'supply': dict(shock_kind='supply'),
+    'supply': dict(shock_kind='supply'),
 }
 VARIANTS = [
     'adoption',
-    #'no_adoption'
+    'no_adoption'
     ]
 
 FISCAL = [
     'none',
-    #'subsidy',
-    #'transfer',
-    #'transfer_flat'
+    'subsidy',
+    'transfer',
+    'transfer_flat'
     ]
 
 VAR_LS     = {'adoption': '-', 'no_adoption': '--'}   # solid = adoption on, dashed = adoption off
@@ -221,6 +221,31 @@ plot_grid(results, 'none')
 plt.show()
 
 
+#%% Steady state results
+Pswitch_ss = results_ss[('none', 'baseline', 'price', 'adoption')].internals['hh_0']['durables']['law_of_motion'].P
+
+a_grid = results_ss[('none', 'baseline', 'price', 'adoption')].internals['hh_1']['a_grid']
+
+fig, ax = plt.subplots()
+
+ax.plot(a_grid, Pswitch_ss[2,0,0,:].T*100,
+        color='#08519c', linestyle='-', linewidth=2.6, label='Low productivity')
+ax.plot(a_grid, Pswitch_ss[2,0,3,:].T*100,
+        color='#4292c6', linestyle='--', linewidth=2.6, label='Medium productivity')
+ax.plot(a_grid, Pswitch_ss[2,0,-1,:].T*100,
+        color='#9ecae1', linestyle=':', linewidth=2.6, label='High productivity')
+
+ax.set_xlabel('Individual assets')
+ax.set_ylabel('Probability of adjusting (%)')
+ax.set_title('Clean adoption probability')
+ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+
+ax.legend()
+
+plt.show()
+fig.savefig( f'ss_adj_probs.pdf')
+
+# dir(results_ss[('none', 'baseline', 'price', 'adoption')])
 # %%  Store results
 
 # No policy, price shock
@@ -245,6 +270,26 @@ irf_frozen_subsidy_supply = results[('subsidy', 'baseline', 'supply', 'no_adopti
 irf_brown_subsidy_supply = results[('subsidy', 'brown', 'supply', 'adoption')] 
 
 
+# Transfer, price shock 
+irf_base_transfer_price = results[('transfer', 'baseline', 'price', 'adoption')]
+irf_frozen_transfer_price = results[('transfer', 'baseline', 'price', 'no_adoption')] 
+irf_brown_transfer_price = results[('transfer', 'brown', 'price', 'no_adoption')] 
+
+#  Transfer, supply shock 
+irf_base_transfer_supply = results[('transfer', 'baseline', 'supply', 'adoption')]
+irf_frozen_transfer_supply = results[('transfer', 'baseline', 'supply', 'no_adoption')] 
+irf_brown_transfer_supply = results[('transfer', 'brown', 'supply', 'adoption')] 
+
+# Untargeted transfer, price shock
+
+irf_base_untargeted_price = results[('transfer_flat', 'baseline', 'price', 'adoption')]
+irf_frozen_untargeted_price = results[('transfer_flat', 'baseline', 'price', 'no_adoption')] 
+irf_brown_untargeted_price = results[('transfer_flat', 'brown', 'price', 'no_adoption')] 
+
+#  Untageted transfer, supply shock 
+irf_base_untargeted_supply = results[('transfer_flat', 'baseline', 'supply', 'adoption')]
+irf_frozen_untargeted_supply = results[('transfer_flat', 'baseline', 'supply', 'no_adoption')] 
+irf_brown_untargeted_supply = results[('transfer_flat', 'brown', 'supply', 'adoption')] 
 
 
 # pct series divide by zero in brown case, so use levels instead
@@ -252,6 +297,10 @@ irf_brown_nopol_supply['CE_G_pc'] = irf_brown_nopol_supply['CE_G']
 irf_brown_nopol_price['CE_G_pc'] = irf_brown_nopol_supply['CE_G']
 irf_brown_subsidy_supply['CE_G_pc'] = irf_brown_subsidy_supply['CE_G'] 
 irf_brown_subsidy_price['CE_G_pc'] = irf_brown_subsidy_supply['CE_G']
+irf_brown_transfer_supply['CE_G_pc'] = irf_brown_transfer_supply['CE_G'] 
+irf_brown_transfer_price['CE_G_pc'] = irf_brown_transfer_supply['CE_G']
+irf_brown_untargeted_supply['CE_G_pc'] = irf_brown_untargeted_supply['CE_G'] 
+irf_brown_untargeted_price['CE_G_pc'] = irf_brown_untargeted_supply['CE_G']
 
 
 #%% Plot helper
@@ -380,4 +429,98 @@ irf_subsidy_supply, axes = plot_irfs(scenarios2_supply)
 irf_subsidy_supply.savefig( f'irf_subsidy_supply.pdf')
 plt.show()
 
-# %%
+# %% Figure 3a
+scenarios3_price = [
+    (irf_base_transfer_price,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_frozen_transfer_price, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_brown_transfer_price,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+]
+
+irf_transfer_price, axes = plot_irfs(scenarios3_price)
+irf_transfer_price.savefig( f'irf_transfer_price.pdf')
+plt.show()
+
+# %% Figure 3b
+scenarios3_supply = [
+    (irf_base_transfer_supply,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_frozen_transfer_supply, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_brown_transfer_supply,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+]
+
+irf_transfer_supply, axes = plot_irfs(scenarios3_supply)
+irf_transfer_supply.savefig( f'irf_transfer_supply.pdf')
+plt.show()
+
+# %% Comparison of fiscal policies -- Price shock -- Adoption
+scenarios_fp_base_price = [
+    (irf_base_nopol_price,   'No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_base_subsidy_price, 'Energy subsidy',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_base_transfer_price,  'Targeted transfer',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_base_untargeted_price,  'Untargeted transfer',              dict(color=color, linestyle='-.',  alpha=0.6, linewidth=2.6)),
+]
+
+vars_ = [  ('y_pc',        'Output $Y$',                              '% dev.  from SS'),
+            ('C_pc',        'Consumption $C$',                              '% dev.  from SS'),
+            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
+            ('B_yss', 'Gov. debt',                '% of SS output'),
+            ('PE_B_pc',     'Brown energy price $P_{Eb}$',       '% dev. from SS'),
+            ('D_GREEN_share', 'Green technology users',                'p.p dev, from SS'),
+        ]
+
+irf_fp_base_price, axes = plot_irfs(scenarios_fp_base_price, variables=vars_, legend_ax_idx=1)
+irf_fp_base_price.savefig( f'irf_fp_base_price.pdf')
+
+# %% Comparison of fiscal policies -- Price shock --  Brown economy 
+scenarios_fp_brown_price = [
+    (irf_brown_nopol_price,   'No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_brown_subsidy_price, 'Energy subsidy',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_brown_transfer_price,  'Targeted transfer',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_brown_untargeted_price,  'Untargeted transfer',              dict(color=color, linestyle='-.',  alpha=0.6, linewidth=2.6)),
+]
+
+vars_ = [  ('y_pc',        'Output $Y$',                              '% dev.  from SS'),
+            ('C_pc',        'Consumption $C$',                              '% dev.  from SS'),
+            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
+            ('B_yss', 'Gov. debt',                '% of SS output'),
+            ('PE_B_pc',     'Brown energy price $P_{Eb}$',       '% dev. from SS'),
+        ]
+
+irf_fp_brown_price, axes = plot_irfs(scenarios_fp_brown_price, variables=vars_, legend_ax_idx=1)
+irf_fp_brown_price.savefig( f'irf_fp_brown_price.pdf')
+
+# %% Comparison of fiscal policies -- Supply shock -- Adoption
+scenarios_fp_base_supply = [
+    (irf_base_nopol_supply,   'No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_base_subsidy_supply, 'Energy subsidy',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_base_transfer_supply,  'Targeted transfer',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_base_untargeted_supply,  'Untargeted transfer',              dict(color=color, linestyle='-.',  alpha=0.6, linewidth=2.6)),
+]
+
+vars_ = [  ('y_pc',        'Output $Y$',                              '% dev.  from SS'),
+            ('C_pc',        'Consumption $C$',                              '% dev.  from SS'),
+            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
+            ('B_yss', 'Gov. debt',                '% of SS output'),
+            ('PE_B_pc',     'Brown energy price $P_{Eb}$',       '% dev. from SS'),
+            ('D_GREEN_share', 'Green technology users',                'p.p dev, from SS'),
+        ]
+
+irf_fp_base_supply, axes = plot_irfs(scenarios_fp_base_supply, variables=vars_, legend_ax_idx=1)
+irf_fp_base_supply.savefig( f'irf_fp_base_supply.pdf')
+
+# %% Comparison of fiscal policies -- Supply shock --  Brown economy 
+scenarios_fp_brown_supply = [
+    (irf_brown_nopol_supply,   'No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_brown_subsidy_supply, 'Energy subsidy',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_brown_transfer_supply,  'Targeted transfer',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_brown_untargeted_supply,  'Untargeted transfer',              dict(color=color, linestyle='-.',  alpha=0.6, linewidth=2.6)),
+]
+
+vars_ = [  ('y_pc',        'Output $Y$',                              '% dev.  from SS'),
+            ('C_pc',        'Consumption $C$',                              '% dev.  from SS'),
+            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
+            ('B_yss', 'Gov. debt',                '% of SS output'),
+            ('PE_B_pc',     'Brown energy price $P_{Eb}$',       '% dev. from SS'),
+        ]
+
+irf_fp_brown_supply, axes = plot_irfs(scenarios_fp_brown_supply, variables=vars_, legend_ax_idx=1)
+irf_fp_brown_supply.savefig( f'irf_fp_brown_supply.pdf')
