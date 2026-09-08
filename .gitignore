@@ -35,3 +35,4 @@ __pycache__/
 # IRFs 
 code/python/Model/irf_*
 code/python/Model/ss_*
+code/python/Model/*.pkl
