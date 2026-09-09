@@ -1,14 +1,16 @@
 """Steady-state adoption panel and consumption-inequality figures.
 
 Produces:
-  ss_adoption.pdf         (a) SS adoption prob. by wealth/productivity,
+  fig_ss_adoption.pdf         (a) SS adoption prob. by wealth/productivity,
                                  (b) D_GREEN vs psi_g, (c) D_GREEN vs carbon tax
-  cons_variance.pdf       variance of log consumption, both shocks, four
+  fig_adoption_dynamics.pdf   green-adoption probability by wealth, steady state vs
+                                 quarter 0, all productivity groups
+  fig_cons_variance.pdf       variance of log consumption, both shocks, four
                                  fiscal responses
-  cons_percapita.pdf      per-capita consumption by group (technology,
-                                 discount type), four fiscal responses (8 lines)
+  fig_cons_percapita.pdf      per-capita consumption of green vs brown users, four
+                                 fiscal responses
 
-Run:  python -m runners.run_ss_and_inequality
+Run:  python -m runners.run_nbb_figures
 Needs the household 'inequality' hetoutput (core/household.py), which exposes
 LOGC_i, LOGC2_i per discount-factor group.
 
@@ -101,14 +103,64 @@ def carbon_panel(ax, tb_max=0.35, n=15):
 def fig_steady_state():
     fig, ax = plt.subplots(1, 3, figsize=(13.5, 4.0))
     ss_probability_panel(ax[0]); psi_panel(ax[1]); carbon_panel(ax[2])
-    fig.tight_layout(); fig.savefig('ss_adoption.pdf', bbox_inches='tight')
+    fig.tight_layout(); fig.savefig('fig_ss_adoption.pdf', bbox_inches='tight')
+    return fig
+
+
+def adoption_prob_paths(irf, ss, quarters, eps=1e-4):
+    """First-order (linear) response of the green-adoption choice probability
+    P[GB<-BB](e, a) at each date: the directional derivative of the logit choice
+    along the GE aggregate paths, P_ss + (P(eps*paths) - P_ss)/eps. Consistent
+    with the linear GE. The stage block does not expose these internals through
+    impulse, so we capture the law-of-motion path from backward_nonlinear."""
+    from core import household as _H
+    blk = (_H.hh_one.rename(suffix='_0')
+           .remap({x: f'{x}_0' for x in _H.GROUP_VARS}).remap({'beta_g': 'beta_0'}))
+    moving = [k for k in blk.inputs if k in irf.keys()
+              and np.max(np.abs(np.asarray(irf[k]))) > 1e-12]
+    cap = {}
+    orig = blk.backward_nonlinear
+    def _wrap(s, i):
+        rp, lp = orig(s, i); cap['lom'] = lp; return rp, lp
+    blk.backward_nonlinear = _wrap
+    blk.impulse_nonlinear(ss, {k: eps * np.asarray(irf[k]) for k in moving})
+    blk.backward_nonlinear = orig
+    dur = 2   # stage order: dep, prod, durables, consav
+    Pss = np.asarray(ss.internals['hh_0']['durables']['law_of_motion'].P)
+    return {t: Pss + (np.asarray(cap['lom'][t][dur].P) - Pss) / eps for t in quarters}
+
+
+def fig_adoption_dynamics():
+    m = build_model(NUM, booking=BOOK)
+    ss, irf = run(m, shock_kind='price', policy='none', model_variant='adoption')
+    Pss = np.asarray(ss.internals['hh_0']['durables']['law_of_motion'].P)
+    a = np.asarray(ss.internals['hh_1']['a_grid'])
+    P0 = adoption_prob_paths(irf, ss, (0,))[0]   # linear response at impact
+    padopt = lambda P, e: 100 * P[2, 0, e, :]    # choice GB, from BB
+    groups = [(0, '#9ecae1', 'Low'), (3, '#4292c6', 'Median'), (-1, '#08519c', 'High')]
+    fig, ax = plt.subplots(figsize=(7.2, 4.6))
+    for e, c, _ in groups:
+        ax.plot(a, padopt(Pss, e), color=c, ls='--', lw=2.2)   # before (steady state)
+        ax.plot(a, padopt(P0, e), color=c, ls='-', lw=2.2)     # after (quarter 0)
+    ax.set_xlim(0, 50); ax.set_xlabel('Individual assets')
+    ax.set_ylabel('Probability of adjusting (%)')
+    ax.set_title('Clean adoption probability after the price shock')
+    col_h = [Line2D([], [], color=c, lw=2.2, label=f'{lab} productivity') for _, c, lab in groups]
+    sty_h = [Line2D([], [], color='0.35', lw=2.2, ls='--', label='Steady state'),
+             Line2D([], [], color='0.35', lw=2.2, ls='-', label='Quarter 0')]
+    leg1 = ax.legend(handles=col_h, loc='upper left', fontsize=8); ax.add_artist(leg1)
+    ax.legend(handles=sty_h, loc='lower right', fontsize=8)
+    fig.tight_layout(); fig.savefig('fig_adoption_dynamics.pdf', bbox_inches='tight')
     return fig
 
 
 # =============================================================== inequality
-def build_irfs():
+def build_irfs(**extra):
+    """IRFs for the four fiscal responses, both shocks. Pass extra overrides
+    to run (e.g. green_block=20.0 for the brown, adoption-off economy)."""
     m = build_model(NUM, booking=BOOK)
-    return {(shock, pol): run(m, shock_kind=shock, policy=pol, model_variant='adoption')
+    return {(shock, pol): run(m, shock_kind=shock, policy=pol,
+                              model_variant='adoption', **extra)
             for shock in ('price', 'supply') for pol in POLS}
 
 
@@ -122,7 +174,7 @@ def varlogc_dev(ss, irf):
     return 100 * (V - Vss)
 
 
-def fig_variance(irfs):
+def fig_variance(irfs, fname='fig_cons_variance.pdf', suptitle='Var. of log consumption'):
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))
     for ax, (shock, title) in zip(axes, [('price', '(a) Price shock'),
                                          ('supply', '(b) Supply shock')]):
@@ -132,8 +184,8 @@ def fig_variance(irfs):
         ax.axhline(0, color='k', lw=0.6, zorder=0); ax.set_xlabel('quarter')
         ax.set_title(title); ax.set_ylabel('Percent')
     axes[0].legend(loc='lower right')
-    fig.suptitle('Var. of log consumption')
-    fig.tight_layout(); fig.savefig('cons_variance.pdf', bbox_inches='tight')
+    fig.suptitle(suptitle)
+    fig.tight_layout(); fig.savefig(fname, bbox_inches='tight')
     return fig
 
 
@@ -152,12 +204,13 @@ def fig_percapita(irfs, shock='price'):
     axes[0].set_ylabel('Per-capita consumption, % dev. from SS')
     axes[0].legend(loc='upper right')
     fig.suptitle('Per-capita consumption response, by durable technology')
-    fig.tight_layout(); fig.savefig('cons_percapita.pdf', bbox_inches='tight')
+    fig.tight_layout(); fig.savefig('fig_cons_percapita.pdf', bbox_inches='tight')
     return fig
 
 
 if __name__ == '__main__':
     fig_steady_state()
+    fig_adoption_dynamics()
     irfs = build_irfs()
     fig_variance(irfs)
     fig_percapita(irfs, shock='price')
