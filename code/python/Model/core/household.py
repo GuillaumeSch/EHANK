@@ -164,15 +164,29 @@ def flow_utility(c, ghh, eis):
     return util
 
 
+def inequality(c, c_ss_grid):
+    c_pos = np.maximum(c, 1e-10)   # infeasible zero-mass durable nodes: guard the log
+    c2 = c ** 2
+    logc = np.log(c_pos)
+    logc2 = np.log(c_pos) ** 2
+
+    diff_c = c - c_ss_grid
+    diff_c2 = (c - c_ss_grid) ** 2
+    diff_logc = np.log(c_pos) - np.log(c_ss_grid)
+    diff_logc2 = (np.log(c_pos) - np.log(c_ss_grid)) ** 2
+    return c2, logc, logc2, diff_c, diff_c2, diff_logc, diff_logc2
+
+
 consav_stage = Continuous1D(backward=['V', 'Va'], policy='a', f=consav, name='consav',
-                            hetoutputs=[compute_weighted_mpc, durable_shares, flow_utility])
+                            hetoutputs=[compute_weighted_mpc, durable_shares, flow_utility,
+                                        inequality])
 
 
 hh_one = StageBlock([dep_stage, prod_stage, durables_stage, consav_stage], name='hh',
                     backward_init=hh_init,
                     hetinputs=[make_grids, energy_price_bundle, hh_income])
 
-GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_B', 'CE_G', 'CHF', 'UTIL', 'C_GREEN', 'C_BROWN', 'C_SWITCH', 'P_TIMES_C', 'CHF_SWITCH', 'CHF_GREEN', 'CHF_BROWN', 'LAB_INC', 'LAB_INC_GREEN', 'LAB_INC_BROWN']
+GROUP_VARS = ['C', 'A', 'MPC', 'cE_ss_grid', 'c_ss_grid', 'D_GREEN', 'D_SWITCH', 'CE_B', 'CE_G', 'CHF', 'UTIL', 'C_GREEN', 'C_BROWN', 'C_SWITCH', 'P_TIMES_C', 'CHF_SWITCH', 'CHF_GREEN', 'CHF_BROWN', 'LAB_INC', 'LAB_INC_GREEN', 'LAB_INC_BROWN', 'C2', 'LOGC', 'LOGC2', 'DIFF_C', 'DIFF_C2', 'DIFF_LOGC', 'DIFF_LOGC2']
 
 
 @sj.simple
@@ -220,7 +234,7 @@ def aggregate_groups(C_0, C_1, C_2, A_0, A_1, A_2, MPC_0, MPC_1, MPC_2,
     LAB_INC = (LAB_INC_0 + LAB_INC_1 + LAB_INC_2)/3
     LAB_INC_GREEN = (LAB_INC_GREEN_0 + LAB_INC_GREEN_1 + LAB_INC_GREEN_2)/3
     LAB_INC_BROWN = (LAB_INC_BROWN_0 + LAB_INC_BROWN_1 + LAB_INC_BROWN_2)/3
-    
+
     return C, A, MPC, D_GREEN, D_SWITCH, CE_B, CE_G, CHF, C_GREEN, C_BROWN, C_GREEN_PC, C_BROWN_PC, CHF_GREEN, CHF_BROWN, C_SWITCH, P_times_C, CHF_SWITCH, C_CHECK, LAB_INC, LAB_INC_GREEN, LAB_INC_BROWN, beta
 
 

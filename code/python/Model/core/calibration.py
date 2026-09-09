@@ -94,6 +94,7 @@ def _derived(c):
     # SS brown-energy grid (e,a); zeros switch the Slutsky transfer off.
     for i in range(3):
         c[f'cE_ss_grid_{i}'] = np.zeros((c['n_e'], c['n_a']))
+        c[f'c_ss_grid_{i}'] = np.ones((c['n_e'], c['n_a']))
     return c
 
 

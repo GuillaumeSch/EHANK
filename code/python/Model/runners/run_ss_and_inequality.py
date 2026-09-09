@@ -1,0 +1,164 @@
+"""Steady-state adoption panel and consumption-inequality figures.
+
+Produces:
+  ss_adoption.pdf         (a) SS adoption prob. by wealth/productivity,
+                                 (b) D_GREEN vs psi_g, (c) D_GREEN vs carbon tax
+  cons_variance.pdf       variance of log consumption, both shocks, four
+                                 fiscal responses
+  cons_percapita.pdf      per-capita consumption by group (technology,
+                                 discount type), four fiscal responses (8 lines)
+
+Run:  python -m runners.run_ss_and_inequality
+Needs the household 'inequality' hetoutput (core/household.py), which exposes
+LOGC_i, LOGC2_i per discount-factor group.
+
+Inequality measure: within-minus-between variance of log consumption across the
+three discount-factor groups,
+  V(t) = mean_g[ LOGC2_g(t) - LOGC_g(t)^2 ] - var_g[ LOGC_g(t) ],
+on level paths (steady state + linear impulse), plotted as its deviation from the
+steady state, times 100.
+"""
+import sys; sys.path.insert(0, '.')
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+
+from core.model import (build_model, run, solve_ss,
+                        ss_unknowns_targets_fixed_psi)
+from core.calibration import make_calibration
+
+NUM, BOOK, H = 'cpi', 'import', 21
+
+POLS = ('none', 'subsidy', 'transfer', 'transfer_flat')
+POL_COLOR = {'none': '#000000', 'subsidy': '#D55E00',
+             'transfer': '#0072B2', 'transfer_flat': '#009E73'}
+POL_LABEL = {'none': 'No policy', 'subsidy': 'Price cap',
+             'transfer': 'Targeted transfer', 'transfer_flat': 'Untargeted transfer'}
+LW = 2.3
+
+plt.rcParams.update({
+    'axes.grid': True, 'grid.alpha': 0.25, 'grid.linewidth': 0.5,
+    'axes.spines.top': False, 'axes.spines.right': False,
+    'axes.titlesize': 11, 'axes.labelsize': 9,
+    'xtick.labelsize': 8, 'ytick.labelsize': 8, 'legend.fontsize': 8,
+    'legend.frameon': True, 'legend.framealpha': 0.85, 'figure.dpi': 120,
+})
+
+
+# =============================================================== steady state
+def ss_probability_panel(ax):
+    ss = run(build_model(NUM, booking=BOOK), shock_kind='price', policy='none',
+             model_variant='adoption')[0]
+    P = ss.internals['hh_0']['durables']['law_of_motion'].P   # (choice, from, e, a)
+    a = ss.internals['hh_1']['a_grid']
+    for e, sty, lab in [(0, dict(color='#08519c', ls='-'), 'Low productivity'),
+                        (3, dict(color='#4292c6', ls='--'), 'Median productivity'),
+                        (-1, dict(color='#9ecae1', ls=':'), 'High productivity')]:
+        ax.plot(a, 100 * P[2, 0, e, :], lw=2.4, **sty, label=lab)
+    ax.set_xlabel('Individual assets'); ax.set_ylabel('Prob. of adopting green (%)')
+    ax.set_title('(a) Adoption probability, by wealth'); ax.legend(loc='upper left')
+
+
+def _dgreen(model, u, t, **ov):
+    ss = solve_ss(model, make_calibration(NUM, booking=BOOK, **ov),
+                  unknowns=u, targets=t, booking=BOOK)
+    return float(ss['D_GREEN'])
+
+
+def psi_panel(ax, n=25):
+    m = build_model(NUM, booking=BOOK)
+    u, t = ss_unknowns_targets_fixed_psi(BOOK)
+    psi0 = float(solve_ss(m, make_calibration(NUM, booking=BOOK), booking=BOOK)['psi_g_bar'])
+    grid = np.linspace(0.45 * psi0, 1.55 * psi0, n)
+    dg = np.array([_dgreen(m, u, t, psi_g_bar=float(p)) for p in grid])
+    ax.plot(grid, 100 * dg, color='#0072B2', lw=2.4)
+    ax.plot([psi0], [5.0], 'o', color='#D55E00', ms=6, zorder=5,
+            markeredgecolor='white', markeredgewidth=0.8, label='Baseline')
+    ax.set_xlabel(r'Switching-cost $\psi_g$'); ax.set_ylabel('SS green share $D^G$ (%)')
+    ax.set_title('(b) Adoption vs switching-cost'); ax.legend(loc='upper right')
+
+
+def carbon_panel(ax, tb_max=0.35, n=15):
+    m0 = build_model(NUM, booking=BOOK, ets=False)
+    psi0 = float(solve_ss(m0, make_calibration(NUM, booking=BOOK), booking=BOOK)['psi_g_bar'])
+    m = build_model(NUM, booking=BOOK, ets=True)
+    u, t = ss_unknowns_targets_fixed_psi(BOOK, ets=True)
+    grid = np.linspace(0.0, tb_max, n)
+    dg = []
+    for tb in grid:
+        try:
+            dg.append(_dgreen(m, u, t, ets=True, tau_b=float(tb), psi_g_bar=psi0))
+        except Exception:
+            dg.append(np.nan)   # bracketing solvers fail past tau_b ~ 0.4
+    dg = np.array(dg)
+    ax.plot(100 * grid, 100 * dg, color='#0072B2', lw=2.4)
+    ax.plot([0.0], [100 * dg[0]], 'o', color='#D55E00', ms=6, zorder=5,
+            markeredgecolor='white', markeredgewidth=0.8, label='Baseline')
+    ax.set_xlabel(r'Brown carbon tax $\tau_b$ (%)'); ax.set_ylabel('SS green share $D^G$ (%)')
+    ax.set_title(r'(c) Adoption vs carbon tax'); ax.legend(loc='upper left')
+
+
+def fig_steady_state():
+    fig, ax = plt.subplots(1, 3, figsize=(13.5, 4.0))
+    ss_probability_panel(ax[0]); psi_panel(ax[1]); carbon_panel(ax[2])
+    fig.tight_layout(); fig.savefig('ss_adoption.pdf', bbox_inches='tight')
+    return fig
+
+
+# =============================================================== inequality
+def build_irfs():
+    m = build_model(NUM, booking=BOOK)
+    return {(shock, pol): run(m, shock_kind=shock, policy=pol, model_variant='adoption')
+            for shock in ('price', 'supply') for pol in POLS}
+
+
+def varlogc_dev(ss, irf):
+    """Within-minus-between variance of log consumption, deviation from SS."""
+    L = [float(ss[f'LOGC_{i}']) + np.asarray(irf[f'LOGC_{i}']) for i in range(3)]
+    L2 = [float(ss[f'LOGC2_{i}']) + np.asarray(irf[f'LOGC2_{i}']) for i in range(3)]
+    V = np.mean([L2[i] - L[i] ** 2 for i in range(3)], axis=0) - np.var(L, axis=0)
+    Vss = (np.mean([float(ss[f'LOGC2_{i}']) - float(ss[f'LOGC_{i}']) ** 2 for i in range(3)])
+           - np.var([float(ss[f'LOGC_{i}']) for i in range(3)]))
+    return 100 * (V - Vss)
+
+
+def fig_variance(irfs):
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))
+    for ax, (shock, title) in zip(axes, [('price', '(a) Price shock'),
+                                         ('supply', '(b) Supply shock')]):
+        for pol in POLS:
+            ss, irf = irfs[(shock, pol)]
+            ax.plot(varlogc_dev(ss, irf)[:H], color=POL_COLOR[pol], lw=LW, label=POL_LABEL[pol])
+        ax.axhline(0, color='k', lw=0.6, zorder=0); ax.set_xlabel('quarter')
+        ax.set_title(title); ax.set_ylabel('Percent')
+    axes[0].legend(loc='lower right')
+    fig.suptitle('Var. of log consumption')
+    fig.tight_layout(); fig.savefig('cons_variance.pdf', bbox_inches='tight')
+    return fig
+
+
+def _pct(irf, key, ss):
+    return 100 * np.asarray(irf[key]) / float(ss[key])
+
+
+def fig_percapita(irfs, shock='price'):
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.4))
+    for ax, (key, title) in zip(axes, [('C_GREEN_PC', '(a) Green users'),
+                                       ('C_BROWN_PC', '(b) Brown users')]):
+        for pol in POLS:
+            ss, irf = irfs[(shock, pol)]
+            ax.plot(_pct(irf, key, ss)[:H], color=POL_COLOR[pol], lw=LW, label=POL_LABEL[pol])
+        ax.axhline(0, color='k', lw=0.6, zorder=0); ax.set_xlabel('quarter'); ax.set_title(title)
+    axes[0].set_ylabel('Per-capita consumption, % dev. from SS')
+    axes[0].legend(loc='upper right')
+    fig.suptitle('Per-capita consumption response, by durable technology')
+    fig.tight_layout(); fig.savefig('cons_percapita.pdf', bbox_inches='tight')
+    return fig
+
+
+if __name__ == '__main__':
+    fig_steady_state()
+    irfs = build_irfs()
+    fig_variance(irfs)
+    fig_percapita(irfs, shock='price')
+    print('done')
