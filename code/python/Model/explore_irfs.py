@@ -1,5 +1,6 @@
 #%%
 import sys; sys.path.insert(0, '.')
+import os
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
@@ -182,8 +183,11 @@ def plot_grid(results, pol, outputs=OUTPUTS, H=H, economies=None, shocks=None,
 
 
 #%%
-results, results_ss = run_all(model)
-if SAVE:
+if os.path.exists(RESULTS_PATH) and os.path.exists(RESULTS_SS_PATH):
+    results, results_ss = load_results(), load_results(path=RESULTS_SS_PATH)
+else:
+    results, results_ss = run_all(model)
+if SAVE and not (os.path.exists(RESULTS_PATH) and os.path.exists(RESULTS_SS_PATH)):
     save_results(results)
     save_results(results_ss, path=RESULTS_SS_PATH)
 
@@ -305,50 +309,28 @@ irf_brown_untargeted_price['CE_G_pc'] = irf_brown_untargeted_supply['CE_G']
 
 #%% Plot helper
 def plot_irfs(scenarios, variables=None, len_irf=21, ni=3, nj=2,
-              figsize=(7.5, 8.5), legend_loc='upper right', legend_ax_idx=0,
-              save_path=None):
-    """
-    Plot IRFs across scenarios in a grid of subplots.
+              figsize=(7.5, 8.5), legend_loc='best', legend_ax_idx=0,
+              save_path=None, ylims=None):
+    """Plot IRFs across scenarios in a grid of subplots.
 
-    Parameters
-    ----------
-    scenarios : list of (dict, str, dict)
-        Each tuple is (irf_dict, label, plot_style_kwargs), e.g.
-        (irf_base_nopol_price, 'Baseline', dict(linestyle='-', alpha=1.0, linewidth=1.6))
-    variables : list of (str, str, str)
-        Each tuple is (key, title, ylabel). Defaults to the standard 6-variable set.
-    len_irf : int
-        Number of periods to plot.
-    ni, nj : int
-        Grid dimensions.
-    figsize : tuple
-        Figure size in inches.
-    legend_loc : str
-        Legend location within the chosen subplot.
-    legend_ax_idx : int
-        Index (into flattened axes) of the subplot that holds the legend.
-    save_path : str or None
-        If given, saves the figure to this path (e.g. 'irf_comparison.pdf').
-
-    Returns
-    -------
-    fig, axes
+    scenarios : list of (irf_dict, label, style_kwargs).
+    variables : list of (key, title, ylabel); defaults to the no-policy 6-var set.
+    ylims     : optional {key: (lo, hi)} to force identical vertical scales
+                across figures (used to share the y-axis between the baseline
+                and fossil-economy fiscal panels).
     """
+    from matplotlib.ticker import MaxNLocator, MultipleLocator
     if variables is None:
         variables = [
-            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
-            ('y_pc',        'Output $Y$',                              '% dev. from SS'),
-            ('CE_G_pc',     'Green energy consumption $C_{Eg}$',       '% dev. from SS'),
-            ('D_GREEN_share', 'Green technology users',                'p.p dev, from SS'),
-            ('CE_B_pc',     'Brown energy consumption $C_{Eb}$',       '% dev. from SS'),
-            ('PEstar_pc',   r'Brown energy price $P^*_{Eb}$',          '% dev. from SS'),
+            ('pi_ann_pp',     r'Inflation $\pi$ (annualized)',        'p.p dev. from SS'),
+            ('y_pc',          r'Output $Y$',                          '% dev. from SS'),
+            ('CE_G_pc',       r'Green energy consumption $C_{Eg}$',   '% dev. from SS'),
+            ('D_GREEN_share', 'Green technology users',               'p.p dev. from SS'),
+            ('CE_B_pc',       r'Fossil energy consumption $C_{Eb}$',  '% dev. from SS'),
+            ('PEstar_pc',     r'World fossil energy price $P^*_{Eb}$', '% dev. from SS'),
         ]
 
-    titlesize = 11
-    labelsize = 9
-    legendsize = 8
-    axislabelsize = 9
-
+    titlesize, labelsize, legendsize, axislabelsize = 11, 9, 8, 9
     fig, axes = plt.subplots(ni, nj, figsize=figsize, sharex=True)
     axes = axes.flatten()
 
@@ -358,25 +340,44 @@ def plot_irfs(scenarios, variables=None, len_irf=21, ni=3, nj=2,
         ax.axhline(0, color='black', linewidth=1., alpha=0.6, zorder=0)
         ax.set_title(title, fontsize=titlesize)
         ax.tick_params(labelsize=labelsize)
-        ax.grid(alpha=0.2, linewidth=0.5)
+        ax.grid(True, alpha=0.25, linewidth=0.5)
         ax.set_xlabel('quarter', fontsize=axislabelsize)
         ax.set_ylabel(ylabel, fontsize=axislabelsize)
+        ax.xaxis.set_major_locator(MultipleLocator(4))
+        ax.tick_params(labelbottom=True)   # show x numbers on every panel, not just the bottom row
+        if ylims and var in ylims:
+            ax.set_ylim(*ylims[var])
+
+    for ax in axes[len(variables):]:      # blank unused panels (fossil econ has 5 vars)
+        ax.axis('off')
 
     handles, labels = axes[0].get_legend_handles_labels()
-    axes[legend_ax_idx].legend(
-        handles, labels,
-        loc=legend_loc,
-        fontsize=legendsize,
-        frameon=True,
-        framealpha=0.8,
-    )
-
+    axes[legend_ax_idx].legend(handles, labels, loc=legend_loc, fontsize=legendsize,
+                               frameon=True, framealpha=0.85)
     fig.tight_layout()
-
     if save_path is not None:
         fig.savefig(save_path, bbox_inches='tight')
-
     return fig, axes
+
+
+def shared_ylims(scenario_lists, variables, len_irf=21, pad=0.06):
+    """Common (lo, hi) per variable across several scenario lists, so paired
+    figures (baseline vs fossil economy) use identical vertical scales."""
+    import numpy as _np
+    lims = {}
+    for var, _, _ in variables:
+        vals = []
+        for scen in scenario_lists:
+            for data, _, _ in scen:
+                if var in data:
+                    vals.append(_np.asarray(data[var])[:len_irf])
+        if vals:
+            allv = _np.concatenate(vals)
+            lo, hi = float(_np.nanmin(allv)), float(_np.nanmax(allv))
+            lo, hi = min(lo, 0.0), max(hi, 0.0)   # always keep 0 in view
+            m = (hi - lo) * pad or 0.1
+            lims[var] = (lo - m, hi + m)
+    return lims
 
 
 
@@ -386,22 +387,33 @@ color = 'tab:blue'
 scenarios1_price = [
     (irf_base_nopol_price,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
     (irf_frozen_nopol_price, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_brown_nopol_price,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_brown_nopol_price,  'Dirty economy',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
 ]
-
-irf_no_policy_price, axes = plot_irfs(scenarios1_price)
-irf_no_policy_price.savefig( f'irf_no_policy_price.pdf')
-plt.show()
-
-#%% Figure 1b 
 
 scenarios1_supply = [
     (irf_base_nopol_supply,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
     (irf_frozen_nopol_supply, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_brown_nopol_supply,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_brown_nopol_supply,  'Dirty economy',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
 ]
 
-irf_no_policy_supply, axes = plot_irfs(scenarios1_supply)
+# Panels (a) price and (b) supply share a common vertical scale per variable.
+VARS_NOPOL = [
+    ('pi_ann_pp',     r'Inflation $\pi$ (annualized)',        'p.p dev. from SS'),
+    ('y_pc',          r'Output $Y$',                          '% dev. from SS'),
+    ('CE_G_pc',       r'Green energy consumption $C_{Eg}$',   '% dev. from SS'),
+    ('D_GREEN_share', 'Green technology users',               'p.p dev. from SS'),
+    ('CE_B_pc',       r'Fossil energy consumption $C_{Eb}$',  '% dev. from SS'),
+    ('PEstar_pc',     r'World fossil energy price $P^*_{Eb}$', '% dev. from SS'),
+]
+ylims_nopol = shared_ylims([scenarios1_price, scenarios1_supply], VARS_NOPOL)
+
+irf_no_policy_price, axes = plot_irfs(scenarios1_price, variables=VARS_NOPOL, ylims=ylims_nopol)
+irf_no_policy_price.savefig( f'irf_no_policy_price.pdf')
+plt.show()
+
+#%% Figure 1b
+
+irf_no_policy_supply, axes = plot_irfs(scenarios1_supply, variables=VARS_NOPOL, ylims=ylims_nopol)
 irf_no_policy_supply.savefig( f'irf_no_policy_supply.pdf')
 plt.show()
 
@@ -410,7 +422,7 @@ plt.show()
 scenarios2_price = [
     (irf_base_subsidy_price,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
     (irf_frozen_subsidy_price, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_brown_subsidy_price,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_brown_subsidy_price,  'Dirty economy',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
 ]
 
 irf_subsidy_price, axes = plot_irfs(scenarios2_price)
@@ -422,7 +434,7 @@ plt.show()
 scenarios2_supply = [
     (irf_base_subsidy_supply,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
     (irf_frozen_subsidy_supply, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_brown_subsidy_supply,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_brown_subsidy_supply,  'Dirty economy',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
 ]
 
 irf_subsidy_supply, axes = plot_irfs(scenarios2_supply)
@@ -433,7 +445,7 @@ plt.show()
 scenarios3_price = [
     (irf_base_transfer_price,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
     (irf_frozen_transfer_price, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_brown_transfer_price,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_brown_transfer_price,  'Dirty economy',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
 ]
 
 irf_transfer_price, axes = plot_irfs(scenarios3_price)
@@ -444,86 +456,63 @@ plt.show()
 scenarios3_supply = [
     (irf_base_transfer_supply,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
     (irf_frozen_transfer_supply, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_brown_transfer_supply,  'Brown',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    (irf_brown_transfer_supply,  'Dirty economy',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
 ]
 
 irf_transfer_supply, axes = plot_irfs(scenarios3_supply)
 irf_transfer_supply.savefig( f'irf_transfer_supply.pdf')
 plt.show()
 
-# %% Comparison of fiscal policies -- Price shock -- Adoption
+# %% Fiscal-policy comparison figures (Fig. 4 price / Fig. 5 supply).
+# Baseline and fossil-economy panels share a common vertical scale per variable.
 color = 'tab:blue'
-
-scenarios_fp_base_price = [
-    (irf_base_nopol_price,   'No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
-    (irf_base_subsidy_price, 'Energy subsidy',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_base_transfer_price,  'Targeted transfer',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
-    (irf_base_untargeted_price,  'Untargeted transfer',              dict(color=color, linestyle='-.',  alpha=0.6, linewidth=2.6)),
+FISCAL_STYLE = [
+    ('No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    ('Energy subsidy',      dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    ('Targeted transfer',   dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+    ('Untargeted transfer', dict(color=color, linestyle='-.', alpha=0.6, linewidth=2.6)),
 ]
 
-vars_ = [  ('y_pc',        'Output $Y$',                              '% dev.  from SS'),
-            ('C_pc',        'Consumption $C$',                              '% dev.  from SS'),
-            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
-            ('B_yss', 'Gov. debt',                '% of SS output'),
-            ('PE_B_pc',     'Brown energy price $P_{Eb}$',       '% dev. from SS'),
-            ('D_GREEN_share', 'Green technology users',                'p.p dev, from SS'),
-        ]
-
-irf_fp_base_price, axes = plot_irfs(scenarios_fp_base_price, variables=vars_, legend_ax_idx=1)
-irf_fp_base_price.savefig( f'irf_fp_base_price.pdf')
-
-# %% Comparison of fiscal policies -- Price shock --  Brown economy 
-scenarios_fp_brown_price = [
-    (irf_brown_nopol_price,   'No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
-    (irf_brown_subsidy_price, 'Energy subsidy',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_brown_transfer_price,  'Targeted transfer',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
-    (irf_brown_untargeted_price,  'Untargeted transfer',              dict(color=color, linestyle='-.',  alpha=0.6, linewidth=2.6)),
+# 6-var layout (baseline, keeps green-user panel) and 5-var layout (fossil econ).
+VARS_FP6 = [
+    ('y_pc',          r'Output $Y$',                          '% dev. from SS'),
+    ('C_pc',          r'Consumption $C$',                     '% dev. from SS'),
+    ('pi_ann_pp',     r'Inflation $\pi$ (annualized)',        'p.p dev. from SS'),
+    ('B_yss',         'Gov. debt $B$',                        '% of SS output'),
+    ('PE_B_pc',       r'Domestic fossil energy price $P_{Eb}$', '% dev. from SS'),
+    ('D_GREEN_share', 'Green technology users',               'p.p dev. from SS'),
 ]
+VARS_FP5 = VARS_FP6[:-1]   # fossil economy: adoption is off, drop the green-user panel
 
-vars_ = [  ('y_pc',        'Output $Y$',                              '% dev.  from SS'),
-            ('C_pc',        'Consumption $C$',                              '% dev.  from SS'),
-            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
-            ('B_yss', 'Gov. debt',                '% of SS output'),
-            ('PE_B_pc',     'Brown energy price $P_{Eb}$',       '% dev. from SS'),
-        ]
 
-irf_fp_brown_price, axes = plot_irfs(scenarios_fp_brown_price, variables=vars_, legend_ax_idx=1)
-irf_fp_brown_price.savefig( f'irf_fp_brown_price.pdf')
+def _fp_scenarios(nopol, subsidy, transfer, untargeted):
+    irfs = [nopol, subsidy, transfer, untargeted]
+    return [(irf, lab, sty) for irf, (lab, sty) in zip(irfs, FISCAL_STYLE)]
 
-# %% Comparison of fiscal policies -- Supply shock -- Adoption
-scenarios_fp_base_supply = [
-    (irf_base_nopol_supply,   'No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
-    (irf_base_subsidy_supply, 'Energy subsidy',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_base_transfer_supply,  'Targeted transfer',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
-    (irf_base_untargeted_supply,  'Untargeted transfer',              dict(color=color, linestyle='-.',  alpha=0.6, linewidth=2.6)),
-]
 
-vars_ = [  ('y_pc',        'Output $Y$',                              '% dev.  from SS'),
-            ('C_pc',        'Consumption $C$',                              '% dev.  from SS'),
-            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
-            ('B_yss', 'Gov. debt',                '% of SS output'),
-            ('PE_B_pc',     'Brown energy price $P_{Eb}$',       '% dev. from SS'),
-            ('D_GREEN_share', 'Green technology users',                'p.p dev, from SS'),
-        ]
+# -------- price shock --------
+scenarios_fp_base_price = _fp_scenarios(
+    irf_base_nopol_price, irf_base_subsidy_price, irf_base_transfer_price, irf_base_untargeted_price)
+scenarios_fp_brown_price = _fp_scenarios(
+    irf_brown_nopol_price, irf_brown_subsidy_price, irf_brown_transfer_price, irf_brown_untargeted_price)
 
-irf_fp_base_supply, axes = plot_irfs(scenarios_fp_base_supply, variables=vars_, legend_ax_idx=1)
-irf_fp_base_supply.savefig( f'irf_fp_base_supply.pdf')
+ylims_price = shared_ylims([scenarios_fp_base_price, scenarios_fp_brown_price], VARS_FP6)
 
-# %% Comparison of fiscal policies -- Supply shock --  Brown economy 
-scenarios_fp_brown_supply = [
-    (irf_brown_nopol_supply,   'No policy',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
-    (irf_brown_subsidy_supply, 'Energy subsidy',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
-    (irf_brown_transfer_supply,  'Targeted transfer',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
-    (irf_brown_untargeted_supply,  'Untargeted transfer',              dict(color=color, linestyle='-.',  alpha=0.6, linewidth=2.6)),
-]
+irf_fp_base_price, _ = plot_irfs(scenarios_fp_base_price, variables=VARS_FP6,
+                                 legend_ax_idx=1, ylims=ylims_price, save_path='irf_fp_base_price.pdf')
+irf_fp_brown_price, _ = plot_irfs(scenarios_fp_brown_price, variables=VARS_FP5,
+                                  legend_ax_idx=1, ylims=ylims_price, save_path='irf_fp_brown_price.pdf')
 
-vars_ = [  ('y_pc',        'Output $Y$',                              '% dev.  from SS'),
-            ('C_pc',        'Consumption $C$',                              '% dev.  from SS'),
-            ('pi_ann_pp',   'Inflation $\pi$ (annualised)',            'p.p dev. from SS'),
-            ('B_yss', 'Gov. debt',                '% of SS output'),
-            ('PE_B_pc',     'Brown energy price $P_{Eb}$',       '% dev. from SS'),
-        ]
+# -------- supply shock --------
+scenarios_fp_base_supply = _fp_scenarios(
+    irf_base_nopol_supply, irf_base_subsidy_supply, irf_base_transfer_supply, irf_base_untargeted_supply)
+scenarios_fp_brown_supply = _fp_scenarios(
+    irf_brown_nopol_supply, irf_brown_subsidy_supply, irf_brown_transfer_supply, irf_brown_untargeted_supply)
 
-irf_fp_brown_supply, axes = plot_irfs(scenarios_fp_brown_supply, variables=vars_, legend_ax_idx=1)
-irf_fp_brown_supply.savefig( f'irf_fp_brown_supply.pdf')
+ylims_supply = shared_ylims([scenarios_fp_base_supply, scenarios_fp_brown_supply], VARS_FP6)
+
+irf_fp_base_supply, _ = plot_irfs(scenarios_fp_base_supply, variables=VARS_FP6,
+                                  legend_ax_idx=1, ylims=ylims_supply, save_path='irf_fp_base_supply.pdf')
+irf_fp_brown_supply, _ = plot_irfs(scenarios_fp_brown_supply, variables=VARS_FP5,
+                                   legend_ax_idx=1, ylims=ylims_supply, save_path='irf_fp_brown_supply.pdf')
 # %%

@@ -24,6 +24,7 @@ import sys; sys.path.insert(0, '.')
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from core.model import (build_model, run, solve_ss,
                         ss_unknowns_targets_fixed_psi)
@@ -32,11 +33,14 @@ from core.calibration import make_calibration
 NUM, BOOK, H = 'cpi', 'import', 21
 
 POLS = ('none', 'subsidy', 'transfer', 'transfer_flat')
-POL_COLOR = {'none': '#000000', 'subsidy': '#D55E00',
-             'transfer': '#0072B2', 'transfer_flat': '#009E73'}
-POL_LABEL = {'none': 'No policy', 'subsidy': 'Price cap',
+# Single-hue blue + line styles, consistent with the fiscal IRF figures.
+POL_COLOR = {'none': 'tab:blue', 'subsidy': 'tab:blue',
+             'transfer': 'tab:blue', 'transfer_flat': 'tab:blue'}
+POL_LS    = {'none': '-', 'subsidy': '--', 'transfer': ':', 'transfer_flat': '-.'}
+POL_ALPHA = {'none': 1.0, 'subsidy': 0.9, 'transfer': 0.8, 'transfer_flat': 0.6}
+POL_LABEL = {'none': 'No policy', 'subsidy': 'Energy subsidy',
              'transfer': 'Targeted transfer', 'transfer_flat': 'Untargeted transfer'}
-LW = 2.3
+LW = 2.6
 
 plt.rcParams.update({
     'axes.grid': True, 'grid.alpha': 0.25, 'grid.linewidth': 0.5,
@@ -58,7 +62,7 @@ def ss_probability_panel(ax):
                         (-1, dict(color='#9ecae1', ls=':'), 'High productivity')]:
         ax.plot(a, 100 * P[2, 0, e, :], lw=2.4, **sty, label=lab)
     ax.set_xlabel('Individual assets'); ax.set_ylabel('Prob. of adopting green (%)')
-    ax.set_title('(a) Adoption probability, by wealth'); ax.legend(loc='upper left')
+    ax.set_title('(a) Adoption probability, by wealth'); ax.legend(loc='best')
 
 
 def _dgreen(model, u, t, **ov):
@@ -76,8 +80,8 @@ def psi_panel(ax, n=25):
     ax.plot(grid, 100 * dg, color='#0072B2', lw=2.4)
     ax.plot([psi0], [5.0], 'o', color='#D55E00', ms=6, zorder=5,
             markeredgecolor='white', markeredgewidth=0.8, label='Baseline')
-    ax.set_xlabel(r'Switching-cost $\psi_g$'); ax.set_ylabel('SS green share $D^G$ (%)')
-    ax.set_title('(b) Adoption vs switching-cost'); ax.legend(loc='upper right')
+    ax.set_xlabel(r'Durable size $\overline{d}_g$'); ax.set_ylabel('SS green share (%)')
+    ax.set_title('(b) Adoption vs durable size'); ax.legend(loc='best')
 
 
 def carbon_panel(ax, tb_max=0.35, n=15):
@@ -96,8 +100,8 @@ def carbon_panel(ax, tb_max=0.35, n=15):
     ax.plot(100 * grid, 100 * dg, color='#0072B2', lw=2.4)
     ax.plot([0.0], [100 * dg[0]], 'o', color='#D55E00', ms=6, zorder=5,
             markeredgecolor='white', markeredgewidth=0.8, label='Baseline')
-    ax.set_xlabel(r'Brown carbon tax $\tau_b$ (%)'); ax.set_ylabel('SS green share $D^G$ (%)')
-    ax.set_title(r'(c) Adoption vs carbon tax'); ax.legend(loc='upper left')
+    ax.set_xlabel(r'Steady-state carbon price $\tau^b_{ss}$ (%)'); ax.set_ylabel('SS green share (%)')
+    ax.set_title('(c) Adoption vs carbon price'); ax.legend(loc='best')
 
 
 def fig_steady_state():
@@ -145,6 +149,8 @@ def fig_adoption_dynamics():
     ax.set_xlim(0, 50); ax.set_xlabel('Individual assets')
     ax.set_ylabel('Probability of adjusting (%)')
     ax.set_title('Clean adoption probability after the price shock')
+    ax.grid(True, alpha=0.25, linewidth=0.5)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     col_h = [Line2D([], [], color=c, lw=2.2, label=f'{lab} productivity') for _, c, lab in groups]
     sty_h = [Line2D([], [], color='0.35', lw=2.2, ls='--', label='Steady state'),
              Line2D([], [], color='0.35', lw=2.2, ls='-', label='Quarter 0')]
@@ -180,9 +186,11 @@ def fig_variance(irfs, fname='fig_cons_variance.pdf', suptitle='Var. of log cons
                                          ('supply', '(b) Supply shock')]):
         for pol in POLS:
             ss, irf = irfs[(shock, pol)]
-            ax.plot(varlogc_dev(ss, irf)[:H], color=POL_COLOR[pol], lw=LW, label=POL_LABEL[pol])
+            ax.plot(varlogc_dev(ss, irf)[:H], color=POL_COLOR[pol], ls=POL_LS[pol],
+                    alpha=POL_ALPHA[pol], lw=LW, label=POL_LABEL[pol])
         ax.axhline(0, color='k', lw=0.6, zorder=0); ax.set_xlabel('quarter')
         ax.set_title(title); ax.set_ylabel('Percent')
+        ax.xaxis.set_major_locator(MultipleLocator(4))
     axes[0].legend(loc='lower right')
     fig.suptitle(suptitle)
     fig.tight_layout(); fig.savefig(fname, bbox_inches='tight')
@@ -196,11 +204,14 @@ def _pct(irf, key, ss):
 def fig_percapita(irfs, shock='price'):
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.4))
     for ax, (key, title) in zip(axes, [('C_GREEN_PC', '(a) Green users'),
-                                       ('C_BROWN_PC', '(b) Brown users')]):
+                                       ('C_BROWN_PC', '(b) Fossil users')]):
         for pol in POLS:
             ss, irf = irfs[(shock, pol)]
-            ax.plot(_pct(irf, key, ss)[:H], color=POL_COLOR[pol], lw=LW, label=POL_LABEL[pol])
+            ax.plot(_pct(irf, key, ss)[:H], color=POL_COLOR[pol], ls=POL_LS[pol],
+                    alpha=POL_ALPHA[pol], lw=LW, label=POL_LABEL[pol])
         ax.axhline(0, color='k', lw=0.6, zorder=0); ax.set_xlabel('quarter'); ax.set_title(title)
+        ax.grid(True, alpha=0.25, linewidth=0.5)
+        ax.xaxis.set_major_locator(MultipleLocator(4))
     axes[0].set_ylabel('Per-capita consumption, % dev. from SS')
     axes[0].legend(loc='upper right')
     fig.suptitle('Per-capita consumption response, by durable technology')
