@@ -14,6 +14,12 @@ SAVE = True
 RESULTS_PATH = 'explore_results.pkl'
 RESULTS_SS_PATH = 'explore_results_ss.pkl'
 
+# All figures are written into FIGDIR (created on import if missing).
+FIGDIR = 'figures'
+os.makedirs(FIGDIR, exist_ok=True)
+def _fp(name):
+    return os.path.join(FIGDIR, name)
+
 ECONOMIES = {                     # colour
     'baseline': dict(),
     #'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
@@ -178,7 +184,7 @@ def plot_grid(results, pol, outputs=OUTPUTS, H=H, economies=None, shocks=None,
     fig.suptitle(pol, fontsize=12)
     fig.tight_layout()
     if save:
-        fig.savefig(savepath or f'irf_{pol}.pdf')
+        fig.savefig(_fp(savepath or f'irf_{pol}.pdf'))
     return fig
 
 
@@ -247,7 +253,7 @@ ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
 ax.legend()
 
 plt.show()
-fig.savefig( f'ss_adj_probs.pdf')
+fig.savefig(_fp('ss_adj_probs.pdf'))
 
 # dir(results_ss[('none', 'baseline', 'price', 'adoption')])
 # %%  Store results
@@ -356,7 +362,7 @@ def plot_irfs(scenarios, variables=None, len_irf=21, ni=3, nj=2,
                                frameon=True, framealpha=0.85)
     fig.tight_layout()
     if save_path is not None:
-        fig.savefig(save_path, bbox_inches='tight')
+        fig.savefig(_fp(save_path), bbox_inches='tight')
     return fig, axes
 
 
@@ -408,13 +414,13 @@ VARS_NOPOL = [
 ylims_nopol = shared_ylims([scenarios1_price, scenarios1_supply], VARS_NOPOL)
 
 irf_no_policy_price, axes = plot_irfs(scenarios1_price, variables=VARS_NOPOL, ylims=ylims_nopol)
-irf_no_policy_price.savefig( f'irf_no_policy_price.pdf')
+irf_no_policy_price.savefig(_fp('irf_no_policy_price.pdf'))
 plt.show()
 
 #%% Figure 1b
 
 irf_no_policy_supply, axes = plot_irfs(scenarios1_supply, variables=VARS_NOPOL, ylims=ylims_nopol)
-irf_no_policy_supply.savefig( f'irf_no_policy_supply.pdf')
+irf_no_policy_supply.savefig(_fp('irf_no_policy_supply.pdf'))
 plt.show()
 
 
@@ -426,7 +432,7 @@ scenarios2_price = [
 ]
 
 irf_subsidy_price, axes = plot_irfs(scenarios2_price)
-irf_subsidy_price.savefig( f'irf_subsidy_price.pdf')
+irf_subsidy_price.savefig(_fp('irf_subsidy_price.pdf'))
 plt.show()
 
 
@@ -438,7 +444,7 @@ scenarios2_supply = [
 ]
 
 irf_subsidy_supply, axes = plot_irfs(scenarios2_supply)
-irf_subsidy_supply.savefig( f'irf_subsidy_supply.pdf')
+irf_subsidy_supply.savefig(_fp('irf_subsidy_supply.pdf'))
 plt.show()
 
 # %% Figure 3a
@@ -449,7 +455,7 @@ scenarios3_price = [
 ]
 
 irf_transfer_price, axes = plot_irfs(scenarios3_price)
-irf_transfer_price.savefig( f'irf_transfer_price.pdf')
+irf_transfer_price.savefig(_fp('irf_transfer_price.pdf'))
 plt.show()
 
 # %% Figure 3b
@@ -460,7 +466,7 @@ scenarios3_supply = [
 ]
 
 irf_transfer_supply, axes = plot_irfs(scenarios3_supply)
-irf_transfer_supply.savefig( f'irf_transfer_supply.pdf')
+irf_transfer_supply.savefig(_fp('irf_transfer_supply.pdf'))
 plt.show()
 
 # %% Fiscal-policy comparison figures (Fig. 4 price / Fig. 5 supply).

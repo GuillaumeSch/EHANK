@@ -30,6 +30,13 @@ from core.model import (build_model, run, solve_ss,
                         ss_unknowns_targets_fixed_psi)
 from core.calibration import make_calibration
 
+# All figures are written into FIGDIR (created on import if missing).
+import os
+FIGDIR = 'figures'
+os.makedirs(FIGDIR, exist_ok=True)
+def _fp(name):
+    return os.path.join(FIGDIR, name)
+
 NUM, BOOK, H = 'cpi', 'import', 21
 
 POLS = ('none', 'subsidy', 'transfer', 'transfer_flat')
@@ -107,7 +114,7 @@ def carbon_panel(ax, tb_max=0.35, n=15):
 def fig_steady_state():
     fig, ax = plt.subplots(1, 3, figsize=(13.5, 4.0))
     ss_probability_panel(ax[0]); psi_panel(ax[1]); carbon_panel(ax[2])
-    fig.tight_layout(); fig.savefig('fig_ss_adoption.pdf', bbox_inches='tight')
+    fig.tight_layout(); fig.savefig(_fp('fig_ss_adoption.pdf'), bbox_inches='tight')
     return fig
 
 
@@ -156,7 +163,7 @@ def fig_adoption_dynamics():
              Line2D([], [], color='0.35', lw=2.2, ls='-', label='Quarter 0')]
     leg1 = ax.legend(handles=col_h, loc='upper left', fontsize=8); ax.add_artist(leg1)
     ax.legend(handles=sty_h, loc='lower right', fontsize=8)
-    fig.tight_layout(); fig.savefig('fig_adoption_dynamics.pdf', bbox_inches='tight')
+    fig.tight_layout(); fig.savefig(_fp('fig_adoption_dynamics.pdf'), bbox_inches='tight')
     return fig
 
 
@@ -193,7 +200,7 @@ def fig_variance(irfs, fname='fig_cons_variance.pdf', suptitle='Var. of log cons
         ax.xaxis.set_major_locator(MultipleLocator(4))
     axes[0].legend(loc='lower right')
     fig.suptitle(suptitle)
-    fig.tight_layout(); fig.savefig(fname, bbox_inches='tight')
+    fig.tight_layout(); fig.savefig(_fp(fname), bbox_inches='tight')
     return fig
 
 
@@ -215,7 +222,7 @@ def fig_percapita(irfs, shock='price'):
     axes[0].set_ylabel('Per-capita consumption, % dev. from SS')
     axes[0].legend(loc='upper right')
     fig.suptitle('Per-capita consumption response, by durable technology')
-    fig.tight_layout(); fig.savefig('fig_cons_percapita.pdf', bbox_inches='tight')
+    fig.tight_layout(); fig.savefig(_fp('fig_cons_percapita.pdf'), bbox_inches='tight')
     return fig
 
 
