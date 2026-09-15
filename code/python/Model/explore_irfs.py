@@ -22,23 +22,25 @@ def _fp(name):
 
 ECONOMIES = {                     # colour
     'baseline': dict(),
-    #'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
-    'brown':    dict(green_block=20.0),
+    'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
+    #'ETS_green_subsidy':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='green_subsidy')),
+    #'brown':    dict(green_block=20.0),
 }
 SHOCKS = {
     'price':  dict(shock_kind='price'),
-    'supply': dict(shock_kind='supply'),
+    #'supply': dict(shock_kind='supply'),
 }
 VARIANTS = [
     'adoption',
-    'no_adoption'
+    #'no_adoption'
     ]
 
 FISCAL = [
     'none',
-    'subsidy',
-    'transfer',
-    'transfer_flat'
+    #'subsidy',
+    #'transfer',
+    #'transfer_flat',
+    "green"
     ]
 
 VAR_LS     = {'adoption': '-', 'no_adoption': '--'}   # solid = adoption on, dashed = adoption off
@@ -189,13 +191,13 @@ def plot_grid(results, pol, outputs=OUTPUTS, H=H, economies=None, shocks=None,
 
 
 #%%
-if os.path.exists(RESULTS_PATH) and os.path.exists(RESULTS_SS_PATH):
-    results, results_ss = load_results(), load_results(path=RESULTS_SS_PATH)
-else:
-    results, results_ss = run_all(model)
-if SAVE and not (os.path.exists(RESULTS_PATH) and os.path.exists(RESULTS_SS_PATH)):
-    save_results(results)
-    save_results(results_ss, path=RESULTS_SS_PATH)
+#if os.path.exists(RESULTS_PATH) and os.path.exists(RESULTS_SS_PATH):
+#    results, results_ss = load_results(), load_results(path=RESULTS_SS_PATH)
+#else:
+results, results_ss = run_all(model)
+#if SAVE and not (os.path.exists(RESULTS_PATH) and os.path.exists(RESULTS_SS_PATH)):
+#    save_results(results)
+#    save_results(results_ss, path=RESULTS_SS_PATH)
 
 
 #%%
