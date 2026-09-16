@@ -200,7 +200,7 @@ ENERGY_CLOSURE = {
 
 def run(model, shock_kind='price', policy='none', model_variant='adoption',
         monetary='real_rate', shock_kwargs=None, numeraire='cpi',
-        booking='import', ets=False, ets_kwargs=None, **extra):
+        booking='import', ets=False, ets_kwargs=None, mon_overlay=None, **extra):
     """Solve one experiment end to end; returns (ss, irf)."""
     closure = 'inelastic' if shock_kind == 'supply' else 'elastic'
     ov = {}
@@ -254,6 +254,8 @@ def run(model, shock_kind='price', policy='none', model_variant='adoption',
     if policy == 'green':
         hl = (shock_kwargs or {}).get('half_life', 16)
         shk = {**shk, **shock_green(size=GREEN_SIZE, half_life=hl)}
+    if mon_overlay is not None:   # layer a simultaneous monetary shock (same solve)
+        shk = {**shk, **shock_mon(**mon_overlay)}
 
     # frozen-choice DAG for 'no_adoption'; ss and shk are shared
     transition_model = (frozen_model(numeraire, booking, ets)
