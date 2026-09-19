@@ -33,6 +33,9 @@ BASE = dict(
 
     # fiscal
     B=0, psiB=0.04, tauY=0, bb=0,
+
+    # energy price
+    PEstar=1.0, PEstar_shock = 1,
 )
 
 
@@ -88,7 +91,7 @@ def _derived(c):
               'pH_PHF': 1, 'pHstar': 1, 'pF_PHF': 1, 'pE_B_P': 1, 'pHF_P': 1,
               'dividend_X': 0, 'vphi': 1, 'rante': c['r'],
               'beta_RA': 1 / (1 + c['r']), 'C': 1, 'A': 1, 'w': 1,
-              'PEstar_shock': 1, 'PEstar': 1, 'inom_t': 0, 'union_wedge': 0,
+              'inom_t': 0, 'union_wedge': 0,
               'Tgreen': 0.0, 'Trebate': 0.0})
 
     # SS brown-energy grid (e,a); zeros switch the Slutsky transfer off.

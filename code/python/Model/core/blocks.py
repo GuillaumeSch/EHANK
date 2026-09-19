@@ -278,8 +278,8 @@ def annualize(pi, piw, inom, r, rante, piH):
 
 
 @sj.simple
-def eqm_cond(y, cH, cHstar, cH_switch, A_cpi, gdp, nfa, j, B, cE, prodE, PEstar,
-             PEstar_shock, E_supply_elasticity, E_supply, zetaEsupply, j_Esupply,
+def eqm_cond(y, cH, cHstar, cH_switch, A_cpi, gdp, nfa, j, B, cE, prodE, 
+             PEstar, PEstar_shock, E_supply_elasticity, E_supply, zetaEsupply, j_Esupply,
              D_GREEN, D_GREEN_ss_target, CE_B):
     """Market clearing: nfa = A - j - B - zetaEsupply*j_Esupply."""
     goods_clearing = cH + cHstar + cH_switch - y

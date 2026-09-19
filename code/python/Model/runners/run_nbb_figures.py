@@ -20,6 +20,8 @@ three discount-factor groups,
 on level paths (steady state + linear impulse), plotted as its deviation from the
 steady state, times 100.
 """
+
+#%%
 import sys; sys.path.insert(0, '.')
 import numpy as np
 import matplotlib.pyplot as plt
@@ -77,6 +79,11 @@ def _dgreen(model, u, t, **ov):
                   unknowns=u, targets=t, booking=BOOK)
     return float(ss['D_GREEN'])
 
+def _dgreen_and_pEb(model, u, t, **ov):
+    ss = solve_ss(model, make_calibration(NUM, booking=BOOK, **ov),
+                  unknowns=u, targets=t, booking=BOOK)
+    return float(ss['D_GREEN']), float(ss['pE_B'])
+
 
 def psi_panel(ax, n=25):
     m = build_model(NUM, booking=BOOK)
@@ -110,12 +117,85 @@ def carbon_panel(ax, tb_max=0.35, n=15):
     ax.set_xlabel(r'Steady-state carbon price $\tau^b_{ss}$ (%)'); ax.set_ylabel('SS green share (%)')
     ax.set_title('(c) Adoption vs carbon price'); ax.legend(loc='best')
 
+def pEb_panel(ax, pEb_max=1.5, n=15):
+    m0 = build_model(NUM, booking=BOOK, ets=False)
+    psi0 = float(solve_ss(m0, make_calibration(NUM, booking=BOOK), booking=BOOK)['psi_g_bar'])
+    m = build_model(NUM, booking=BOOK, ets=False)
+    u, t = ss_unknowns_targets_fixed_psi(BOOK, ets=False)
+    grid = np.linspace(1.0, pEb_max, n)
+    dg = []
+    for pEb in grid:
+        try:
+            dg.append(_dgreen(m, u, t, ets=False, PEstar=float(pEb), PEstar_shock=float(pEb), psi_g_bar=psi0))
+        except Exception:
+            print('fail: ', pEb)
+            dg.append(np.nan)   # bracketing solvers fail past tau_b ~ 0.4
+    dg = np.array(dg)
+    ax.plot(grid, 100 * dg, color='#0072B2', lw=2.4)
+    ax.plot([1.0], [100 * dg[0]], 'o', color='#D55E00', ms=6, zorder=5,
+            markeredgecolor='white', markeredgewidth=0.8, label='Baseline')
+    ax.set_xlabel(r'Steady-state energy price $P^*_{Eb.ss}$ (%)'); ax.set_ylabel('SS green share (%)')
+    ax.set_title('(c) Adoption vs dirty energy price'); ax.legend(loc='best')
+
 
 def fig_steady_state():
     fig, ax = plt.subplots(1, 3, figsize=(13.5, 4.0))
     ss_probability_panel(ax[0]); psi_panel(ax[1]); carbon_panel(ax[2])
     fig.tight_layout(); fig.savefig(_fp('fig_ss_adoption.pdf'), bbox_inches='tight')
     return fig
+
+def fig_steady_state_2():
+    fig, ax = plt.subplots(1, 3, figsize=(13.5, 4.0))
+    ss_probability_panel(ax[0]); psi_panel(ax[1]); pEb_panel(ax[2])
+    fig.tight_layout(); fig.savefig(_fp('fig_ss_adoption_2.pdf'), bbox_inches='tight')
+    return fig
+
+
+def carbon_steady_state(tb_max=0.35, pEb_max=1.35, n=15):
+    m0 = build_model(NUM, booking=BOOK, ets=False)
+    psi0 = float(solve_ss(m0, make_calibration(NUM, booking=BOOK), booking=BOOK)['psi_g_bar'])
+
+    # carbon tax, rebated
+    m = build_model(NUM, booking=BOOK, ets=True)
+    u, t = ss_unknowns_targets_fixed_psi(BOOK, ets=True)
+    grid = np.linspace(0.0, tb_max, n)
+    dg_rebate = []
+    pEb_rebate = []
+    for tb in grid:
+        try:
+            dg, pe = _dgreen_and_pEb(m, u, t, ets=True, tau_b=float(tb), psi_g_bar=psi0)
+            dg_rebate.append(dg)
+            pEb_rebate.append(pe)
+        except Exception:
+            dg_rebate.append(np.nan)   # bracketing solvers fail past tau_b ~ 0.4
+            pEb_rebate.append(np.nan)
+    dg_rebate = np.array(dg_rebate)
+    pEb_rebate = np.array(pEb_rebate)
+
+    # pEstar 
+    m = build_model(NUM, booking=BOOK, ets=False)
+    u, t = ss_unknowns_targets_fixed_psi(BOOK, ets=False)
+    grid = np.linspace(1.0, pEb_max, n)
+    dg_pE = []
+    pEb_pE = []
+    for pEb in grid:
+        try:
+            dg, pe = _dgreen_and_pEb(m, u, t, ets=False, PEstar=float(pEb), PEstar_shock=float(pEb), psi_g_bar=psi0)
+            dg_pE.append(dg)
+            pEb_pE.append(pe)
+        except Exception:
+            print('fail: ', pEb)
+            dg_pE.append(np.nan)   # bracketing solvers fail past tau_b ~ 0.4
+            pEb_pe.append(np.nan)
+    dg_pE = np.array(dg_pE)
+    pEb_pE = np.array(pEb_pE) 
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(pEb_pE, 100 * dg_pE, color='#0072B2', ls='-', lw=2.4, label= "Market price")
+    ax.plot(pEb_rebate, 100 * dg_rebate, color='#0072B2', ls='--', lw=2.4, label="Rebate")
+    ax.set_xlabel(r'Household energy price $P_{Eb}$'); ax.set_ylabel('SS green share (%)')
+    ax.set_title('Carbon pricing and adoption'); ax.legend(loc='best')
+
 
 
 def adoption_prob_paths(irf, ss, quarters, eps=1e-4):
@@ -226,10 +306,24 @@ def fig_percapita(irfs, shock='price'):
     return fig
 
 
-if __name__ == '__main__':
-    fig_steady_state()
-    fig_adoption_dynamics()
-    irfs = build_irfs()
-    fig_variance(irfs)
-    fig_percapita(irfs, shock='price')
-    print('done')
+# if __name__ == '__main__':
+#     fig_steady_state()
+#     fig_adoption_dynamics()
+#     irfs = build_irfs()
+#     fig_variance(irfs)
+#     fig_percapita(irfs, shock='price')
+#     print('done')
+
+# %%
+fig_steady_state()
+# %%
+fig, ax = plt.subplots(1,3, figsize=(13.5, 4.0))
+pEb_panel(ax[0], n=5)
+carbon_panel(ax[0], n=5)
+
+fig.tight_layout()
+
+# %%
+
+ carbon_steady_state(n=5)
+# %%
