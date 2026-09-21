@@ -23,7 +23,7 @@ def _fp(name):
 ECONOMIES = {                     # colour
     'baseline': dict(),
     'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
-    #'ETS_green_subsidy':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='green_subsidy')),
+    'ETS_green_subsidy':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='green_subsidy')),
     #'brown':    dict(green_block=20.0),
 }
 SHOCKS = {
@@ -40,7 +40,7 @@ FISCAL = [
     #'subsidy',
     #'transfer',
     #'transfer_flat',
-    "green"
+    # "green"
     ]
 
 VAR_LS     = {'adoption': '-', 'no_adoption': '--'}   # solid = adoption on, dashed = adoption off
@@ -523,4 +523,12 @@ irf_fp_base_supply, _ = plot_irfs(scenarios_fp_base_supply, variables=VARS_FP6,
                                   legend_ax_idx=1, ylims=ylims_supply, save_path='irf_fp_base_supply.pdf')
 irf_fp_brown_supply, _ = plot_irfs(scenarios_fp_brown_supply, variables=VARS_FP5,
                                    legend_ax_idx=1, ylims=ylims_supply, save_path='irf_fp_brown_supply.pdf')
-# %%
+
+# %% ETS policies 
+irf_ets_rebated_price = results[('none', 'ETS', 'price', 'adoption')] 
+irf_ets_subsidy_price = results[('none', 'ETS_green_subsidy', 'price', 'adoption')] 
+
+
+# pct series divide by zero in brown case, so use levels instead
+irf_ets_rebated_price['CE_G_pc'] = irf_ets_rebated_price['CE_G'] 
+irf_ets_subsidy_price['CE_G_pc'] = irf_ets_subsidy_price['CE_G'] 

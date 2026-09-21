@@ -191,9 +191,9 @@ def carbon_steady_state(tb_max=0.35, pEb_max=1.35, n=15):
     pEb_pE = np.array(pEb_pE) 
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(pEb_pE, 100 * dg_pE, color='#0072B2', ls='-', lw=2.4, label= "Market price")
+    ax.plot(pEb_pE, 100 * dg_pE, color='#0072B2', ls='-', lw=2.4, label= r"$\tau_b=0$")
     ax.plot(pEb_rebate, 100 * dg_rebate, color='#0072B2', ls='--', lw=2.4, label="Rebate")
-    ax.set_xlabel(r'Household energy price $P_{Eb}$'); ax.set_ylabel('SS green share (%)')
+    ax.set_xlabel(r'Household energy price $P_{Eb} = (1+\tau_b)QP^*_{Eb}$'); ax.set_ylabel('SS green share (%)')
     ax.set_title('Carbon pricing and adoption'); ax.legend(loc='best')
 
 
