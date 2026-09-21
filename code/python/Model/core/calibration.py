@@ -101,7 +101,7 @@ def _derived(c):
     return c
 
 
-def make_calibration(numeraire='cpi', booking='import', ets=False, **overrides):
+def make_calibration(numeraire='cpi', booking='import', ets=False, recycle=None, **overrides):
     """Build a calibration; numeraire, booking, ets must match build_model."""
     c = dict(BASE)
     c.update(DURABLE)
@@ -111,7 +111,10 @@ def make_calibration(numeraire='cpi', booking='import', ets=False, **overrides):
     c = _derived(c)
     c['p_num'] = 1.0
     if ets:
-        c.pop('Trebate', None)
+        if recycle == "green_subsidy":
+            pass 
+        else: 
+            c.pop('Trebate', None)
     return c
 
 

@@ -24,6 +24,7 @@ def _fp(name):
 ECONOMIES = {                     # colour
     'baseline': dict(),
     'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=TAU_B, recycle='rebate')),
+    'ETS_green_subsidy':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='green_subsidy')),
 }
 SHOCKS = {
     'price':  dict(shock_kind='price'),
@@ -252,6 +253,7 @@ VARS_NOPOL = [
 ECON_STYLE = {
     'baseline': dict(color=COLORS[0], linestyle='-',  linewidth=2.6),
     'ETS':      dict(color=COLORS[2], linestyle='--', linewidth=2.6),
+    'ETS_green_subsidy':      dict(color=COLORS[1], linestyle=':', linewidth=2.6),
 }
 
 
@@ -268,10 +270,10 @@ def scenarios_for(sname):
 
 
 #%%
-if os.path.exists(RESULTS_PATH) and os.path.exists(RESULTS_SS_PATH):
-    results, results_ss = load_results(), load_results(path=RESULTS_SS_PATH)
-else:
-    results, results_ss = run_all(model)
+# if os.path.exists(RESULTS_PATH) and os.path.exists(RESULTS_SS_PATH):
+#     results, results_ss = load_results(), load_results(path=RESULTS_SS_PATH)
+# else:
+results, results_ss = run_all(model)
 if SAVE and not (os.path.exists(RESULTS_PATH) and os.path.exists(RESULTS_SS_PATH)):
     save_results(results)
     save_results(results_ss, path=RESULTS_SS_PATH)
@@ -289,3 +291,5 @@ else:
         plot_grid(results, 'none', shocks=[sname],
                   savepath=f'irf_baseline_vs_ets_{sname}_extended.pdf')
         plt.show()
+
+# %%

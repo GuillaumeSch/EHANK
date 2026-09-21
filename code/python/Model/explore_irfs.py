@@ -525,6 +525,11 @@ irf_fp_brown_supply, _ = plot_irfs(scenarios_fp_brown_supply, variables=VARS_FP5
                                    legend_ax_idx=1, ylims=ylims_supply, save_path='irf_fp_brown_supply.pdf')
 
 # %% ETS policies 
+
+ss_ets_rebated = results_ss[('none', 'ETS', 'price', 'adoption')]
+ss_ets_subsidy = results_ss[('none', 'ETS_green_subsidy', 'price', 'adoption')]
+
+
 irf_ets_rebated_price = results[('none', 'ETS', 'price', 'adoption')] 
 irf_ets_subsidy_price = results[('none', 'ETS_green_subsidy', 'price', 'adoption')] 
 
@@ -532,3 +537,27 @@ irf_ets_subsidy_price = results[('none', 'ETS_green_subsidy', 'price', 'adoption
 # pct series divide by zero in brown case, so use levels instead
 irf_ets_rebated_price['CE_G_pc'] = irf_ets_rebated_price['CE_G'] 
 irf_ets_subsidy_price['CE_G_pc'] = irf_ets_subsidy_price['CE_G'] 
+# %%
+plt.plot(irf_ets_rebated_price['D_GREEN'])
+plt.plot(irf_ets_subsidy_price['D_GREEN'], ls="--")
+
+# %%
+ss_ets_rebated['C_BROWN_PC']
+# %%
+ss_ets_subsidy['C_BROWN_PC']
+
+# %%
+plt.subplot(1,2,1)
+plt.plot(irf_ets_rebated_price['C_BROWN_PC'][:20]/ss_ets_rebated['C_BROWN_PC']*100)
+plt.plot(irf_ets_subsidy_price['C_BROWN_PC'][:20]/ss_ets_subsidy['C_BROWN_PC']*100, ls="--")
+plt.title("dirty users")
+
+plt.subplot(1,2,2)
+plt.plot(irf_ets_rebated_price['C_GREEN_PC'][:20]/ss_ets_rebated['C_GREEN_PC']*100)
+plt.plot(irf_ets_subsidy_price['C_GREEN_PC'][:20]/ss_ets_subsidy['C_GREEN_PC']*100, ls="--")
+plt.title("green users")
+
+plt.show()
+
+
+# %%

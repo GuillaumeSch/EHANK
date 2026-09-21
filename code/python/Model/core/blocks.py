@@ -255,11 +255,10 @@ def fiscal(B, rante, btw_n, psiB, tauY, epsT, insE, pE_P, cE, CE_B, tauE, bb,
     Ttargeted = insE * (pE_P - pE_P.ss) * CE_B.ss
     base_S = CE_B # cE   # all energy is imported at the market price pE_P (see CA); the cap subsidy bridges household payment vs that market cost, so the base is total energy
     Subsidy = tauE * (pE_P - pE_P.ss) * base_S
-    Subsidy_green = (s_g - s_g.ss) * psi_g * D_SWITCH
+    Subsidy_green = s_g * psi_g * D_SWITCH
     R_carbon = tau_b * pE_B_pretax_P * CE_B + tau_g * pE_G_pretax_P * CE_G
-    green_subsidy_p = s_g.ss * psi_g * D_SWITCH
-    Trebate_res = Trebate - (R_carbon - green_subsidy_p)
-    spending = Tuntargeted + Ttargeted + Subsidy + Subsidy_green + Trebate + green_subsidy_p
+    Trebate_res = Trebate - (R_carbon - Subsidy_green)
+    spending = Tuntargeted + Ttargeted + Subsidy + Subsidy_green + Trebate 
     taxation = tauY * btw_n + R_carbon
     B_res = (1 + rante(-1)) * B(-1) + spending - taxation - B
     tauY_res = (1 - bb) * (psiB * (B(-1) - B.ss) - tauY) + bb * (B - B.ss)

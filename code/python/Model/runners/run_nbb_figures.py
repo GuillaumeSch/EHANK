@@ -172,6 +172,24 @@ def carbon_steady_state(tb_max=0.35, pEb_max=1.35, n=15):
     dg_rebate = np.array(dg_rebate)
     pEb_rebate = np.array(pEb_rebate)
 
+    # carbon tax, green subsidy 
+    m = build_model(NUM, booking=BOOK, ets=True)
+    u, t = ss_unknowns_targets_fixed_psi(BOOK, ets=True, recycle="green_subsidy")
+    grid = np.linspace(0.0, tb_max, n)
+    dg_green = []
+    pEb_green = []
+    for tb in grid:
+        try:
+            dg, pe = _dgreen_and_pEb(m, u, t, ets=True, tau_b=float(tb), psi_g_bar=psi0, recycle="green_subsidy")
+            dg_green.append(dg)
+            pEb_green.append(pe)
+        except Exception:
+            print("fail, tau = ", tb)
+            dg_green.append(np.nan)   # bracketing solvers fail past tau_b ~ 0.4
+            pEb_green.append(np.nan)
+    dg_green = np.array(dg_green)
+    pEb_green = np.array(pEb_green)
+
     # pEstar 
     m = build_model(NUM, booking=BOOK, ets=False)
     u, t = ss_unknowns_targets_fixed_psi(BOOK, ets=False)
@@ -192,7 +210,8 @@ def carbon_steady_state(tb_max=0.35, pEb_max=1.35, n=15):
 
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.plot(pEb_pE, 100 * dg_pE, color='#0072B2', ls='-', lw=2.4, label= r"$\tau_b=0$")
-    ax.plot(pEb_rebate, 100 * dg_rebate, color='#0072B2', ls='--', lw=2.4, label="Rebate")
+    ax.plot(pEb_rebate, 100 * dg_rebate, color="#0072B2", ls='--', lw=2.4, label="Rebate")
+    ax.plot(pEb_green, 100 * dg_green, color='#0072B2', ls=':', lw=2.4, label="Green subsidy")
     ax.set_xlabel(r'Household energy price $P_{Eb} = (1+\tau_b)QP^*_{Eb}$'); ax.set_ylabel('SS green share (%)')
     ax.set_title('Carbon pricing and adoption'); ax.legend(loc='best')
 
@@ -325,5 +344,5 @@ fig.tight_layout()
 
 # %%
 
- carbon_steady_state(n=5)
+ carbon_steady_state(n=10)
 # %%

@@ -16,18 +16,27 @@ _SS_UNKNOWNS_BASE = {'vphi': 1, 'beta_max': 0.984, 'y': 0.9868, 'psi_g_bar': 0.2
 _SS_TARGETS_BASE = ['piwres', 'nfares', 'goods_clearing', 'D_GREEN_res', 'pires']
 
 
-def td_unknowns_targets(booking='import', ets=False):
+def td_unknowns_targets(booking='import', ets=False, recycle=None):
     u, t = set(_UNKNOWNS_TD_BASE), set(_TARGETS_TD_BASE)
     if ets:
-        u.add('Trebate'); t.add('Trebate_res')
+        t.add('Trebate_res')
+        if recycle == "green_subsidy":
+            u.add('Trebate')
+        else:
+            u.add('s_g')
+        
     return u, t
 
 
-def ss_unknowns_targets(booking='import', ets=False):
+def ss_unknowns_targets(booking='import', ets=False, recycle=None):
     u, t = dict(_SS_UNKNOWNS_BASE), list(_SS_TARGETS_BASE)
     if ets:
-        u = dict(u); u['Trebate'] = 0.0
         t = t + ['Trebate_res']
+        u = dict(u); 
+        if recycle == "green_subsidy":
+            u['s_g'] = 0.0
+        else:
+            u['Trebate'] = 0.0
     return u, t
 
 
@@ -39,8 +48,8 @@ def dissolve_list(booking='import'):
     return ['unions', 'UIP', 'CA', 'piW_to_W', 'pitop']
 
 
-def ss_unknowns_targets_fixed_psi(booking='import', ets=False):
-    u, t = ss_unknowns_targets(booking, ets=ets)
+def ss_unknowns_targets_fixed_psi(booking='import', ets=False, recycle=None):
+    u, t = ss_unknowns_targets(booking, ets=ets,recycle=recycle)
     u = {k: v for k, v in u.items() if k != 'psi_g_bar'}
     t = [x for x in t if x != 'D_GREEN_res']
     return u, t
@@ -217,8 +226,8 @@ def run(model, shock_kind='price', policy='none', model_variant='adoption',
         if recycle == 'green_subsidy':
             ov['s_g'] = ek.get('s_g_ets', 0.0)   # permanent, carbon-financed
 
-    calib = make_calibration(numeraire, booking=booking, ets=ets, **ov)
-    unknowns_td, targets_td = td_unknowns_targets(booking, ets=ets)
+    calib = make_calibration(numeraire, booking=booking, ets=ets, recycle=recycle, **ov)
+    unknowns_td, targets_td = td_unknowns_targets(booking, ets=ets, recycle=recycle)
 
     adoption_shut = float(ov.get('green_block', 0.0)) > 0.0
     if ets or adoption_shut:
@@ -229,7 +238,7 @@ def run(model, shock_kind='price', policy='none', model_variant='adoption',
         base_calib['E_supply_elasticity'] = np.inf   # closure-invariant here; avoids a spurious SS energy residual
         ss_base = solve_ss(model, base_calib, booking=booking)
         calib['psi_g_bar'] = float(ss_base['psi_g_bar'])
-        unknowns, targets = ss_unknowns_targets_fixed_psi(booking, ets=ets)
+        unknowns, targets = ss_unknowns_targets_fixed_psi(booking, ets=ets, recycle=recycle)
     else:
         unknowns, targets = ss_unknowns_targets(booking)
 
