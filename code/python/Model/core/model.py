@@ -20,10 +20,11 @@ def td_unknowns_targets(booking='import', ets=False, recycle=None):
     u, t = set(_UNKNOWNS_TD_BASE), set(_TARGETS_TD_BASE)
     if ets:
         t.add('Trebate_res')
-        if recycle == "green_subsidy":
-            u.add('Trebate')
-        else:
+        if recycle == "green_subsidy" or recycle == "green_subsidy_dynamics":
             u.add('s_g')
+        else:
+            u.add('Trebate')
+            
         
     return u, t
 
@@ -229,12 +230,12 @@ def run(model, shock_kind='price', policy='none', model_variant='adoption',
     calib = make_calibration(numeraire, booking=booking, ets=ets, recycle=recycle, **ov)
     unknowns_td, targets_td = td_unknowns_targets(booking, ets=ets, recycle=recycle)
 
-    adoption_shut = float(ov.get('green_block', 0.0)) > 0.0
+    adoption_shut = float(ov.get('green_block', 0.0)) > 0.0 or abs(ov.get('PEstar', 1.0) - 1.0)>.01
     if ets or adoption_shut:
         # psi_g fixed at baseline; D_GREEN floats
         base_calib = make_calibration(numeraire, booking=booking, **{
             k: v for k, v in ov.items()
-            if k not in ('tau_b', 'tau_g', 's_g_ets', 's_g', 'green_block')})
+            if k not in ('tau_b', 'tau_g', 's_g_ets', 's_g', 'green_block', 'PEstar', 'PEstar_shock')})
         base_calib['E_supply_elasticity'] = np.inf   # closure-invariant here; avoids a spurious SS energy residual
         ss_base = solve_ss(model, base_calib, booking=booking)
         calib['psi_g_bar'] = float(ss_base['psi_g_bar'])
@@ -254,7 +255,7 @@ def run(model, shock_kind='price', policy='none', model_variant='adoption',
         ss = solve_ss(model, calib, unknowns=unknowns, targets=targets, booking=booking)
 
     if shock_kind == 'price':
-        shk = shock_price(**(shock_kwargs or {}))
+        shk = shock_price(size=ss['PEstar_shock'], **(shock_kwargs or {}))
     elif shock_kind == 'monetary':
         shk = shock_mon(**(shock_kwargs or {}))
     else:  # 'supply' = matched supply shock

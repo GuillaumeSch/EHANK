@@ -24,7 +24,9 @@ ECONOMIES = {                     # colour
     'baseline': dict(),
     'ETS':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='rebate')),
     'ETS_green_subsidy':      dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='green_subsidy')),
+    'ETS_green_subsidy_v2':  dict(ets=True, ets_kwargs=dict(tau_b=0.10, recycle='green_subsidy_dynamics')),
     #'brown':    dict(green_block=20.0),
+    'baseline_high_pe': dict(PEstar=1.1, PEstar_shock=1.1),
 }
 SHOCKS = {
     'price':  dict(shock_kind='price'),
@@ -528,15 +530,17 @@ irf_fp_brown_supply, _ = plot_irfs(scenarios_fp_brown_supply, variables=VARS_FP5
 
 ss_ets_rebated = results_ss[('none', 'ETS', 'price', 'adoption')]
 ss_ets_subsidy = results_ss[('none', 'ETS_green_subsidy', 'price', 'adoption')]
-
+ss_ets_subsidy2 = results_ss[('none', 'ETS_green_subsidy_v2', 'price', 'adoption')]
+ss_baseline = results_ss[('none', 'baseline', 'price', 'adoption')]
+ss_high_pe = results_ss[('none', 'baseline_high_pe', 'price', 'adoption')]
 
 irf_ets_rebated_price = results[('none', 'ETS', 'price', 'adoption')] 
 irf_ets_subsidy_price = results[('none', 'ETS_green_subsidy', 'price', 'adoption')] 
+irf_ets_subsidy2_price = results[('none', 'ETS_green_subsidy_v2', 'price', 'adoption')] 
 
+irf_baseline_price = results[('none', 'baseline', 'price', 'adoption')] 
+irf_high_pe_price = results[('none', 'baseline_high_pe', 'price', 'adoption')] 
 
-# pct series divide by zero in brown case, so use levels instead
-irf_ets_rebated_price['CE_G_pc'] = irf_ets_rebated_price['CE_G'] 
-irf_ets_subsidy_price['CE_G_pc'] = irf_ets_subsidy_price['CE_G'] 
 # %%
 plt.plot(irf_ets_rebated_price['D_GREEN'])
 plt.plot(irf_ets_subsidy_price['D_GREEN'], ls="--")
@@ -548,16 +552,33 @@ ss_ets_subsidy['C_BROWN_PC']
 
 # %%
 plt.subplot(1,2,1)
-plt.plot(irf_ets_rebated_price['C_BROWN_PC'][:20]/ss_ets_rebated['C_BROWN_PC']*100)
-plt.plot(irf_ets_subsidy_price['C_BROWN_PC'][:20]/ss_ets_subsidy['C_BROWN_PC']*100, ls="--")
+plt.plot(irf_ets_rebated_price['C_BROWN_PC'][:20]/ss_ets_rebated['C_BROWN_PC']*100, label="rebate")
+plt.plot(irf_ets_subsidy2_price['C_BROWN_PC'][:20]/ss_ets_subsidy['C_BROWN_PC']*100, ls="--", label="green subsidy")
+plt.legend()
 plt.title("dirty users")
 
 plt.subplot(1,2,2)
 plt.plot(irf_ets_rebated_price['C_GREEN_PC'][:20]/ss_ets_rebated['C_GREEN_PC']*100)
-plt.plot(irf_ets_subsidy_price['C_GREEN_PC'][:20]/ss_ets_subsidy['C_GREEN_PC']*100, ls="--")
+plt.plot(irf_ets_subsidy2_price['C_GREEN_PC'][:20]/ss_ets_subsidy['C_GREEN_PC']*100, ls="--")
 plt.title("green users")
 
 plt.show()
 
 
+# %%
+list(irf_ets_subsidy_price.keys())
+
+# %%
+irf_ets_subsidy_price.internals
+
+# %%
+ss_ets_subsidy2['s_g']
+# %%
+TT=20
+
+plt.plot(irf_high_pe_price['D_GREEN'][:TT], label="baseline")
+plt.plot(irf_ets_rebated_price['D_GREEN'][:TT], label="rebate")
+plt.plot(irf_ets_subsidy2_price['D_GREEN'][:TT], label="green subsidy")
+plt.title('Adoption')
+plt.legend()
 # %%
