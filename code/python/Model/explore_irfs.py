@@ -576,9 +576,49 @@ ss_ets_subsidy2['s_g']
 # %%
 TT=20
 
-plt.plot(irf_high_pe_price['D_GREEN'][:TT], label="baseline")
-plt.plot(irf_ets_rebated_price['D_GREEN'][:TT], label="rebate")
-plt.plot(irf_ets_subsidy2_price['D_GREEN'][:TT], label="green subsidy")
+plt.plot(irf_baseline_price['D_SWITCH_share'][:TT], label="baseline")
+plt.plot(irf_ets_rebated_price['D_SWITCH_share'][:TT], label="rebate")
+plt.plot(irf_ets_subsidy_price['D_SWITCH_share'][:TT], label="green subsidy")
 plt.title('Adoption')
 plt.legend()
+plt.show()
+
+plt.plot(irf_high_pe_price['D_SWITCH_share'][:TT], label="baseline (high pE)")
+plt.plot(irf_ets_rebated_price['D_SWITCH_share'][:TT], label="rebate")
+plt.plot(irf_ets_subsidy2_price['D_SWITCH_share'][:TT], label="green subsidy")
+plt.title('Adoption')
+plt.legend()
+plt.show()
 # %%
+plt.plot(irf_baseline_price['D_GREEN'])
+plt.plot(irf_high_pe_price['D_GREEN'])
+# %%
+#%% Figure: ETS 
+color = 'tab:blue'
+
+scenarios1_ets_price = [
+    (irf_baseline_price,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+    (irf_ets_rebated_price, 'ETS, lump-sum recycling',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+    (irf_ets_subsidy_price,  'ETS, green-subsidy recycling',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+]
+
+# scenarios1_ets_supply = [
+#     (irf_base_nopol_supply,   'Baseline',           dict(color=color, linestyle='-',  alpha=1.0, linewidth=2.6)),
+#     (irf_frozen_nopol_supply, 'Constant adoption',  dict(color=color, linestyle='--', alpha=0.9, linewidth=2.6)),
+#     (irf_brown_nopol_supply,  'Dirty economy',              dict(color=color, linestyle=':',  alpha=0.8, linewidth=2.6)),
+# ]
+
+# Panels (a) price and (b) supply share a common vertical scale per variable.
+VARS_NOPOL = [
+    ('pi_ann_pp',     r'Inflation $\pi$ (annualized)',        'p.p dev. from SS'),
+    ('y_pc',          r'Output $Y$',                          '% dev. from SS'),
+    ('CE_G_pc',       r'Green energy consumption $C_{Eg}$',   '% dev. from SS'),
+    ('D_GREEN_share', 'Green technology users',               'p.p dev. from SS'),
+    ('CE_B_pc',       r'Fossil energy consumption $C_{Eb}$',  '% dev. from SS'),
+    ('PEstar_pc',     r'World fossil energy price $P^*_{Eb}$', '% dev. from SS'),
+]
+ylims_nopol = shared_ylims([scenarios1_price, scenarios1_supply], VARS_NOPOL)
+
+irf_no_policy_price, axes = plot_irfs(scenarios1_price, variables=VARS_NOPOL, ylims=ylims_nopol)
+irf_no_policy_price.savefig(_fp('irf_no_policy_price.pdf'))
+plt.show()

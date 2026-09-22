@@ -134,7 +134,7 @@ def pEb_panel(ax, pEb_max=1.5, n=15):
     ax.plot(grid, 100 * dg, color='#0072B2', lw=2.4)
     ax.plot([1.0], [100 * dg[0]], 'o', color='#D55E00', ms=6, zorder=5,
             markeredgecolor='white', markeredgewidth=0.8, label='Baseline')
-    ax.set_xlabel(r'Steady-state energy price $P^*_{Eb.ss}$ (%)'); ax.set_ylabel('SS green share (%)')
+    ax.set_xlabel(r'Steady-state energy price $P^*_{Eb.ss}$'); ax.set_ylabel('SS green share (%)')
     ax.set_title('(c) Adoption vs dirty energy price'); ax.legend(loc='best')
 
 
@@ -208,12 +208,13 @@ def carbon_steady_state(tb_max=0.35, pEb_max=1.35, n=15):
     dg_pE = np.array(dg_pE)
     pEb_pE = np.array(pEb_pE) 
 
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(8, 4)) 
     ax.plot(pEb_pE, 100 * dg_pE, color='#0072B2', ls='-', lw=2.4, label= r"$\tau_b=0$")
     ax.plot(pEb_rebate, 100 * dg_rebate, color="#0072B2", ls='--', lw=2.4, label="Rebate")
     ax.plot(pEb_green, 100 * dg_green, color='#0072B2', ls=':', lw=2.4, label="Green subsidy")
     ax.set_xlabel(r'Household energy price $P_{Eb} = (1+\tau_b)QP^*_{Eb}$'); ax.set_ylabel('SS green share (%)')
     ax.set_title('Carbon pricing and adoption'); ax.legend(loc='best')
+    fig.savefig(_fp('fig_ss_ets.pdf'))
 
 
 
@@ -314,7 +315,8 @@ def fig_percapita(irfs, shock='price'):
         for pol in POLS:
             ss, irf = irfs[(shock, pol)]
             ax.plot(_pct(irf, key, ss)[:H], color=POL_COLOR[pol], ls=POL_LS[pol],
-                    alpha=POL_ALPHA[pol], lw=LW, label=POL_LABEL[pol])
+                    alpha
+                    =POL_ALPHA[pol], lw=LW, label=POL_LABEL[pol])
         ax.axhline(0, color='k', lw=0.6, zorder=0); ax.set_xlabel('quarter'); ax.set_title(title)
         ax.grid(True, alpha=0.25, linewidth=0.5)
         ax.xaxis.set_major_locator(MultipleLocator(4))
@@ -335,14 +337,17 @@ def fig_percapita(irfs, shock='price'):
 
 # %%
 fig_steady_state()
+# # %%
+# fig, ax = plt.subplots(1,3, figsize=(13.5, 4.0))
+# pEb_panel(ax[0], n=5)
+# carbon_panel(ax[0], n=5)
+
+# fig.tight_layout()
+
 # %%
-fig, ax = plt.subplots(1,3, figsize=(13.5, 4.0))
-pEb_panel(ax[0], n=5)
-carbon_panel(ax[0], n=5)
 
-fig.tight_layout()
-
+carbon_steady_state(n=15)
 # %%
+fig_steady_state_2()
 
- carbon_steady_state(n=10)
 # %%

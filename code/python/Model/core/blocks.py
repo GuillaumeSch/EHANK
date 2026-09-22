@@ -295,7 +295,7 @@ def eqm_cond(y, cH, cHstar, cH_switch, A_cpi, gdp, nfa, j, B, cE, prodE,
 
 
 @sj.simple 
-def variables_to_plot(y, C, CE_B, CE_G, D_GREEN, D_SWITCH, PEstar, pE_B, pi_ann, B):
+def variables_to_plot(y, C, CE_B, CE_G, D_GREEN, D_SWITCH, PEstar, pE_B, pi_ann, B, C_BROWN_PC, C_GREEN_PC):
     y_pc = (y/y.ss - 1)*100 
     C_pc = (C/C.ss - 1)*100
     CE_B_pc = (CE_B/CE_B.ss - 1)*100 
@@ -308,8 +308,10 @@ def variables_to_plot(y, C, CE_B, CE_G, D_GREEN, D_SWITCH, PEstar, pE_B, pi_ann,
     D_SWITCH_share = D_SWITCH*100 
     pi_ann_pp = pi_ann*100
     B_yss = B/y.ss*100
+    C_BROWN_PC_pc =  (C_BROWN_PC/C_BROWN_PC.ss-1)*100
+    C_GREEN_PC_pc = (C_GREEN_PC/C_GREEN_PC.ss-1)*100
 
-    return y_pc, C_pc, CE_B_pc, CE_G_pc, PEstar_pc, PE_B_pc, D_GREEN_pc, D_SWITCH_pc, pi_ann_pp, D_GREEN_share, D_SWITCH_share, B_yss
+    return y_pc, C_pc, CE_B_pc, CE_G_pc, PEstar_pc, PE_B_pc, D_GREEN_pc, D_SWITCH_pc, pi_ann_pp, D_GREEN_share, D_SWITCH_share, B_yss, C_BROWN_PC_pc, C_GREEN_PC_pc
 
 TARGETS = ['uip', 'piwres', 'nfares', 'goods_clearing', 'assets_clearing',
            'Pres', 'w_res', 'E_clearing', 'outer_nest']
