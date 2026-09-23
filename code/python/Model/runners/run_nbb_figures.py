@@ -336,16 +336,9 @@ def fig_percapita(irfs, shock='price'):
 #     print('done')
 
 # %%
-fig_steady_state()
-# # %%
-# fig, ax = plt.subplots(1,3, figsize=(13.5, 4.0))
-# pEb_panel(ax[0], n=5)
-# carbon_panel(ax[0], n=5)
-
-# fig.tight_layout()
+# fig_steady_state()
 
 # %%
-
 carbon_steady_state(n=15)
 # %%
 fig_steady_state_2()

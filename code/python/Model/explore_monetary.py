@@ -71,22 +71,24 @@ def run_all(model, economies=ECONOMIES, shocks=SHOCKS, variants=VARIANTS,
     """Solve every (pol, econ, sname, variant, mon) cell; dict keyed by that
     tuple -> irf. Mirrors explore_irfs.run_all with monetary as an extra axis."""
     results = {}
+    results_ss = {}
     for pol in fiscal:
         for econ, ekw in economies.items():
             for sname, shk in shocks.items():
                 for variant in variants:
                     for mon, mkw in rules.items():
                         try:
-                            _, irf = run(model, policy=pol, model_variant=variant,
+                            ss, irf = run(model, policy=pol, model_variant=variant,
                                          **shk, **ekw, **mkw)
                             results[(pol, econ, sname, variant, mon)] = _augment(irf)
+                            results_ss[(pol, econ, sname, variant, mon)] = ss
                             if verbose:
                                 print(f'PASS {pol:8s} {econ:9s} {sname:7s} {variant:11s} {mon}')
                         except Exception as e:
                             if verbose:
                                 print(f'FAIL {pol:8s} {econ:9s} {sname:7s} {variant:11s} {mon}: '
                                       f'{type(e).__name__}: {e}')
-    return results
+    return results, results_ss
 
 
 def run_accommodation(model, shock_kind='price', econ='baseline', policy='none',
@@ -114,7 +116,7 @@ def load_results(path=RESULTS_PATH):
         return pickle.load(f)
 
 
-results = run_all(model)
+results, results_ss = run_all(model)
 if SAVE:
     save_results(results)
 
