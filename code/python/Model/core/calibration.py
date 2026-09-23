@@ -4,7 +4,8 @@ import numpy as np
 BASE = dict(
     # preferences / income risk
     r=0.01, eis=1, frisch=0.5,
-    sd_e=0.57, rho_e=0.92, n_e=7,
+    # sd_e=0.57, rho_e=0.92, n_e=7,
+    sd_e=0.504, rho_e=0.966, n_e=7,
     n_beta=3, beta_spread=0.06, beta_max=0.95,
     min_a=0, max_a=400, n_a=50,
 
@@ -40,7 +41,7 @@ BASE = dict(
 
 
 DURABLE = dict(
-    delta_g=0.05,      # green durable breakdown rate (quarterly)
+    delta_g= 0.02, #0.05,      # green durable breakdown rate (quarterly)
     psi_g_bar=0.253,   # switching-cost bundle quantity; solved to D_GREEN_ss=0.05
     taste_shock=0.05,  # logit scale on the adoption choice
     # Green/brown operating-cost ratio rho = (P_elec*e_BEV)/(P_petrol*e_ICE)
@@ -48,9 +49,9 @@ DURABLE = dict(
     # Prices: Eurostat nrg_pc_204 (electricity), EC Weekly Oil Bulletin (petrol).
     # Efficiencies: IEA Global EV Outlook 2026 (BEV 21 kWh/100km); on-road ICE
     # ~7 L/100km (FR SDES 7.1).
-    PEGstar=0.54,      # exogenous world price of green energy (green/brown SS ratio)
+    PEGstar= .48, #0.54,      # exogenous world price of green energy (green/brown SS ratio)
     green_block=0.0,   # 0 = adoption open; large = adoption shut (counterfactual)
-    D_GREEN_ss_target=0.05,
+    D_GREEN_ss_target=0.111, #0.05,
     alpha_F_switch=0.271,  # import share of the adoption-expenditure bundle;
                          # 1 = pure-import booking (baseline), <1 routes part of
                          # adoption spending onto domestic output

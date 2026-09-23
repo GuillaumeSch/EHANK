@@ -71,6 +71,7 @@ def ss_probability_panel(ax):
                         (-1, dict(color='#9ecae1', ls=':'), 'High productivity')]:
         ax.plot(a, 100 * P[2, 0, e, :], lw=2.4, **sty, label=lab)
     ax.set_xlabel('Individual assets'); ax.set_ylabel('Prob. of adopting green (%)')
+    ax.set_xlim(right=150)
     ax.set_title('(a) Adoption probability, by wealth'); ax.legend(loc='best')
 
 
@@ -85,14 +86,14 @@ def _dgreen_and_pEb(model, u, t, **ov):
     return float(ss['D_GREEN']), float(ss['pE_B'])
 
 
-def psi_panel(ax, n=25):
+def psi_panel(ax, n=50):
     m = build_model(NUM, booking=BOOK)
     u, t = ss_unknowns_targets_fixed_psi(BOOK)
     psi0 = float(solve_ss(m, make_calibration(NUM, booking=BOOK), booking=BOOK)['psi_g_bar'])
     grid = np.linspace(0.45 * psi0, 1.55 * psi0, n)
     dg = np.array([_dgreen(m, u, t, psi_g_bar=float(p)) for p in grid])
     ax.plot(grid, 100 * dg, color='#0072B2', lw=2.4)
-    ax.plot([psi0], [5.0], 'o', color='#D55E00', ms=6, zorder=5,
+    ax.plot([psi0], [11.1], 'o', color='#D55E00', ms=6, zorder=5,
             markeredgecolor='white', markeredgewidth=0.8, label='Baseline')
     ax.set_xlabel(r'Durable size $\overline{d}_g$'); ax.set_ylabel('SS green share (%)')
     ax.set_title('(b) Adoption vs durable size'); ax.legend(loc='best')
@@ -117,7 +118,7 @@ def carbon_panel(ax, tb_max=0.35, n=15):
     ax.set_xlabel(r'Steady-state carbon price $\tau^b_{ss}$ (%)'); ax.set_ylabel('SS green share (%)')
     ax.set_title('(c) Adoption vs carbon price'); ax.legend(loc='best')
 
-def pEb_panel(ax, pEb_max=1.5, n=15):
+def pEb_panel(ax, pEb_max=1.5, n=35):
     m0 = build_model(NUM, booking=BOOK, ets=False)
     psi0 = float(solve_ss(m0, make_calibration(NUM, booking=BOOK), booking=BOOK)['psi_g_bar'])
     m = build_model(NUM, booking=BOOK, ets=False)
@@ -134,7 +135,7 @@ def pEb_panel(ax, pEb_max=1.5, n=15):
     ax.plot(grid, 100 * dg, color='#0072B2', lw=2.4)
     ax.plot([1.0], [100 * dg[0]], 'o', color='#D55E00', ms=6, zorder=5,
             markeredgecolor='white', markeredgewidth=0.8, label='Baseline')
-    ax.set_xlabel(r'Steady-state energy price $P^*_{Eb.ss}$'); ax.set_ylabel('SS green share (%)')
+    ax.set_xlabel(r'Steady-state energy price $P^*_{Eb,ss}$'); ax.set_ylabel('SS green share (%)')
     ax.set_title('(c) Adoption vs dirty energy price'); ax.legend(loc='best')
 
 
@@ -145,13 +146,13 @@ def fig_steady_state():
     return fig
 
 def fig_steady_state_2():
-    fig, ax = plt.subplots(1, 3, figsize=(13.5, 4.0))
+    fig, ax = plt.subplots(1, 3, figsize=(13.5, 5.5))
     ss_probability_panel(ax[0]); psi_panel(ax[1]); pEb_panel(ax[2])
     fig.tight_layout(); fig.savefig(_fp('fig_ss_adoption_2.pdf'), bbox_inches='tight')
     return fig
 
 
-def carbon_steady_state(tb_max=0.35, pEb_max=1.35, n=15):
+def carbon_steady_state(tb_max=0.2, pEb_max=1.2, n=15):
     m0 = build_model(NUM, booking=BOOK, ets=False)
     psi0 = float(solve_ss(m0, make_calibration(NUM, booking=BOOK), booking=BOOK)['psi_g_bar'])
 
@@ -253,7 +254,7 @@ def fig_adoption_dynamics():
     for e, c, _ in groups:
         ax.plot(a, padopt(Pss, e), color=c, ls='--', lw=2.2)   # before (steady state)
         ax.plot(a, padopt(P0, e), color=c, ls='-', lw=2.2)     # after (quarter 0)
-    ax.set_xlim(0, 50); ax.set_xlabel('Individual assets')
+    ax.set_xlim(0, 100); ax.set_xlabel('Individual assets')
     ax.set_ylabel('Probability of adjusting (%)')
     ax.set_title('Clean adoption probability after the price shock')
     ax.grid(True, alpha=0.25, linewidth=0.5)
@@ -261,7 +262,7 @@ def fig_adoption_dynamics():
     col_h = [Line2D([], [], color=c, lw=2.2, label=f'{lab} productivity') for _, c, lab in groups]
     sty_h = [Line2D([], [], color='0.35', lw=2.2, ls='--', label='Steady state'),
              Line2D([], [], color='0.35', lw=2.2, ls='-', label='Quarter 0')]
-    leg1 = ax.legend(handles=col_h, loc='upper left', fontsize=8); ax.add_artist(leg1)
+    leg1 = ax.legend(handles=col_h, loc='upper right', fontsize=8); ax.add_artist(leg1)
     ax.legend(handles=sty_h, loc='lower right', fontsize=8)
     fig.tight_layout(); fig.savefig(_fp('fig_adoption_dynamics.pdf'), bbox_inches='tight')
     return fig
@@ -343,4 +344,10 @@ carbon_steady_state(n=15)
 # %%
 fig_steady_state_2()
 
+# %%
+fig_adoption_dynamics()
+
+# %%
+irfs = build_irfs()
+fig_percapita(irfs, shock='price')
 # %%

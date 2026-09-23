@@ -10,7 +10,7 @@ from core.model import build_model, run
 
 #%% ---------------------------------------------------------------- 1. config
 NUM, BOOK, H = 'cpi', 'import', 21
-SAVE = True
+SAVE = False
 RESULTS_PATH = 'explore_monetary_results.pkl'
 
 FIGDIR = 'figures'

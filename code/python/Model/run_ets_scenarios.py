@@ -253,6 +253,6 @@ plt.show()
 ylims = shared_ylims([scenarios2_ets_price], VARS_C_PER_CAP)
 irf_ets_cons_02, axes = plot_irfs(scenarios2_ets_price, variables=VARS_C_PER_CAP, ylims=ylims, ni=1, nj=2, figsize=(11, 4.4))
 irf_ets_cons_02.tight_layout()
-irf_ets_cons_02.savefig(_fp('irf_ets_cons_01.pdf'), bbox_inches='tight')
+irf_ets_cons_02.savefig(_fp('irf_ets_cons_02.pdf'), bbox_inches='tight')
 plt.show()
 # %%
